@@ -144,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        {/* LEFT SECTION */}
+        {/* LEFT SECTION: Sidebar Toggle + Logo (NO TAGLINE) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
             onClick={toggleSidebar}
@@ -165,134 +165,126 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, letterSpacing: '0.03em', lineHeight: 1.1 }}>
-              Trade Management Platform
-            </div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: subTextCol, marginTop: '2px' }}>
-              Prepared for Shree Associates
+            <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, letterSpacing: '0.04em' }}>
+              SHREE ASSOCIATES
             </div>
           </div>
         </div>
 
-        {/* CENTER SECTION - ONE LARGE GLOBAL SEARCH BAR */}
-        <div style={{ flex: 1, maxWidth: '520px', margin: '0 28px', position: 'relative' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
-              border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
-              borderRadius: '10px',
-              padding: '8px 14px',
-            }}
-          >
-            <span style={{ fontSize: '14px', color: subTextCol, marginRight: '10px' }}>🔍</span>
-            <input
-              type="text"
-              placeholder="Search Symbol, Company..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => searchTerm.trim() && setShowSearchResults(true)}
-              style={{
-                width: '100%',
-                border: 'none',
-                background: 'transparent',
-                color: textCol,
-                fontSize: '13.5px',
-                fontWeight: 500,
-                outline: 'none',
-              }}
-            />
-          </div>
-
-          {/* Instant Search Dropdown */}
-          {showSearchResults && searchResults.length > 0 && (
+        {/* REORDERED HEADER CONTROLS: Search -> Clock -> Market Status -> Refresh -> Dark Mode -> Sign Out */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, justifyContent: 'flex-end' }}>
+          
+          {/* 1. SEARCH BAR */}
+          <div style={{ position: 'relative', width: '280px' }}>
             <div
               style={{
-                position: 'absolute',
-                top: '46px',
-                left: 0,
-                right: 0,
-                backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
-                border: `1px solid ${borderCol}`,
-                borderRadius: '10px',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
-                maxHeight: '320px',
-                overflowY: 'auto',
-                zIndex: 50,
-                padding: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+                border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`,
+                borderRadius: '8px',
+                padding: '6px 12px',
               }}
             >
-              {searchResults.map((res) => (
-                <div
-                  key={res.id}
-                  onClick={() => {
-                    setShowSearchResults(false);
-                    setSearchTerm('');
-                    window.location.href = res.status === 'CLOSED' ? '/closed' : '/open';
-                  }}
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: '13px',
-                    color: textCol,
-                  }}
-                >
-                  <div>
-                    <span style={{ fontWeight: 800 }}>{res.symbol}</span>
-                    <span style={{ marginLeft: '10px', color: subTextCol, fontSize: '12px' }}>{res.company}</span>
-                  </div>
-                  <span
+              <span style={{ fontSize: '13px', color: subTextCol, marginRight: '8px' }}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search Symbol, Company..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => searchTerm.trim() && setShowSearchResults(true)}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  background: 'transparent',
+                  color: textCol,
+                  fontSize: '12.5px',
+                  fontWeight: 500,
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            {/* Search Dropdown */}
+            {showSearchResults && searchResults.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '42px',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                  border: `1px solid ${borderCol}`,
+                  borderRadius: '8px',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  zIndex: 50,
+                  padding: '4px',
+                }}
+              >
+                {searchResults.map((res) => (
+                  <div
+                    key={res.id}
+                    onClick={() => {
+                      setShowSearchResults(false);
+                      setSearchTerm('');
+                      window.location.href = res.status === 'CLOSED' ? '/closed' : '/open';
+                    }}
                     style={{
-                      fontSize: '10.5px',
-                      fontWeight: 800,
-                      padding: '3px 8px',
-                      borderRadius: '5px',
-                      backgroundColor: res.status === 'OPEN' ? '#DCFCE7' : '#F1F5F9',
-                      color: res.status === 'OPEN' ? '#15803D' : '#475569',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '12.5px',
+                      color: textCol,
                     }}
                   >
-                    {res.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* COMPACT TYPOGRAPHY-ONLY MARKET STRIP */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '18px', fontSize: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block', boxShadow: '0 0 6px #16A34A' }} />
-            <span style={{ color: textCol, letterSpacing: '0.04em' }}>NSE LIVE</span>
+                    <div>
+                      <span style={{ fontWeight: 800 }}>{res.symbol}</span>
+                      <span style={{ marginLeft: '8px', color: subTextCol, fontSize: '11.5px' }}>{res.company}</span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        backgroundColor: res.status === 'OPEN' ? '#DCFCE7' : '#F1F5F9',
+                        color: res.status === 'OPEN' ? '#15803D' : '#475569',
+                      }}
+                    >
+                      {res.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div style={{ color: subTextCol }}>
-            <strong style={{ color: textCol, marginRight: '4px' }}>NIFTY 50</strong>
-            <span style={{ color: textCol, fontWeight: 700 }}>24,812.40</span>
-            <span style={{ color: '#16A34A', marginLeft: '4px', fontWeight: 800 }}>+0.74%</span>
-          </div>
-
-          <div style={{ color: subTextCol }}>
-            <strong style={{ color: textCol, marginRight: '4px' }}>SENSEX</strong>
-            <span style={{ color: textCol, fontWeight: 700 }}>81,350.20</span>
-            <span style={{ color: '#16A34A', marginLeft: '4px', fontWeight: 800 }}>+0.67%</span>
-          </div>
-        </div>
-
-        {/* RIGHT SECTION - CLOCK, MERGED REFRESH, THEME, PROFILE */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '20px' }}>
-          {/* Compact Clock */}
+          {/* 2. CLOCK */}
           <div style={{ textAlign: 'right', fontSize: '12px', color: subTextCol, fontWeight: 600 }}>
             <div style={{ color: textCol, fontWeight: 800, fontSize: '12.5px' }}>{currentTime}</div>
-            <div style={{ fontSize: '11px' }}>{currentDate}</div>
+            <div style={{ fontSize: '10.5px' }}>{currentDate}</div>
           </div>
 
-          {/* Merged Refresh Menu Dropdown */}
+          {/* 3. MARKET STATUS */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block', boxShadow: '0 0 6px #16A34A' }} />
+              <span style={{ color: textCol, letterSpacing: '0.04em' }}>NSE LIVE</span>
+            </div>
+
+            <div style={{ color: subTextCol }}>
+              <strong style={{ color: textCol, marginRight: '4px' }}>NIFTY 50</strong>
+              <span style={{ color: textCol, fontWeight: 700 }}>24,812.40</span>
+              <span style={{ color: '#16A34A', marginLeft: '4px', fontWeight: 800 }}>+0.74%</span>
+            </div>
+          </div>
+
+          {/* 4. REFRESH CONTROL (Beside Sign Out) */}
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowRefreshMenu(!showRefreshMenu)}
@@ -320,7 +312,7 @@ export const Header: React.FC<HeaderProps> = ({
                   position: 'absolute',
                   top: '42px',
                   right: 0,
-                  width: '180px',
+                  width: '170px',
                   backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
                   border: `1px solid ${borderCol}`,
                   borderRadius: '8px',
@@ -341,7 +333,7 @@ export const Header: React.FC<HeaderProps> = ({
                     border: 'none',
                     background: 'none',
                     cursor: 'pointer',
-                    fontSize: '12.5px',
+                    fontSize: '12px',
                     fontWeight: 700,
                     color: textCol,
                   }}
@@ -381,12 +373,12 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Theme Toggle Switch */}
+          {/* 5. DARK MODE TOGGLE (Beside Sign Out) */}
           <button
             onClick={toggleTheme}
             title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
             style={{
-              padding: '7px 10px',
+              padding: '7px 11px',
               borderRadius: '8px',
               border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`,
               backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
@@ -398,7 +390,7 @@ export const Header: React.FC<HeaderProps> = ({
             {isDark ? '☀️' : '🌙'}
           </button>
 
-          {/* Owner Profile Dropdown */}
+          {/* 6. USER PROFILE & SIGN OUT */}
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -437,13 +429,13 @@ export const Header: React.FC<HeaderProps> = ({
                   position: 'absolute',
                   top: '42px',
                   right: 0,
-                  width: '220px',
+                  width: '210px',
                   backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
                   border: `1px solid ${borderCol}`,
                   borderRadius: '8px',
                   boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
                   zIndex: 50,
-                  padding: '8px 0',
+                  padding: '6px 0',
                 }}
               >
                 <div style={{ padding: '8px 16px', borderBottom: `1px solid ${borderCol}`, fontSize: '11.5px', color: subTextCol }}>
@@ -464,7 +456,7 @@ export const Header: React.FC<HeaderProps> = ({
                       border: 'none',
                       background: 'none',
                       cursor: 'pointer',
-                      fontSize: '13px',
+                      fontSize: '12.5px',
                       fontWeight: 600,
                       color: textCol,
                     }}
@@ -482,7 +474,7 @@ export const Header: React.FC<HeaderProps> = ({
                     border: 'none',
                     background: 'none',
                     cursor: 'pointer',
-                    fontSize: '13px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
                     color: '#EF4444',
                   }}
@@ -498,27 +490,27 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Owner Manage Clients Modal */}
       {showManageClients && user?.role === 'OWNER' && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ width: '480px', padding: '24px', backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>👥 Manage Client Accounts</h3>
-              <button onClick={() => setShowManageClients(false)} style={{ border: 'none', background: 'none', fontSize: '16px', cursor: 'pointer', color: subTextCol }}>❌</button>
+          <div style={{ width: '460px', padding: '24px', backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>👥 Manage Client Accounts</h3>
+              <button onClick={() => setShowManageClients(false)} style={{ border: 'none', background: 'none', fontSize: '15px', cursor: 'pointer', color: subTextCol }}>❌</button>
             </div>
 
             {clientMsg && (
-              <div style={{ padding: '10px', borderRadius: '6px', fontSize: '12.5px', marginBottom: '16px', backgroundColor: clientMsg.startsWith('✅') ? '#DCFCE7' : '#FEE2E2', color: clientMsg.startsWith('✅') ? '#15803D' : '#991B1B' }}>
+              <div style={{ padding: '10px', borderRadius: '6px', fontSize: '12px', marginBottom: '14px', backgroundColor: clientMsg.startsWith('✅') ? '#DCFCE7' : '#FEE2E2', color: clientMsg.startsWith('✅') ? '#15803D' : '#991B1B' }}>
                 {clientMsg}
               </div>
             )}
 
             <form onSubmit={handleCreateClient} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: subTextCol }}>Create New Client Account</h4>
+              <h4 style={{ margin: 0, fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>Create New Client Account</h4>
               <input type="text" placeholder="Client Full Name" value={clientName} onChange={(e) => setClientName(e.target.value)} required style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
               <input type="email" placeholder="Client Email Address" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
               <input type="password" placeholder="Client Initial Password" value={clientPassword} onChange={(e) => setClientPassword(e.target.value)} required style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
               
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
-                <button type="button" onClick={() => setShowManageClients(false)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '13px' }}>Cancel</button>
-                <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#16A34A' }}>Create Client Account</button>
+                <button type="button" onClick={() => setShowManageClients(false)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '12.5px' }}>Cancel</button>
+                <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '12.5px', backgroundColor: '#16A34A' }}>Create Client Account</button>
               </div>
             </form>
           </div>

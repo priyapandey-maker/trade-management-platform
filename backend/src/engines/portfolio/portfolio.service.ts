@@ -23,11 +23,22 @@ export class PortfolioService {
       orderBy: { entryDate: 'desc' },
     });
 
-    const openPositions = positions.filter((p: PortfolioPosition) => p.status === 'OPEN');
-    const closedPositions = positions.filter((p: PortfolioPosition) => p.status === 'CLOSED');
-    const archivedPositions = positions.filter((p: PortfolioPosition) => p.status === 'ARCHIVED');
+    const now = new Date();
+    const openPositions: any[] = [];
+    const closedPositions: any[] = [];
+    const archivedPositions: any[] = [];
 
-    // Refresh live quotes for open positions with robust symbol normalization
+    for (const p of positions) {
+      if (p.status === 'OPEN') {
+        openPositions.push(p);
+      } else if (p.status === 'CLOSED') {
+        closedPositions.push(p);
+      } else {
+        archivedPositions.push(p);
+      }
+    }
+
+    // Refresh live quotes & evaluate Automatic Trade Closing + Row Alerts
     const symbols: string[] = Array.from(new Set(openPositions.map((p: PortfolioPosition) => p.symbol)));
     if (symbols.length > 0) {
       try {
@@ -50,6 +61,8 @@ export class PortfolioService {
             const currentPrice = livePrice;
             const currentValue = currentPrice * pos.quantity;
             let profitLoss = 0;
+
+            // Correct P&L formulas for BUY vs SELL
             if (pos.tradeType === 'SELL') {
               profitLoss = (pos.buyPrice - currentPrice) * pos.quantity - pos.brokerCharges;
             } else {
@@ -62,15 +75,41 @@ export class PortfolioService {
             pos.profitLoss = profitLoss;
             pos.profitLossPct = profitLossPct;
 
-            await prisma.portfolioPosition.update({
-              where: { id: pos.id },
-              data: {
-                currentPrice,
-                currentValue,
-                profitLoss,
-                profitLossPct,
-              },
-            }).catch(() => {});
+            // ⚡ AUTOMATIC TRADE CLOSING ENGINE
+            let autoClosed = false;
+            if (pos.tradeType === 'BUY') {
+              if (pos.targetPrice !== null && pos.targetPrice !== undefined && currentPrice >= pos.targetPrice) {
+                this.logger.log(`🎯 Automatic Target Hit for ${pos.symbol} (CMP ₹${currentPrice} >= Target ₹${pos.targetPrice})`);
+                await this.closePosition(pos.id, pos.targetPrice, pos.brokerCharges, new Date().toISOString(), pos.notes || undefined, 'TARGET_HIT');
+                autoClosed = true;
+              } else if (pos.stopLoss !== null && pos.stopLoss !== undefined && currentPrice <= pos.stopLoss) {
+                this.logger.log(`🛑 Automatic Stop Loss Hit for ${pos.symbol} (CMP ₹${currentPrice} <= Stop ₹${pos.stopLoss})`);
+                await this.closePosition(pos.id, pos.stopLoss, pos.brokerCharges, new Date().toISOString(), pos.notes || undefined, 'STOP_LOSS_HIT');
+                autoClosed = true;
+              }
+            } else if (pos.tradeType === 'SELL') {
+              if (pos.targetPrice !== null && pos.targetPrice !== undefined && currentPrice <= pos.targetPrice) {
+                this.logger.log(`🎯 Automatic Target Hit for SELL ${pos.symbol} (CMP ₹${currentPrice} <= Target ₹${pos.targetPrice})`);
+                await this.closePosition(pos.id, pos.targetPrice, pos.brokerCharges, new Date().toISOString(), pos.notes || undefined, 'TARGET_HIT');
+                autoClosed = true;
+              } else if (pos.stopLoss !== null && pos.stopLoss !== undefined && currentPrice >= pos.stopLoss) {
+                this.logger.log(`🛑 Automatic Stop Loss Hit for SELL ${pos.symbol} (CMP ₹${currentPrice} >= Stop ₹${pos.stopLoss})`);
+                await this.closePosition(pos.id, pos.stopLoss, pos.brokerCharges, new Date().toISOString(), pos.notes || undefined, 'STOP_LOSS_HIT');
+                autoClosed = true;
+              }
+            }
+
+            if (!autoClosed) {
+              await prisma.portfolioPosition.update({
+                where: { id: pos.id },
+                data: {
+                  currentPrice,
+                  currentValue,
+                  profitLoss,
+                  profitLossPct,
+                },
+              }).catch(() => {});
+            }
           }
         }
       } catch (err: any) {
@@ -78,52 +117,100 @@ export class PortfolioService {
       }
     }
 
-    // Calculations excluding ARCHIVED
-    const totalInvestment = openPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.investedAmount, 0);
-    const totalPortfolioValue = openPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.currentValue, 0);
-    const currentPortfolioProfitLoss = openPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.profitLoss, 0);
-    const unrealizedProfit = currentPortfolioProfitLoss;
-    const realizedProfit = closedPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.profitLoss, 0);
+    // Re-fetch positions if any trade was auto-closed
+    const refreshedPositions: PortfolioPosition[] = await prisma.portfolioPosition.findMany({
+      orderBy: { entryDate: 'desc' },
+    });
 
-    const totalOpenPositions = openPositions.length;
-    const totalClosedPositions = closedPositions.length;
+    const openList: any[] = [];
+    const closedList: any[] = [];
+    const archivedList: any[] = [];
+
+    for (const p of refreshedPositions) {
+      const entryTime = new Date(p.entryDate).getTime();
+
+      if (p.status === 'OPEN') {
+        // Holding Days = Today - Buy Date
+        const diffDays = Math.max(0, Math.floor((now.getTime() - entryTime) / (1000 * 60 * 60 * 24)));
+        
+        // Alert Badges Evaluation
+        const proximityThreshold = (p.nearBuyProximityPct || 1.0) / 100;
+        const diffFromBuy = Math.abs(p.currentPrice - p.buyPrice) / p.buyPrice;
+        const atBuyPrice = Math.abs(p.currentPrice - p.buyPrice) < 0.01;
+        const nearBuyPrice = diffFromBuy <= proximityThreshold;
+
+        openList.push({
+          ...p,
+          holdingPeriod: diffDays, // Dynamic holding days for open position
+          atBuyPrice,
+          nearBuyPrice,
+        });
+      } else if (p.status === 'CLOSED') {
+        // Frozen holding period for closed positions
+        let frozenPeriod = p.holdingPeriod;
+        if (frozenPeriod === null || frozenPeriod === undefined) {
+          const exitTime = p.closedAt ? new Date(p.closedAt).getTime() : now.getTime();
+          frozenPeriod = Math.max(0, Math.floor((exitTime - entryTime) / (1000 * 60 * 60 * 24)));
+        }
+        closedList.push({
+          ...p,
+          holdingPeriod: frozenPeriod,
+        });
+      } else {
+        archivedList.push(p);
+      }
+    }
+
+    // Portfolio Calculations
+    const totalInvestment = openList.reduce((sum: number, p: any) => sum + p.investedAmount, 0);
+    const totalPortfolioValue = openList.reduce((sum: number, p: any) => sum + p.currentValue, 0);
+    const currentPortfolioProfitLoss = openList.reduce((sum: number, p: any) => sum + p.profitLoss, 0);
+    const unrealizedProfit = currentPortfolioProfitLoss;
+    const realizedProfit = closedList.reduce((sum: number, p: any) => sum + p.profitLoss, 0);
+
+    const totalOpenPositions = openList.length;
+    const totalClosedPositions = closedList.length;
 
     // Win Rate
     let winRate = 0;
     if (totalClosedPositions > 0) {
-      const wins = closedPositions.filter((p: PortfolioPosition) => p.profitLoss > 0).length;
+      const wins = closedList.filter((p: any) => p.profitLoss > 0).length;
       winRate = (wins / totalClosedPositions) * 100;
     }
 
     // Average Return %
-    const allNonArchived = [...openPositions, ...closedPositions];
+    const allNonArchived = [...openList, ...closedList];
     const avgReturn = allNonArchived.length > 0
-      ? allNonArchived.reduce((sum: number, p: PortfolioPosition) => sum + p.profitLossPct, 0) / allNonArchived.length
+      ? allNonArchived.reduce((sum: number, p: any) => sum + p.profitLossPct, 0) / allNonArchived.length
       : 0;
 
-    // Best & Worst Performing Trades
-    let bestPerformingTrade: PortfolioPosition | null = null;
-    let worstPerformingTrade: PortfolioPosition | null = null;
+    // Top Performers for Open Positions
+    const sortedOpenByPerf = [...openList].sort((a, b) => b.profitLossPct - a.profitLossPct);
+    const highestPerformingOpen = sortedOpenByPerf.length > 0 ? sortedOpenByPerf[0] : null;
+    const secondHighestPerformingOpen = sortedOpenByPerf.length > 1 ? sortedOpenByPerf[1] : null;
+
+    // Best & Worst Performing Trades Overall
+    let bestPerformingTrade: any = null;
+    let worstPerformingTrade: any = null;
     if (allNonArchived.length > 0) {
-      bestPerformingTrade = allNonArchived.reduce((best: PortfolioPosition, p: PortfolioPosition) => (p.profitLossPct > best.profitLossPct ? p : best), allNonArchived[0]);
-      worstPerformingTrade = allNonArchived.reduce((worst: PortfolioPosition, p: PortfolioPosition) => (p.profitLossPct < worst.profitLossPct ? p : worst), allNonArchived[0]);
+      bestPerformingTrade = allNonArchived.reduce((best: any, p: any) => (p.profitLossPct > best.profitLossPct ? p : best), allNonArchived[0]);
+      worstPerformingTrade = allNonArchived.reduce((worst: any, p: any) => (p.profitLossPct < worst.profitLossPct ? p : worst), allNonArchived[0]);
     }
 
-    // Average Holding Period
-    const closedWithPeriods = closedPositions.filter((p: PortfolioPosition) => p.holdingPeriod !== null && p.holdingPeriod !== undefined);
+    const closedWithPeriods = closedList.filter((p: any) => p.holdingPeriod !== null && p.holdingPeriod !== undefined);
     const avgHoldingPeriod = closedWithPeriods.length > 0
-      ? closedWithPeriods.reduce((sum: number, p: PortfolioPosition) => sum + (p.holdingPeriod || 0), 0) / closedWithPeriods.length
+      ? closedWithPeriods.reduce((sum: number, p: any) => sum + (p.holdingPeriod || 0), 0) / closedWithPeriods.length
       : 0;
 
-    const totalCapitalDeployed = totalInvestment + closedPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.investedAmount, 0);
+    const totalCapitalDeployed = totalInvestment + closedList.reduce((sum: number, p: any) => sum + p.investedAmount, 0);
     const availableCashBalance = Math.max(0, 1000000 - totalInvestment);
 
     return {
       positions: {
-        open: openPositions,
-        closed: closedPositions,
-        archived: archivedPositions,
-        all: positions,
+        open: openList,
+        closed: closedList,
+        archived: archivedList,
+        all: refreshedPositions,
       },
       summary: {
         totalPortfolioValue,
@@ -135,6 +222,8 @@ export class PortfolioService {
         totalClosedPositions,
         winRate,
         avgReturn,
+        highestPerformingOpen,
+        secondHighestPerformingOpen,
         bestPerformingTrade,
         worstPerformingTrade,
         avgHoldingPeriod,
@@ -149,7 +238,6 @@ export class PortfolioService {
     const quantity = parseFloat(data.quantity);
     const buyPrice = parseFloat(data.buyPrice);
     
-    // Attempt live CMP fetch on position creation
     let currentPrice = data.currentPrice ? parseFloat(data.currentPrice) : buyPrice;
     try {
       const liveQuote = await this.marketService.getQuote(symbol);
@@ -187,6 +275,9 @@ export class PortfolioService {
         profitLossPct,
         targetPrice: data.targetPrice ? parseFloat(data.targetPrice) : null,
         stopLoss: data.stopLoss ? parseFloat(data.stopLoss) : null,
+        nearBuyProximityPct: data.nearBuyProximityPct ? parseFloat(data.nearBuyProximityPct) : 1.0,
+        buyPriceAlertActive: true,
+        nearBuyAlertActive: true,
         brokerCharges,
         notes: data.notes || null,
         assetType: data.assetType || 'STOCK',
@@ -232,6 +323,7 @@ export class PortfolioService {
       tradeType,
       targetPrice: data.targetPrice !== undefined ? (data.targetPrice ? parseFloat(data.targetPrice) : null) : pos.targetPrice,
       stopLoss: data.stopLoss !== undefined ? (data.stopLoss ? parseFloat(data.stopLoss) : null) : pos.stopLoss,
+      nearBuyProximityPct: data.nearBuyProximityPct !== undefined ? parseFloat(data.nearBuyProximityPct) : pos.nearBuyProximityPct,
       notes: data.notes !== undefined ? data.notes : pos.notes,
       assetType: data.assetType !== undefined ? data.assetType : pos.assetType,
       status: data.status !== undefined ? data.status : pos.status,
@@ -249,8 +341,8 @@ export class PortfolioService {
 
       const start = new Date(updateData.entryDate || pos.entryDate).getTime();
       const end = new Date(updateData.closedAt).getTime();
-      const diffDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
-      updateData.holdingPeriod = Math.max(0, diffDays);
+      const diffDays = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
+      updateData.holdingPeriod = diffDays;
     }
 
     return prisma.portfolioPosition.update({
@@ -285,8 +377,7 @@ export class PortfolioService {
     const closedAt = sellingDateInput ? new Date(sellingDateInput) : new Date();
     const start = new Date(pos.entryDate).getTime();
     const end = closedAt.getTime();
-    const diffDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
-    const holdingPeriod = Math.max(0, diffDays);
+    const holdingPeriod = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
 
     return prisma.portfolioPosition.update({
       where: { id },
@@ -324,6 +415,9 @@ export class PortfolioService {
         profitLossPct: pos.profitLossPct,
         targetPrice: pos.targetPrice,
         stopLoss: pos.stopLoss,
+        nearBuyProximityPct: pos.nearBuyProximityPct,
+        buyPriceAlertActive: true,
+        nearBuyAlertActive: true,
         brokerCharges: pos.brokerCharges,
         notes: pos.notes,
         assetType: pos.assetType,

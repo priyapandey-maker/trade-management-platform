@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
@@ -11,6 +11,7 @@ export default function OpenPositionsPage() {
   const isDark = theme === 'dark';
 
   const [positions, setPositions] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +26,7 @@ export default function OpenPositionsPage() {
   // Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Excel-like Editing State: activeCell = { id, field }
+  // Excel-like Editing State
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
 
   // Modals
@@ -47,8 +48,6 @@ export default function OpenPositionsPage() {
   const [newQty, setNewQty] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newStop, setNewStop] = useState('');
-  const [newSector, setNewSector] = useState('Technology');
-  const [newMarketCap, setNewMarketCap] = useState('Large Cap');
   const [newNotes, setNewNotes] = useState('');
   const [newDate, setNewDate] = useState(new Date().toISOString().substring(0, 10));
 
@@ -59,6 +58,7 @@ export default function OpenPositionsPage() {
       const res = await api.get('/portfolio');
       const openList = res.data.positions?.open || [];
       setPositions(openList);
+      setSummary(res.data.summary || null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch open positions.');
     } finally {
@@ -68,53 +68,41 @@ export default function OpenPositionsPage() {
 
   useEffect(() => {
     fetchPositions();
-
-    const handleRefresh = () => fetchPositions();
-    window.addEventListener('shree_manual_refresh', handleRefresh);
-    return () => window.removeEventListener('shree_manual_refresh', handleRefresh);
+    const interval = setInterval(fetchPositions, 60000);
+    return () => clearInterval(interval);
   }, [fetchPositions]);
 
-  // Proximity Metrics & Calculations
-  const getTargetRemaining = (pos: any) => {
-    if (!pos.targetPrice || !pos.currentPrice) return { dist: '—', pct: '—' };
-    const diff = pos.targetPrice - pos.currentPrice;
-    const pct = (diff / pos.currentPrice) * 100;
-    return {
-      dist: `₹${Math.abs(diff).toFixed(2)}`,
-      pct: `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`,
-      isPositive: diff >= 0,
-    };
-  };
-
-  const getStopRemaining = (pos: any) => {
-    if (!pos.stopLoss || !pos.currentPrice) return { dist: '—', pct: '—' };
-    const diff = pos.currentPrice - pos.stopLoss;
-    const pct = (diff / pos.currentPrice) * 100;
-    return {
-      dist: `₹${Math.abs(diff).toFixed(2)}`,
-      pct: `${pct >= 0 ? '-' : '+'}${Math.abs(pct).toFixed(1)}%`,
-      isWarning: diff <= (pos.currentPrice * 0.03), // within 3% of SL
-    };
-  };
-
-  // Optimistic Inline Change
+  // Excel-like cell edit handlers
   const handleInlineChange = (id: string, field: string, val: any) => {
     setPositions((prev) =>
-      prev.map((p) => {
-        if (p.id === id) {
-          const updated = { ...p, [field]: val };
-          const buy = parseFloat(updated.buyPrice) || 0;
+      prev.map((pos) => {
+        if (pos.id === id) {
+          const updated = { ...pos, [field]: val };
           const qty = parseFloat(updated.quantity) || 0;
-          const current = parseFloat(updated.currentPrice) || 0;
-          const bc = parseFloat(updated.brokerCharges) || 0;
+          const buyPrice = parseFloat(updated.buyPrice) || 0;
+          const currentPrice = parseFloat(updated.currentPrice) || buyPrice;
+          const charges = parseFloat(updated.brokerCharges) || 0;
 
-          updated.investedAmount = buy * qty;
-          updated.currentValue = current * qty;
-          updated.profitLoss = updated.tradeType === 'SELL' ? (buy - current) * qty - bc : (current - buy) * qty - bc;
-          updated.profitLossPct = updated.investedAmount > 0 ? (updated.profitLoss / updated.investedAmount) * 100 : 0;
-          return updated;
+          const invested = buyPrice * qty;
+          const currentVal = currentPrice * qty;
+
+          let profitLoss = 0;
+          if (updated.tradeType === 'SELL') {
+            profitLoss = (buyPrice - currentPrice) * qty - charges;
+          } else {
+            profitLoss = (currentPrice - buyPrice) * qty - charges;
+          }
+          const profitLossPct = invested > 0 ? (profitLoss / invested) * 100 : 0;
+
+          return {
+            ...updated,
+            investedAmount: invested,
+            currentValue: currentVal,
+            profitLoss,
+            profitLossPct,
+          };
         }
-        return p;
+        return pos;
       })
     );
   };
@@ -125,22 +113,19 @@ export default function OpenPositionsPage() {
     if (!pos) return;
     try {
       await api.patch(`/portfolio/position/${id}`, {
-        symbol: pos.symbol,
-        company: pos.company,
-        tradeType: pos.tradeType,
-        buyPrice: parseFloat(pos.buyPrice),
-        currentPrice: parseFloat(pos.currentPrice),
-        quantity: parseFloat(pos.quantity),
-        targetPrice: pos.targetPrice ? parseFloat(pos.targetPrice) : null,
-        stopLoss: pos.stopLoss ? parseFloat(pos.stopLoss) : null,
+        buyPrice: pos.buyPrice,
+        quantity: pos.quantity,
+        currentPrice: pos.currentPrice,
+        targetPrice: pos.targetPrice,
+        stopLoss: pos.stopLoss,
         notes: pos.notes,
       });
-    } catch (err) {
-      fetchPositions(); // rollback on failure
+      fetchPositions();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update position.');
     }
   };
 
-  // Excel key navigation listener
   const handleKeyDown = (e: React.KeyboardEvent, id: string, field: string) => {
     if (e.key === 'Enter') {
       saveInlineEdit(id);
@@ -226,16 +211,30 @@ export default function OpenPositionsPage() {
         sellingPrice: parseFloat(closePrice),
         exitReason: closeReason,
         notes: closeNotes,
-        closedAt: new Date().toISOString(),
       });
       setClosingPosition(null);
       fetchPositions();
-    } catch (e) {}
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to close trade.');
+    }
   };
 
-  // Exports
+  const getTargetRemaining = (pos: any) => {
+    if (!pos.targetPrice) return { text: 'N/A', pct: null };
+    const diff = pos.tradeType === 'SELL' ? pos.currentPrice - pos.targetPrice : pos.targetPrice - pos.currentPrice;
+    const pct = (diff / pos.currentPrice) * 100;
+    return { text: `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`, pct };
+  };
+
+  const getStopRemaining = (pos: any) => {
+    if (!pos.stopLoss) return { text: 'N/A', pct: null, isWarning: false };
+    const diff = pos.tradeType === 'SELL' ? pos.stopLoss - pos.currentPrice : pos.currentPrice - pos.stopLoss;
+    const pct = (diff / pos.currentPrice) * 100;
+    return { text: `${pct.toFixed(2)}%`, pct, isWarning: pct <= 2.0 };
+  };
+
   const exportCSV = () => {
-    const headers = ['Symbol,Company,Type,Qty,BuyPrice,CMP,Invested,CurrentValue,PnL,PnLPct'];
+    const headers = 'Symbol,Company,Trade Type,Quantity,Buy Price,CMP,Invested Amount,Current Value,Profit/Loss,Profit %';
     const rows = positions.map(
       (p) => `${p.symbol},"${p.company}",${p.tradeType},${p.quantity},${p.buyPrice},${p.currentPrice},${p.investedAmount},${p.currentValue},${p.profitLoss},${p.profitLossPct}`
     );
@@ -247,11 +246,14 @@ export default function OpenPositionsPage() {
     a.click();
   };
 
-  // Top Summary Cards metrics
+  // KPI summaries
   const totalOpenTrades = positions.length;
   const currentExposure = positions.reduce((sum, p) => sum + p.currentValue, 0);
   const overallPnL = positions.reduce((sum, p) => sum + p.profitLoss, 0);
-  const todayPnL = positions.reduce((sum, p) => sum + (p.currentPrice * p.quantity * 0.005), 0); // live estimate
+
+  // Top Highlights (Req 8)
+  const highestPos = summary?.highestPerformingOpen || (positions.length > 0 ? [...positions].sort((a, b) => b.profitLossPct - a.profitLossPct)[0] : null);
+  const secondHighestPos = summary?.secondHighestPerformingOpen || (positions.length > 1 ? [...positions].sort((a, b) => b.profitLossPct - a.profitLossPct)[1] : null);
 
   // Filtering & Sorting
   const filteredPositions = positions
@@ -297,11 +299,11 @@ export default function OpenPositionsPage() {
         </div>
         
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={exportCSV} className="btnSecondary" style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '6px' }}>
+          <button onClick={exportCSV} className="btnSecondary" style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '8px' }}>
             📥 Export CSV
           </button>
           {user?.role === 'OWNER' && (
-            <button onClick={() => setShowAddModal(true)} className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '6px', backgroundColor: '#16A34A' }}>
+            <button onClick={() => setShowAddModal(true)} className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '8px', backgroundColor: '#16A34A' }}>
               ➕ Create Position
             </button>
           )}
@@ -314,77 +316,132 @@ export default function OpenPositionsPage() {
         </div>
       )}
 
-      {/* TOP 4 POSITION KPI CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
+      {/* REQ 8: HIGHEST PERFORMING & 2ND HIGHEST PERFORMING CARDS + KPI CARDS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        {/* Card 1: Total Open Trades */}
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Open Trades</div>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: '#2563EB', marginTop: '6px' }}>{totalOpenTrades}</div>
-          <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Active Positions</div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{totalOpenTrades}</div>
+          <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Active Allocations</div>
         </div>
 
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
+        {/* Card 2: Current Exposure */}
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Current Exposure</div>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
-            ₹{currentExposure.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-          </div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>₹{currentExposure.toLocaleString('en-IN')}</div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Total Market Value</div>
         </div>
 
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Today&apos;s P&amp;L (Est)</div>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: todayPnL >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
-            {todayPnL >= 0 ? '+' : ''}₹{todayPnL.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+        {/* Card 3: Overall Live P&L */}
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Unrealized Live P&amp;L</div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: overallPnL >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
+            {overallPnL >= 0 ? '+' : ''}₹{overallPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Intraday Movement</div>
+          <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Open Profit/Loss</div>
         </div>
 
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Overall Live P&amp;L</div>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: overallPnL >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
-            {overallPnL >= 0 ? '+' : ''}₹{overallPnL.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+        {/* REQ 8: Card 4: Highest Performing Position */}
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#16A34A', textTransform: 'uppercase' }}>🏆 #1 Top Performer</span>
+            {highestPos && <span style={{ fontSize: '10.5px', fontWeight: 800, color: textCol }}>₹{highestPos.currentPrice}</span>}
           </div>
-          <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Unrealized Return</div>
+          {highestPos ? (
+            <>
+              <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, marginTop: '4px' }}>{highestPos.company} ({highestPos.symbol})</div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 900, color: '#16A34A' }}>+{highestPos.profitLossPct.toFixed(2)}%</span>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>(+₹{highestPos.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })})</span>
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: '12.5px', color: subTextCol, marginTop: '10px' }}>No Active Trades</div>
+          )}
+        </div>
+
+        {/* REQ 8: Card 5: Second Highest Performing Position */}
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563EB', textTransform: 'uppercase' }}>🥈 #2 Top Performer</span>
+            {secondHighestPos && <span style={{ fontSize: '10.5px', fontWeight: 800, color: textCol }}>₹{secondHighestPos.currentPrice}</span>}
+          </div>
+          {secondHighestPos ? (
+            <>
+              <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, marginTop: '4px' }}>{secondHighestPos.company} ({secondHighestPos.symbol})</div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 900, color: secondHighestPos.profitLossPct >= 0 ? '#16A34A' : '#DC2626' }}>
+                  {secondHighestPos.profitLossPct >= 0 ? '+' : ''}{secondHighestPos.profitLossPct.toFixed(2)}%
+                </span>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>
+                  ({secondHighestPos.profitLoss >= 0 ? '+' : ''}₹{secondHighestPos.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })})
+                </span>
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: '12.5px', color: subTextCol, marginTop: '10px' }}>No Active Trades</div>
+          )}
         </div>
       </div>
 
-      {/* Toolbar Filters */}
-      <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px 20px', borderRadius: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '12px' }}>
+      {/* Control Bar: Search, Type Filter, Sort, Bulk Delete */}
+      <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '14px 18px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, maxWidth: '600px' }}>
           <input
             type="text"
-            placeholder="🔍 Search symbol, company..."
+            placeholder="Search symbol, company..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '260px', padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', flex: 1, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
           />
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}>
+
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+          >
             <option value="ALL">All Types</option>
-            <option value="BUY">BUY (Long)</option>
-            <option value="SELL">SELL (Short)</option>
+            <option value="BUY">BUY Only</option>
+            <option value="SELL">SELL Only</option>
+          </select>
+
+          <select
+            value={`${sortBy}-${sortOrder}`}
+            onChange={(e) => {
+              const [by, order] = e.target.value.split('-');
+              setSortBy(by);
+              setSortOrder(order as any);
+            }}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+          >
+            <option value="entryDate-desc">Newest First</option>
+            <option value="entryDate-asc">Oldest First</option>
+            <option value="profitLossPct-desc">Highest Profit %</option>
+            <option value="profitLossPct-asc">Lowest Profit %</option>
+            <option value="currentValue-desc">Highest Value</option>
           </select>
         </div>
 
-        {user?.role === 'OWNER' && selectedIds.length > 0 && (
-          <button onClick={() => setShowBulkDeleteConfirm(true)} style={{ padding: '8px 14px', borderRadius: '6px', backgroundColor: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer' }}>
+        {selectedIds.length > 0 && user?.role === 'OWNER' && (
+          <button onClick={() => setShowBulkDeleteConfirm(true)} style={{ padding: '8px 14px', backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>
             🗑️ Delete Selected ({selectedIds.length})
           </button>
         )}
       </div>
 
-      {/* EXCEL-LIKE SPREADSHEET TABLE */}
+      {/* OPEN POSITIONS TABLE */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', overflow: 'hidden' }}>
-        {loading ? (
+        {loading && positions.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: subTextCol }}>Loading live open positions...</div>
         ) : filteredPositions.length === 0 ? (
-          /* Custom Actionable Empty State */
           <div style={{ padding: '60px', textAlign: 'center' }}>
-            <div style={{ fontSize: '42px', marginBottom: '12px' }}>⚡</div>
+            <div style={{ fontSize: '42px', marginBottom: '12px' }}>💼</div>
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: textCol, margin: 0 }}>No Open Positions Found</h3>
             <p style={{ fontSize: '13px', color: subTextCol, marginTop: '4px', marginBottom: '16px' }}>
               Create your first trade allocation to start tracking live market positions.
             </p>
             {user?.role === 'OWNER' && (
-              <button onClick={() => setShowAddModal(true)} className="btnPrimary" style={{ padding: '10px 20px', fontSize: '13px', backgroundColor: '#16A34A', borderRadius: '6px' }}>
+              <button onClick={() => setShowAddModal(true)} className="btnPrimary" style={{ padding: '10px 20px', fontSize: '13px', backgroundColor: '#16A34A', borderRadius: '8px' }}>
                 ➕ Create First Trade
               </button>
             )}
@@ -405,6 +462,7 @@ export default function OpenPositionsPage() {
                   <th style={{ padding: '12px', fontWeight: 800 }}>Stop Loss</th>
                   <th style={{ padding: '12px', fontWeight: 800, color: '#16A34A' }}>Target Rem.</th>
                   <th style={{ padding: '12px', fontWeight: 800, color: '#DC2626' }}>Stop Rem.</th>
+                  <th style={{ padding: '12px', fontWeight: 800 }}>Holding</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Invested</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Current Val</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Live P&amp;L</th>
@@ -433,21 +491,21 @@ export default function OpenPositionsPage() {
                         </td>
                       )}
 
-                      {/* Excel editable Symbol */}
+                      {/* Symbol + Row Alert Badges (Req 1) */}
                       <td style={{ padding: '10px', fontWeight: 800, color: textCol }} onDoubleClick={() => user?.role === 'OWNER' && setEditingCell({ id: pos.id, field: 'symbol' })}>
-                        {editingCell?.id === pos.id && editingCell?.field === 'symbol' ? (
-                          <input
-                            type="text"
-                            value={pos.symbol}
-                            onChange={(e) => handleInlineChange(pos.id, 'symbol', e.target.value.toUpperCase())}
-                            onKeyDown={(e) => handleKeyDown(e, pos.id, 'symbol')}
-                            onBlur={() => { saveInlineEdit(pos.id); setEditingCell(null); }}
-                            autoFocus
-                            style={{ width: '80px', padding: '4px', border: '1px solid #16A34A', borderRadius: '4px' }}
-                          />
-                        ) : (
-                          pos.symbol
-                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div>{pos.symbol}</div>
+                          {pos.atBuyPrice && (
+                            <span style={{ fontSize: '9.5px', fontWeight: 900, backgroundColor: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px', width: 'fit-content' }}>
+                              🎯 At Buy Price
+                            </span>
+                          )}
+                          {!pos.atBuyPrice && pos.nearBuyPrice && (
+                            <span style={{ fontSize: '9.5px', fontWeight: 900, backgroundColor: '#FEF3C7', color: '#B45309', padding: '1px 5px', borderRadius: '4px', width: 'fit-content' }}>
+                              📍 Near Buy (±1%)
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Company */}
@@ -461,77 +519,78 @@ export default function OpenPositionsPage() {
                       </td>
 
                       {/* Qty */}
-                      <td style={{ padding: '10px', fontWeight: 600 }} onDoubleClick={() => user?.role === 'OWNER' && setEditingCell({ id: pos.id, field: 'quantity' })}>
-                        {editingCell?.id === pos.id && editingCell?.field === 'quantity' ? (
-                          <input
-                            type="number"
-                            value={pos.quantity}
-                            onChange={(e) => handleInlineChange(pos.id, 'quantity', e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(e, pos.id, 'quantity')}
-                            onBlur={() => { saveInlineEdit(pos.id); setEditingCell(null); }}
-                            autoFocus
-                            style={{ width: '60px', padding: '4px', border: '1px solid #16A34A', borderRadius: '4px' }}
-                          />
-                        ) : (
-                          pos.quantity
-                        )}
-                      </td>
+                      <td style={{ padding: '10px', fontWeight: 600 }}>{pos.quantity}</td>
 
                       {/* Buy Price */}
-                      <td style={{ padding: '10px', fontWeight: 600 }} onDoubleClick={() => user?.role === 'OWNER' && setEditingCell({ id: pos.id, field: 'buyPrice' })}>
-                        ₹{pos.buyPrice?.toFixed(2)}
-                      </td>
+                      <td style={{ padding: '10px', fontWeight: 700 }}>₹{pos.buyPrice}</td>
 
                       {/* CMP */}
-                      <td style={{ padding: '10px', fontWeight: 800, color: textCol }}>₹{pos.currentPrice?.toFixed(2)}</td>
+                      <td style={{ padding: '10px', fontWeight: 800, color: '#16A34A' }}>₹{pos.currentPrice}</td>
 
                       {/* Target */}
-                      <td style={{ padding: '10px', color: '#16A34A', fontWeight: 600 }}>
-                        {pos.targetPrice ? `₹${pos.targetPrice.toFixed(2)}` : '—'}
-                      </td>
+                      <td style={{ padding: '10px', color: '#16A34A', fontWeight: 700 }}>{pos.targetPrice ? `₹${pos.targetPrice}` : '-'}</td>
 
                       {/* Stop Loss */}
-                      <td style={{ padding: '10px', color: '#DC2626', fontWeight: 600 }}>
-                        {pos.stopLoss ? `₹${pos.stopLoss.toFixed(2)}` : '—'}
-                      </td>
+                      <td style={{ padding: '10px', color: '#DC2626', fontWeight: 700 }}>{pos.stopLoss ? `₹${pos.stopLoss}` : '-'}</td>
 
-                      {/* PROXIMITY METRIC: Target Remaining */}
-                      <td style={{ padding: '10px', fontWeight: 700, color: '#16A34A' }}>
-                        <div>{targetRem.dist}</div>
-                        <div style={{ fontSize: '10.5px' }}>({targetRem.pct})</div>
-                      </td>
+                      {/* Target Rem */}
+                      <td style={{ padding: '10px', fontWeight: 700, color: '#16A34A' }}>{targetRem.text}</td>
 
-                      {/* PROXIMITY METRIC: Stop Remaining */}
-                      <td style={{ padding: '10px', fontWeight: 700, color: '#DC2626' }}>
-                        <div>{stopRem.dist}</div>
-                        <div style={{ fontSize: '10.5px' }}>({stopRem.pct})</div>
+                      {/* Stop Rem */}
+                      <td style={{ padding: '10px', fontWeight: 700, color: '#DC2626' }}>{stopRem.text}</td>
+
+                      {/* REQ 2: Holding Days (Today - Buy Date) */}
+                      <td style={{ padding: '10px', fontWeight: 700, color: textCol }}>
+                        <span style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: isDark ? '#334155' : '#F1F5F9', fontSize: '11.5px' }}>
+                          ⏱️ {pos.holdingPeriod} Days
+                        </span>
                       </td>
 
                       {/* Invested */}
-                      <td style={{ padding: '10px' }}>₹{pos.investedAmount?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                      <td style={{ padding: '10px', fontWeight: 600 }}>₹{pos.investedAmount.toLocaleString('en-IN')}</td>
 
                       {/* Current Value */}
-                      <td style={{ padding: '10px' }}>₹{pos.currentValue?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                      <td style={{ padding: '10px', fontWeight: 700 }}>₹{pos.currentValue.toLocaleString('en-IN')}</td>
 
-                      {/* Live P&L */}
-                      <td style={{ padding: '10px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        {isProfit ? '+' : ''}₹{pos.profitLoss?.toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({isProfit ? '+' : ''}{pos.profitLossPct?.toFixed(1)}%)
+                      {/* REQ 3: Live P&L and P&L % */}
+                      <td style={{ padding: '10px', fontWeight: 800, color: isProfit ? '#16A34A' : '#DC2626' }}>
+                        <div>{isProfit ? '+' : ''}₹{pos.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                        <div style={{ fontSize: '11px' }}>({isProfit ? '+' : ''}{pos.profitLossPct.toFixed(2)}%)</div>
                       </td>
 
-                      {/* Owner Actions */}
+                      {/* Actions */}
                       {user?.role === 'OWNER' && (
                         <td style={{ padding: '10px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                            <button onClick={() => { setClosingPosition(pos); setClosePrice(pos.currentPrice.toString()); }} style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', backgroundColor: '#16A34A', color: '#FFFFFF', border: 'none', fontWeight: 800, cursor: 'pointer' }}>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                            <button
+                              onClick={() => {
+                                setClosingPosition(pos);
+                                setClosePrice(pos.currentPrice.toString());
+                              }}
+                              title="Close Trade"
+                              style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', backgroundColor: '#16A34A', color: '#FFFFFF', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
+                            >
                               Close
                             </button>
-                            <button onClick={() => handleDuplicate(pos.id)} title="Duplicate" style={{ padding: '4px 6px', fontSize: '11px', borderRadius: '4px', border: `1px solid ${borderCol}`, background: 'none', cursor: 'pointer' }}>
+                            <button
+                              onClick={() => handleDuplicate(pos.id)}
+                              title="Duplicate Position"
+                              style={{ padding: '4px 8px', borderRadius: '4px', border: `1px solid ${borderCol}`, backgroundColor: 'transparent', color: textCol, fontSize: '11px', cursor: 'pointer' }}
+                            >
                               📋
                             </button>
-                            <button onClick={() => handleArchive(pos.id)} title="Archive" style={{ padding: '4px 6px', fontSize: '11px', borderRadius: '4px', border: `1px solid ${borderCol}`, background: 'none', cursor: 'pointer' }}>
+                            <button
+                              onClick={() => handleArchive(pos.id)}
+                              title="Archive Position"
+                              style={{ padding: '4px 8px', borderRadius: '4px', border: `1px solid ${borderCol}`, backgroundColor: 'transparent', color: textCol, fontSize: '11px', cursor: 'pointer' }}
+                            >
                               📁
                             </button>
-                            <button onClick={() => setDeletingId(pos.id)} title="Delete" style={{ padding: '4px 6px', fontSize: '11px', borderRadius: '4px', border: '1px solid #FECACA', backgroundColor: '#FEF2F2', color: '#DC2626', cursor: 'pointer' }}>
+                            <button
+                              onClick={() => setDeletingId(pos.id)}
+                              title="Delete Position"
+                              style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', backgroundColor: '#FEE2E2', color: '#991B1B', fontSize: '11px', cursor: 'pointer' }}
+                            >
                               🗑️
                             </button>
                           </div>
@@ -544,99 +603,142 @@ export default function OpenPositionsPage() {
             </table>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div style={{ padding: '14px 18px', borderTop: `1px solid ${borderCol}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '12.5px', color: subTextCol }}>
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredPositions.length)} of {filteredPositions.length} positions
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, background: 'none', color: textCol, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '12px' }}>
+                Previous
+              </button>
+              <button disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, background: 'none', color: textCol, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '12px' }}>
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* CREATE POSITION MODAL */}
-      {showAddModal && user?.role === 'OWNER' && (
+      {/* Add Position Modal */}
+      {showAddModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <form onSubmit={handleAddSubmit} style={{ width: '520px', backgroundColor: cardBg, padding: '24px', borderRadius: '12px', border: `1px solid ${borderCol}`, color: textCol }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 900 }}>➕ Create New Trade Position</h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 800, color: subTextCol }}>Symbol</label>
-                <input type="text" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value.toUpperCase())} placeholder="e.g. RELIANCE.NS" required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+          <div style={{ width: '500px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 800 }}>➕ Create New Open Position</h3>
+            <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Symbol *</label>
+                  <input type="text" placeholder="e.g. RELIANCE.NS" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value.toUpperCase())} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Company Name</label>
+                  <input type="text" placeholder="e.g. Reliance Ind." value={newCompany} onChange={(e) => setNewCompany(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                </div>
               </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 800, color: subTextCol }}>Company Name</label>
-                <input type="text" value={newCompany} onChange={(e) => setNewCompany(e.target.value)} placeholder="Company" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 800, color: subTextCol }}>Trade Type</label>
-                <select value={newType} onChange={(e) => setNewType(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
-                  <option value="BUY">BUY (Long)</option>
-                  <option value="SELL">SELL (Short)</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 800, color: subTextCol }}>Buy Price (₹)</label>
-                <input type="number" step="0.01" value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 800, color: subTextCol }}>Quantity</label>
-                <input type="number" step="0.01" value={newQty} onChange={(e) => setNewQty(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 800, color: subTextCol }}>Entry Date</label>
-                <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 800, color: subTextCol }}>Target Price (₹)</label>
-                <input type="number" step="0.01" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 800, color: subTextCol }}>Stop Loss (₹)</label>
-                <input type="number" step="0.01" value={newStop} onChange={(e) => setNewStop(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-              </div>
-            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button type="button" onClick={() => setShowAddModal(false)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '13px' }}>Cancel</button>
-              <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#16A34A' }}>Save Trade</button>
-            </div>
-          </form>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Type</label>
+                  <select value={newType} onChange={(e) => setNewType(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
+                    <option value="BUY">BUY</option>
+                    <option value="SELL">SELL</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Price *</label>
+                  <input type="number" step="any" placeholder="₹" value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Quantity *</label>
+                  <input type="number" step="any" placeholder="Qty" value={newQty} onChange={(e) => setNewQty(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Target Price</label>
+                  <input type="number" step="any" placeholder="Target ₹" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Stop Loss</label>
+                  <input type="number" step="any" placeholder="Stop Loss ₹" value={newStop} onChange={(e) => setNewStop(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Date</label>
+                <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+                <button type="button" onClick={() => setShowAddModal(false)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '13px' }}>Cancel</button>
+                <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#16A34A' }}>Create Trade</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
-      {/* CLOSE POSITION MODAL */}
+      {/* Close Trade Modal */}
       {closingPosition && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <form onSubmit={handleCloseSubmit} style={{ width: '400px', backgroundColor: cardBg, padding: '24px', borderRadius: '12px', border: `1px solid ${borderCol}`, color: textCol }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 800 }}>🚪 Close Trade: {closingPosition.symbol}</h3>
-            
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: subTextCol }}>Selling / Exit Price (₹)</label>
-              <input type="number" step="0.01" value={closePrice} onChange={(e) => setClosePrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-            </div>
+          <div style={{ width: '420px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
+            <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 800 }}>✅ Close Trade: {closingPosition.symbol}</h3>
+            <form onSubmit={handleCloseSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Selling Price (Exit CMP) *</label>
+                <input type="number" step="any" value={closePrice} onChange={(e) => setClosePrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+              </div>
 
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: subTextCol }}>Exit Reason</label>
-              <select value={closeReason} onChange={(e) => setCloseReason(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
-                <option value="TARGET_HIT">🎯 Target Hit</option>
-                <option value="STOP_LOSS_HIT">🛑 Stop Loss Hit</option>
-                <option value="MANUAL_EXIT">Manual Exit</option>
-              </select>
-            </div>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Exit Reason</label>
+                <select value={closeReason} onChange={(e) => setCloseReason(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
+                  <option value="MANUAL_EXIT">Manual Exit</option>
+                  <option value="TARGET_HIT">Target Hit</option>
+                  <option value="STOP_LOSS_HIT">Stop Loss Hit</option>
+                </select>
+              </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-              <button type="button" onClick={() => setClosingPosition(null)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '13px' }}>Cancel</button>
-              <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#16A34A' }}>Confirm Exit</button>
-            </div>
-          </form>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Closing Notes</label>
+                <textarea value={closeNotes} onChange={(e) => setCloseNotes(e.target.value)} placeholder="Reason for exit..." style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', height: '60px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+                <button type="button" onClick={() => setClosingPosition(null)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '12.5px' }}>Cancel</button>
+                <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '12.5px', backgroundColor: '#16A34A' }}>Confirm Exit</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
-      {/* CUSTOM DELETE CONFIRMATION MODAL */}
+      {/* Single Delete Confirmation */}
       {deletingId && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ width: '380px', backgroundColor: cardBg, padding: '24px', borderRadius: '12px', border: `1px solid ${borderCol}`, color: textCol }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 900, color: '#DC2626' }}>🗑️ Delete Position</h3>
-            <p style={{ fontSize: '13px', color: subTextCol, margin: '0 0 16px 0' }}>
-              Are you sure you want to delete this position permanently? This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button onClick={() => setDeletingId(null)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '13px' }}>Cancel</button>
-              <button onClick={confirmDelete} style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontWeight: 800, cursor: 'pointer' }}>Delete</button>
+          <div style={{ width: '380px', padding: '20px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 800 }}>Confirm Delete</h4>
+            <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>Are you sure you want to permanently delete this open position?</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+              <button onClick={() => setDeletingId(null)} className="btnSecondary" style={{ padding: '6px 14px', fontSize: '12px' }}>Cancel</button>
+              <button onClick={confirmDelete} style={{ padding: '6px 14px', backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation */}
+      {showBulkDeleteConfirm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ width: '400px', padding: '20px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 800 }}>Confirm Bulk Delete</h4>
+            <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>Are you sure you want to delete {selectedIds.length} selected open positions?</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+              <button onClick={() => setShowBulkDeleteConfirm(false)} className="btnSecondary" style={{ padding: '6px 14px', fontSize: '12px' }}>Cancel</button>
+              <button onClick={confirmBulkDelete} style={{ padding: '6px 14px', backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Delete All Selected</button>
             </div>
           </div>
         </div>

@@ -17,10 +17,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleCollapse })
   const isDark = theme === 'dark';
 
   const navItems = [
-    { name: 'Open Positions', href: '/open', icon: '⚡' },
-    { name: 'Closed Positions', href: '/closed', icon: '📚' },
-    { name: 'Portfolio', href: '/portfolio', icon: '💼' },
-    { name: 'Dashboard', href: '/dashboard', icon: '📊' },
+    { name: 'Open Positions', href: '/open', icon: '💼' },
+    { name: 'Closed Positions', href: '/closed', icon: '✅' },
+    { name: 'Portfolio', href: '/portfolio', icon: '👛' },
+    { name: 'Dashboard', href: '/dashboard', icon: '🎛️' },
   ];
 
   const bgCol = isDark ? '#0F172A' : '#FFFFFF';
@@ -45,44 +45,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleCollapse })
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
-      {/* Brand Header with Increased Padding */}
+      {/* Brand Header: Logo Emblem + SHREE ASSOCIATES (No Tagline) */}
       <div
         style={{
           padding: isCollapsed ? '20px 12px' : '24px 20px',
           borderBottom: `1px solid ${borderCol}`,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: isCollapsed ? 'center' : 'space-between',
+          justifyContent: isCollapsed ? 'center' : 'flex-start',
           height: '70px',
           boxSizing: 'border-box',
         }}
       >
         <Link href="/open" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
           {isCollapsed ? (
-            /* Collapsed: Show only logo emblem */
             <div style={{ width: '38px', height: '38px', position: 'relative' }}>
-              <Image src="/logo-monogram.svg" alt="TM" width={38} height={38} priority />
+              <Image src="/logo-monogram.svg" alt="SA" width={38} height={38} priority />
             </div>
           ) : (
-            /* Expanded: Logo emblem + Trade Management + Prepared for Shree Associates */
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '36px', height: '36px', position: 'relative' }}>
-                <Image src="/logo-monogram.svg" alt="TM" width={36} height={36} priority />
+                <Image src="/logo-monogram.svg" alt="SA" width={36} height={36} priority />
               </div>
-              <div>
-                <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, letterSpacing: '0.04em', lineHeight: 1.1 }}>
-                  Trade Management
-                </div>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: subTextCol, marginTop: '3px' }}>
-                  Prepared for Shree Associates
-                </div>
+              <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, letterSpacing: '0.04em' }}>
+                SHREE ASSOCIATES
               </div>
             </div>
           )}
         </Link>
       </div>
 
-      {/* Navigation Group */}
+      {/* Navigation Group with Enterprise Financial Icons */}
       <nav style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -123,8 +116,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleCollapse })
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block', boxShadow: '0 0 8px #16A34A' }} />
             <span>Twelve Data Primary Engine</span>
           </div>
-          <div style={{ fontSize: '12px', color: subTextCol, marginTop: '3px', fontWeight: 500 }}>
-            Prepared for Shree Associates
+          <div style={{ fontSize: '12px', color: subTextCol, marginTop: '3px', fontWeight: 600 }}>
+            SHREE ASSOCIATES
           </div>
         </div>
       )}

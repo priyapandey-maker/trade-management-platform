@@ -9,7 +9,7 @@ import {
   calculateResistance, 
   generateRecommendation, 
   Candle 
-} from '@shree/institutional-analysis';
+} from './institutional-analysis';
 
 export interface WeeklyMarketAnalysis {
   symbol: string;

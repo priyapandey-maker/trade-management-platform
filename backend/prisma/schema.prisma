@@ -52,13 +52,16 @@ model PortfolioPosition {
   brokerCharges  Float     @default(0)
   entryDate      DateTime  @default(now())
   exitReason     String?   // "TARGET_HIT" | "STOP_LOSS_HIT" | "MANUAL_EXIT"
-  holdingPeriod  Int?      // frozen holding period in days when closed
-  notes          String?
-  assetType      String    @default("STOCK")
-  status         String    @default("OPEN") // "OPEN" | "CLOSED" | "ARCHIVED"
-  closedAt       DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  holdingPeriod       Int?      // frozen holding period in days when closed
+  nearBuyProximityPct Float     @default(1.0)
+  buyPriceAlertActive Boolean   @default(true)
+  nearBuyAlertActive  Boolean   @default(true)
+  notes               String?
+  assetType           String    @default("STOCK")
+  status              String    @default("OPEN") // "OPEN" | "CLOSED" | "ARCHIVED"
+  closedAt            DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }
 
 model AlertHistory {

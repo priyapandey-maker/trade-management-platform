@@ -4,7 +4,7 @@ import {
   Candle, 
   OrderBlock, 
   ScannerZoneStatus 
-} from '@shree/institutional-analysis';
+} from './institutional-analysis';
 
 export interface WeeklyCandle {
   date: Date;
