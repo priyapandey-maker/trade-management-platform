@@ -1,0 +1,36 @@
+name: Continuous Integration & Build Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-frontend:
+    name: Build Frontend (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Frontend Dependencies
+        run: cd frontend && npm ci
+      - name: Build Frontend
+        run: cd frontend && npm run build
+
+  build-backend:
+    name: Build Backend (NestJS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache-dependency-path: backend/package-lock.json
+      - name: Install Backend Dependencies
+        run: cd backend && npm ci
+      - name: Generate Prisma Client & Build
+        run: cd backend && npx prisma generate && npm run build
