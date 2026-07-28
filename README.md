@@ -2,7 +2,7 @@
 
 An institutional-grade trade management and portfolio analytics platform designed for high-precision portfolio tracking, Excel-like inline trade management, real-time market data failover, and executive analytics without visual clutter.
 
-![SHREE ASSOCIATES Banner](alphaedge-frontend/public/logo.svg)
+![SHREE ASSOCIATES Banner](frontend/public/logo.svg)
 
 ## 🌟 Key Features
 
@@ -17,14 +17,12 @@ An institutional-grade trade management and portfolio analytics platform designe
 
 ---
 
-## 🏗️ Architecture
-
-The repository is organized as a full-stack platform:
+## 🏗️ Repository Structure
 
 ```
 trade-management-platform/
-├── alphaedge-frontend/      # Next.js 14 + React 18 + TailwindCSS + Theme System
-└── alphaedge-pro/           # NestJS 10 + TypeScript + Prisma ORM + Market Engine
+├── frontend/     # Next.js 14 + React 18 + TailwindCSS + Theme System
+└── backend/      # NestJS 10 + TypeScript + Prisma ORM + Market Engine
 ```
 
 ---
@@ -35,18 +33,18 @@ trade-management-platform/
 - Node.js >= 18.x
 - npm / yarn / pnpm
 
-### 2. Backend Setup (`alphaedge-pro`)
+### 2. Backend Setup (`backend`)
 ```bash
-cd alphaedge-pro
+cd backend
 npm install
 npx prisma db push
 npm run start:dev
 ```
 Backend server runs on `http://localhost:3001`.
 
-### 3. Frontend Setup (`alphaedge-frontend`)
+### 3. Frontend Setup (`frontend`)
 ```bash
-cd alphaedge-frontend
+cd frontend
 npm install
 npm run dev
 ```

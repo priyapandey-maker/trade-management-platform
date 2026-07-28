@@ -1,7 +1,7 @@
 {
-  "name": "alphaedge-pro",
+  "name": "backend",
   "version": "0.0.1",
-  "description": "",
+  "description": "Institutional Trade Management Platform Engine",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -20,7 +20,6 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@shree/institutional-analysis": "file:../packages/institutional-analysis",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
