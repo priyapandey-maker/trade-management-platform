@@ -19,16 +19,16 @@ export class PortfolioService {
   }
 
   async getPortfolio(): Promise<any> {
-    const positions = await prisma.portfolioPosition.findMany({
+    const positions: PortfolioPosition[] = await prisma.portfolioPosition.findMany({
       orderBy: { entryDate: 'desc' },
     });
 
-    const openPositions = positions.filter((p) => p.status === 'OPEN');
-    const closedPositions = positions.filter((p) => p.status === 'CLOSED');
-    const archivedPositions = positions.filter((p) => p.status === 'ARCHIVED');
+    const openPositions = positions.filter((p: PortfolioPosition) => p.status === 'OPEN');
+    const closedPositions = positions.filter((p: PortfolioPosition) => p.status === 'CLOSED');
+    const archivedPositions = positions.filter((p: PortfolioPosition) => p.status === 'ARCHIVED');
 
     // Refresh live quotes for open positions with robust symbol normalization
-    const symbols = Array.from(new Set(openPositions.map((p) => p.symbol)));
+    const symbols: string[] = Array.from(new Set(openPositions.map((p: PortfolioPosition) => p.symbol)));
     if (symbols.length > 0) {
       try {
         const quotes = await this.marketService.getQuotes(symbols);
@@ -79,11 +79,11 @@ export class PortfolioService {
     }
 
     // Calculations excluding ARCHIVED
-    const totalInvestment = openPositions.reduce((sum, p) => sum + p.investedAmount, 0);
-    const totalPortfolioValue = openPositions.reduce((sum, p) => sum + p.currentValue, 0);
-    const currentPortfolioProfitLoss = openPositions.reduce((sum, p) => sum + p.profitLoss, 0);
+    const totalInvestment = openPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.investedAmount, 0);
+    const totalPortfolioValue = openPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.currentValue, 0);
+    const currentPortfolioProfitLoss = openPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.profitLoss, 0);
     const unrealizedProfit = currentPortfolioProfitLoss;
-    const realizedProfit = closedPositions.reduce((sum, p) => sum + p.profitLoss, 0);
+    const realizedProfit = closedPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.profitLoss, 0);
 
     const totalOpenPositions = openPositions.length;
     const totalClosedPositions = closedPositions.length;
@@ -91,31 +91,31 @@ export class PortfolioService {
     // Win Rate
     let winRate = 0;
     if (totalClosedPositions > 0) {
-      const wins = closedPositions.filter((p) => p.profitLoss > 0).length;
+      const wins = closedPositions.filter((p: PortfolioPosition) => p.profitLoss > 0).length;
       winRate = (wins / totalClosedPositions) * 100;
     }
 
     // Average Return %
     const allNonArchived = [...openPositions, ...closedPositions];
     const avgReturn = allNonArchived.length > 0
-      ? allNonArchived.reduce((sum, p) => sum + p.profitLossPct, 0) / allNonArchived.length
+      ? allNonArchived.reduce((sum: number, p: PortfolioPosition) => sum + p.profitLossPct, 0) / allNonArchived.length
       : 0;
 
     // Best & Worst Performing Trades
     let bestPerformingTrade: PortfolioPosition | null = null;
     let worstPerformingTrade: PortfolioPosition | null = null;
     if (allNonArchived.length > 0) {
-      bestPerformingTrade = allNonArchived.reduce((best, p) => (p.profitLossPct > best.profitLossPct ? p : best), allNonArchived[0]);
-      worstPerformingTrade = allNonArchived.reduce((worst, p) => (p.profitLossPct < worst.profitLossPct ? p : worst), allNonArchived[0]);
+      bestPerformingTrade = allNonArchived.reduce((best: PortfolioPosition, p: PortfolioPosition) => (p.profitLossPct > best.profitLossPct ? p : best), allNonArchived[0]);
+      worstPerformingTrade = allNonArchived.reduce((worst: PortfolioPosition, p: PortfolioPosition) => (p.profitLossPct < worst.profitLossPct ? p : worst), allNonArchived[0]);
     }
 
     // Average Holding Period
-    const closedWithPeriods = closedPositions.filter((p) => p.holdingPeriod !== null && p.holdingPeriod !== undefined);
+    const closedWithPeriods = closedPositions.filter((p: PortfolioPosition) => p.holdingPeriod !== null && p.holdingPeriod !== undefined);
     const avgHoldingPeriod = closedWithPeriods.length > 0
-      ? closedWithPeriods.reduce((sum, p) => sum + (p.holdingPeriod || 0), 0) / closedWithPeriods.length
+      ? closedWithPeriods.reduce((sum: number, p: PortfolioPosition) => sum + (p.holdingPeriod || 0), 0) / closedWithPeriods.length
       : 0;
 
-    const totalCapitalDeployed = totalInvestment + closedPositions.reduce((sum, p) => sum + p.investedAmount, 0);
+    const totalCapitalDeployed = totalInvestment + closedPositions.reduce((sum: number, p: PortfolioPosition) => sum + p.investedAmount, 0);
     const availableCashBalance = Math.max(0, 1000000 - totalInvestment);
 
     return {
@@ -352,10 +352,10 @@ export class PortfolioService {
   }
 
   async bulkUpdate(positionsData: any[]): Promise<any[]> {
-    const results = [];
+    const results: PortfolioPosition[] = [];
     for (const data of positionsData) {
       if (data.id) {
-        const res = await this.editPosition(data.id, data).catch((e) => {
+        const res = await this.editPosition(data.id, data).catch((e: Error) => {
           this.logger.error(`Failed to update position ${data.id}: ${e.message}`);
           return null;
         });
