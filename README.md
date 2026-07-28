@@ -1,8 +1,9 @@
-# SHREE ASSOCIATES – Professional Trade Management & Portfolio Analytics Platform
+# Trade Management & Portfolio Analytics Platform
+*Prepared for Shree Associates*
 
 An institutional-grade trade management and portfolio analytics platform designed for high-precision portfolio tracking, Excel-like inline trade management, real-time market data failover, and executive analytics without visual clutter.
 
-![SHREE ASSOCIATES Banner](frontend/public/logo.svg)
+![Trade Management Platform Banner](frontend/public/logo.svg)
 
 ## 🌟 Key Features
 
