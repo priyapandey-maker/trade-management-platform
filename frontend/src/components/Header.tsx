@@ -166,10 +166,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div>
             <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, letterSpacing: '0.03em', lineHeight: 1.1 }}>
-              SHREE ASSOCIATES
+              Trade Management Platform
             </div>
             <div style={{ fontSize: '12px', fontWeight: 600, color: subTextCol, marginTop: '2px' }}>
-              Professional Trade Management Platform
+              Prepared for Shree Associates
             </div>
           </div>
         </div>

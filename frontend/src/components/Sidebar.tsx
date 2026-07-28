@@ -61,20 +61,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleCollapse })
           {isCollapsed ? (
             /* Collapsed: Show only logo emblem */
             <div style={{ width: '38px', height: '38px', position: 'relative' }}>
-              <Image src="/logo-monogram.svg" alt="SA" width={38} height={38} priority />
+              <Image src="/logo-monogram.svg" alt="TM" width={38} height={38} priority />
             </div>
           ) : (
-            /* Expanded: Logo emblem + SHREE ASSOCIATES + readable 12px subtitle */
+            /* Expanded: Logo emblem + Trade Management + Prepared for Shree Associates */
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '36px', height: '36px', position: 'relative' }}>
-                <Image src="/logo-monogram.svg" alt="SA" width={36} height={36} priority />
+                <Image src="/logo-monogram.svg" alt="TM" width={36} height={36} priority />
               </div>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, letterSpacing: '0.04em', lineHeight: 1.1 }}>
-                  SHREE ASSOCIATES
+                  Trade Management
                 </div>
                 <div style={{ fontSize: '12px', fontWeight: 600, color: subTextCol, marginTop: '3px' }}>
-                  Professional Trade Management Platform
+                  Prepared for Shree Associates
                 </div>
               </div>
             </div>
@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, toggleCollapse })
             <span>Twelve Data Primary Engine</span>
           </div>
           <div style={{ fontSize: '12px', color: subTextCol, marginTop: '3px', fontWeight: 500 }}>
-            SHREE ASSOCIATES v3.0
+            Prepared for Shree Associates
           </div>
         </div>
       )}

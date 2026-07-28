@@ -3,7 +3,7 @@ import './globals.css';
 import { ClientLayout } from '@/components/ClientLayout';
 
 export const metadata: Metadata = {
-  title: 'SHREE ASSOCIATES – Professional Trade Management Platform',
+  title: 'Trade Management Platform – Prepared for Shree Associates',
   description: 'Institutional-grade trade management, portfolio tracking, and market analytics platform.',
   icons: {
     icon: '/favicon.svg',
