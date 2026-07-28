@@ -30,9 +30,17 @@ trade-management-platform/
 
 ## ⚡ Quick Start
 
-### 1. Prerequisites
-- Node.js >= 18.x
-- npm / yarn / pnpm
+### 1. Environment Configuration
+
+Copy the provided template `.env.example` files to create local `.env` configuration files for both backend and frontend:
+
+```bash
+# Backend environment setup
+cp backend/.env.example backend/.env
+
+# Frontend environment setup
+cp frontend/.env.example frontend/.env
+```
 
 ### 2. Backend Setup (`backend`)
 ```bash
@@ -43,7 +51,10 @@ npm run start:dev
 ```
 Backend server runs on `http://localhost:3001`.
 
-### 3. Frontend Setup (`frontend`)
+### 3. Initial Account Initialization
+Initial Owner account email and password can be configured securely in `backend/.env` using `OWNER_EMAIL` and `OWNER_PASSWORD`. If not explicitly set, default sandbox credentials will be seeded automatically for initial local development.
+
+### 4. Frontend Setup (`frontend`)
 ```bash
 cd frontend
 npm install
@@ -53,9 +64,10 @@ Frontend application runs on `http://localhost:3000`.
 
 ---
 
-## 🔐 Credentials
+## 🔒 Security Best Practices
 
-- **Default Owner Account**: `owner@shree.com` / `shree123`
+- Real credentials, passwords, database connections, and API keys are stored exclusively in environment variables (`.env`) and are excluded from git tracking.
+- Use `.env.example` as a template for local environment configuration.
 
 ---
 
