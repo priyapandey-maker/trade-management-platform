@@ -54,22 +54,6 @@ export class PortfolioController {
     return this.portfolioService.deletePosition(id);
   }
 
-  @Post('position/:id/duplicate')
-  async duplicatePosition(@Param('id') id: string, @Req() req: any) {
-    if (req.user.role !== 'OWNER') {
-      throw new ForbiddenException('Only platform owners can duplicate positions.');
-    }
-    return this.portfolioService.duplicatePosition(id);
-  }
-
-  @Patch('position/:id/archive')
-  async archivePosition(@Param('id') id: string, @Req() req: any, @Body() body: any) {
-    if (req.user.role !== 'OWNER') {
-      throw new ForbiddenException('Only platform owners can archive positions.');
-    }
-    const archive = body.archive !== false; // defaults to true
-    return this.portfolioService.archivePosition(id, archive);
-  }
 
   @Post('bulk-delete')
   async bulkDelete(@Req() req: any, @Body() body: any) {

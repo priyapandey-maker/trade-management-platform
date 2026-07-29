@@ -26,9 +26,6 @@ export default function OpenPositionsPage() {
   // Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Excel-like Editing State
-  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
-
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [closingPosition, setClosingPosition] = useState<any | null>(null);
@@ -51,6 +48,23 @@ export default function OpenPositionsPage() {
   const [newNotes, setNewNotes] = useState('');
   const [newDate, setNewDate] = useState(new Date().toISOString().substring(0, 10));
 
+  // Edit Drawer State
+  const [editingPosition, setEditingPosition] = useState<any | null>(null);
+  const [showEditDrawer, setShowEditDrawer] = useState(false);
+  const [editForm, setEditForm] = useState({
+    company: '',
+    symbol: '',
+    tradeType: 'BUY',
+    buyPrice: '',
+    quantity: '',
+    targetPrice: '',
+    stopLoss: '',
+    entryDate: '',
+    notes: '',
+  });
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState<string | null>(null);
+
   const fetchPositions = useCallback(async () => {
     try {
       setLoading(true);
@@ -72,67 +86,112 @@ export default function OpenPositionsPage() {
     return () => clearInterval(interval);
   }, [fetchPositions]);
 
-  // Excel-like cell edit handlers
-  const handleInlineChange = (id: string, field: string, val: any) => {
-    setPositions((prev) =>
-      prev.map((pos) => {
-        if (pos.id === id) {
-          const updated = { ...pos, [field]: val };
-          const qty = parseFloat(updated.quantity) || 0;
-          const buyPrice = parseFloat(updated.buyPrice) || 0;
-          const currentPrice = parseFloat(updated.currentPrice) || buyPrice;
-          const charges = parseFloat(updated.brokerCharges) || 0;
-
-          const invested = buyPrice * qty;
-          const currentVal = currentPrice * qty;
-
-          let profitLoss = 0;
-          if (updated.tradeType === 'SELL') {
-            profitLoss = (buyPrice - currentPrice) * qty - charges;
-          } else {
-            profitLoss = (currentPrice - buyPrice) * qty - charges;
-          }
-          const profitLossPct = invested > 0 ? (profitLoss / invested) * 100 : 0;
-
-          return {
-            ...updated,
-            investedAmount: invested,
-            currentValue: currentVal,
-            profitLoss,
-            profitLossPct,
-          };
-        }
-        return pos;
-      })
-    );
+  // Open Edit Drawer
+  const handleOpenEditDrawer = (pos: any) => {
+    setEditingPosition(pos);
+    setEditForm({
+      company: pos.company || '',
+      symbol: pos.symbol || '',
+      tradeType: pos.tradeType || 'BUY',
+      buyPrice: pos.buyPrice ? pos.buyPrice.toString() : '',
+      quantity: pos.quantity ? pos.quantity.toString() : '',
+      targetPrice: pos.targetPrice ? pos.targetPrice.toString() : '',
+      stopLoss: pos.stopLoss ? pos.stopLoss.toString() : '',
+      entryDate: pos.entryDate ? new Date(pos.entryDate).toISOString().substring(0, 10) : '',
+      notes: pos.notes || '',
+    });
+    setValidationErrors({});
+    setApiError(null);
+    setShowEditDrawer(true);
   };
 
-  const saveInlineEdit = async (id: string) => {
-    if (user?.role !== 'OWNER') return;
-    const pos = positions.find((p) => p.id === id);
-    if (!pos) return;
+  // Submit Drawer changes
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (user?.role !== 'OWNER' || !editingPosition) return;
+
+    setValidationErrors({});
+    setApiError(null);
+
+    const errors: Record<string, string> = {};
+    const symbol = editForm.symbol.trim().toUpperCase();
+    const company = editForm.company.trim();
+    const qty = parseFloat(editForm.quantity);
+    const bp = parseFloat(editForm.buyPrice);
+    const tp = editForm.targetPrice ? parseFloat(editForm.targetPrice) : null;
+    const sl = editForm.stopLoss ? parseFloat(editForm.stopLoss) : null;
+
+    if (!symbol) errors.symbol = 'Stock symbol is required.';
+    if (isNaN(qty) || qty <= 0) errors.quantity = 'Quantity must be greater than 0.';
+    if (isNaN(bp) || bp <= 0) errors.buyPrice = 'Buy Price must be greater than 0.';
+    if (tp !== null && tp === bp) errors.targetPrice = 'Target Price cannot equal Buy Price.';
+
+    if (editForm.tradeType === 'BUY') {
+      if (sl !== null && sl >= bp) {
+        errors.stopLoss = 'For BUY trade, Stop Loss must be less than Buy Price.';
+      }
+      if (tp !== null && tp <= bp) {
+        errors.targetPrice = 'For BUY trade, Target Price must be greater than Buy Price.';
+      }
+    } else {
+      if (sl !== null && sl <= bp) {
+        errors.stopLoss = 'For SELL trade, Stop Loss must be greater than Buy Price.';
+      }
+      if (tp !== null && tp >= bp) {
+        errors.targetPrice = 'For SELL trade, Target Price must be less than Buy Price.';
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Backup for rollback
+    const originalPositions = [...positions];
+
+    // Recalculate local row values optimistically
+    const updatedPos = {
+      ...editingPosition,
+      symbol,
+      company,
+      tradeType: editForm.tradeType,
+      buyPrice: bp,
+      quantity: qty,
+      targetPrice: tp,
+      stopLoss: sl,
+      entryDate: editForm.entryDate ? new Date(editForm.entryDate).toISOString() : editingPosition.entryDate,
+      notes: editForm.notes,
+      investedAmount: bp * qty,
+      currentValue: editingPosition.currentPrice * qty,
+      profitLoss: editForm.tradeType === 'SELL'
+        ? (bp - editingPosition.currentPrice) * qty - editingPosition.brokerCharges
+        : (editingPosition.currentPrice - bp) * qty - editingPosition.brokerCharges,
+    };
+    updatedPos.profitLossPct = updatedPos.investedAmount > 0 ? (updatedPos.profitLoss / updatedPos.investedAmount) * 100 : 0;
+
+    // Apply optimistic update & close drawer
+    setPositions((prev) => prev.map((item) => (item.id === editingPosition.id ? updatedPos : item)));
+    setShowEditDrawer(false);
+
     try {
-      await api.patch(`/portfolio/position/${id}`, {
-        buyPrice: pos.buyPrice,
-        quantity: pos.quantity,
-        currentPrice: pos.currentPrice,
-        targetPrice: pos.targetPrice,
-        stopLoss: pos.stopLoss,
-        notes: pos.notes,
+      await api.patch(`/portfolio/position/${editingPosition.id}`, {
+        symbol,
+        company,
+        tradeType: editForm.tradeType,
+        buyPrice: bp,
+        quantity: qty,
+        targetPrice: tp,
+        stopLoss: sl,
+        entryDate: editForm.entryDate,
+        notes: editForm.notes,
       });
       fetchPositions();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update position.');
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent, id: string, field: string) => {
-    if (e.key === 'Enter') {
-      saveInlineEdit(id);
-      setEditingCell(null);
-    } else if (e.key === 'Escape') {
-      fetchPositions();
-      setEditingCell(null);
+      // Rollback on failure
+      setPositions(originalPositions);
+      setShowEditDrawer(true);
+      setApiError(err.response?.data?.message || 'Failed to save changes. Please try again.');
     }
   };
 
@@ -164,23 +223,6 @@ export default function OpenPositionsPage() {
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to add position.');
     }
-  };
-
-  // Actions
-  const handleDuplicate = async (id: string) => {
-    if (user?.role !== 'OWNER') return;
-    try {
-      await api.post(`/portfolio/position/${id}/duplicate`);
-      fetchPositions();
-    } catch (e) {}
-  };
-
-  const handleArchive = async (id: string) => {
-    if (user?.role !== 'OWNER') return;
-    try {
-      await api.patch(`/portfolio/position/${id}/archive`, { archive: true });
-      fetchPositions();
-    } catch (e) {}
   };
 
   const confirmDelete = async () => {
@@ -294,7 +336,7 @@ export default function OpenPositionsPage() {
         <div>
           <h1 style={{ fontSize: '22px', fontWeight: 900, color: textCol, margin: 0 }}>Open Positions</h1>
           <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>
-            Live active trades, Excel-like inline editing, and real-time target/stop proximity metrics.
+            Live active trades, right-side configuration editor, and real-time target/stop proximity metrics.
           </p>
         </div>
         
@@ -316,23 +358,20 @@ export default function OpenPositionsPage() {
         </div>
       )}
 
-      {/* REQ 8: HIGHEST PERFORMING & 2ND HIGHEST PERFORMING CARDS + KPI CARDS */}
+      {/* Highlights & KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        {/* Card 1: Total Open Trades */}
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Open Trades</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{totalOpenTrades}</div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Active Allocations</div>
         </div>
 
-        {/* Card 2: Current Exposure */}
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Current Exposure</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>₹{currentExposure.toLocaleString('en-IN')}</div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Total Market Value</div>
         </div>
 
-        {/* Card 3: Overall Live P&L */}
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Unrealized Live P&amp;L</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: overallPnL >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
@@ -341,7 +380,6 @@ export default function OpenPositionsPage() {
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Open Profit/Loss</div>
         </div>
 
-        {/* REQ 8: Card 4: Highest Performing Position */}
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '11px', fontWeight: 800, color: '#16A34A', textTransform: 'uppercase' }}>🏆 #1 Top Performer</span>
@@ -360,7 +398,6 @@ export default function OpenPositionsPage() {
           )}
         </div>
 
-        {/* REQ 8: Card 5: Second Highest Performing Position */}
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563EB', textTransform: 'uppercase' }}>🥈 #2 Top Performer</span>
@@ -384,7 +421,7 @@ export default function OpenPositionsPage() {
         </div>
       </div>
 
-      {/* Control Bar: Search, Type Filter, Sort, Bulk Delete */}
+      {/* Filters Bar */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '14px 18px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, maxWidth: '600px' }}>
           <input
@@ -429,7 +466,7 @@ export default function OpenPositionsPage() {
         )}
       </div>
 
-      {/* OPEN POSITIONS TABLE */}
+      {/* TABLE */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', overflow: 'hidden' }}>
         {loading && positions.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: subTextCol }}>Loading live open positions...</div>
@@ -466,7 +503,7 @@ export default function OpenPositionsPage() {
                   <th style={{ padding: '12px', fontWeight: 800 }}>Invested</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Current Val</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Live P&amp;L</th>
-                  {user?.role === 'OWNER' && <th style={{ padding: '12px', textAlign: 'center', width: '180px' }}>Actions</th>}
+                  {user?.role === 'OWNER' && <th style={{ padding: '12px', textAlign: 'center', width: '220px' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -491,8 +528,7 @@ export default function OpenPositionsPage() {
                         </td>
                       )}
 
-                      {/* Symbol + Row Alert Badges (Req 1) */}
-                      <td style={{ padding: '10px', fontWeight: 800, color: textCol }} onDoubleClick={() => user?.role === 'OWNER' && setEditingCell({ id: pos.id, field: 'symbol' })}>
+                      <td style={{ padding: '10px', fontWeight: 800, color: textCol }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           <div>{pos.symbol}</div>
                           {pos.atBuyPrice && (
@@ -508,57 +544,44 @@ export default function OpenPositionsPage() {
                         </div>
                       </td>
 
-                      {/* Company */}
                       <td style={{ padding: '10px', color: subTextCol }}>{pos.company}</td>
 
-                      {/* Type */}
                       <td style={{ padding: '10px', fontWeight: 700 }}>
                         <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? '#DCFCE7' : '#FEE2E2', color: pos.tradeType === 'BUY' ? '#15803D' : '#991B1B', fontSize: '11px', fontWeight: 800 }}>
                           {pos.tradeType}
                         </span>
                       </td>
 
-                      {/* Qty */}
                       <td style={{ padding: '10px', fontWeight: 600 }}>{pos.quantity}</td>
 
-                      {/* Buy Price */}
                       <td style={{ padding: '10px', fontWeight: 700 }}>₹{pos.buyPrice}</td>
 
-                      {/* CMP */}
                       <td style={{ padding: '10px', fontWeight: 800, color: '#16A34A' }}>₹{pos.currentPrice}</td>
 
-                      {/* Target */}
                       <td style={{ padding: '10px', color: '#16A34A', fontWeight: 700 }}>{pos.targetPrice ? `₹${pos.targetPrice}` : '-'}</td>
 
-                      {/* Stop Loss */}
                       <td style={{ padding: '10px', color: '#DC2626', fontWeight: 700 }}>{pos.stopLoss ? `₹${pos.stopLoss}` : '-'}</td>
 
-                      {/* Target Rem */}
                       <td style={{ padding: '10px', fontWeight: 700, color: '#16A34A' }}>{targetRem.text}</td>
 
-                      {/* Stop Rem */}
                       <td style={{ padding: '10px', fontWeight: 700, color: '#DC2626' }}>{stopRem.text}</td>
 
-                      {/* REQ 2: Holding Days (Today - Buy Date) */}
                       <td style={{ padding: '10px', fontWeight: 700, color: textCol }}>
                         <span style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: isDark ? '#334155' : '#F1F5F9', fontSize: '11.5px' }}>
                           ⏱️ {pos.holdingPeriod} Days
                         </span>
                       </td>
 
-                      {/* Invested */}
                       <td style={{ padding: '10px', fontWeight: 600 }}>₹{pos.investedAmount.toLocaleString('en-IN')}</td>
 
-                      {/* Current Value */}
                       <td style={{ padding: '10px', fontWeight: 700 }}>₹{pos.currentValue.toLocaleString('en-IN')}</td>
 
-                      {/* REQ 3: Live P&L and P&L % */}
                       <td style={{ padding: '10px', fontWeight: 800, color: isProfit ? '#16A34A' : '#DC2626' }}>
                         <div>{isProfit ? '+' : ''}₹{pos.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
                         <div style={{ fontSize: '11px' }}>({isProfit ? '+' : ''}{pos.profitLossPct.toFixed(2)}%)</div>
                       </td>
 
-                      {/* Actions */}
+                      {/* Actions in exact requested order: Close Position -> Edit -> Delete */}
                       {user?.role === 'OWNER' && (
                         <td style={{ padding: '10px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
@@ -567,31 +590,23 @@ export default function OpenPositionsPage() {
                                 setClosingPosition(pos);
                                 setClosePrice(pos.currentPrice.toString());
                               }}
-                              title="Close Trade"
-                              style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', backgroundColor: '#16A34A', color: '#FFFFFF', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
+                              style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#16A34A', color: '#FFFFFF', fontSize: '11.5px', fontWeight: 800, cursor: 'pointer' }}
                             >
-                              Close
+                              ✅ Close
                             </button>
                             <button
-                              onClick={() => handleDuplicate(pos.id)}
-                              title="Duplicate Position"
-                              style={{ padding: '4px 8px', borderRadius: '4px', border: `1px solid ${borderCol}`, backgroundColor: 'transparent', color: textCol, fontSize: '11px', cursor: 'pointer' }}
+                              onClick={() => handleOpenEditDrawer(pos)}
+                              title="Edit Position"
+                              style={{ padding: '5px 10px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, fontSize: '11.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                             >
-                              📋
-                            </button>
-                            <button
-                              onClick={() => handleArchive(pos.id)}
-                              title="Archive Position"
-                              style={{ padding: '4px 8px', borderRadius: '4px', border: `1px solid ${borderCol}`, backgroundColor: 'transparent', color: textCol, fontSize: '11px', cursor: 'pointer' }}
-                            >
-                              📁
+                              ✏️ Edit
                             </button>
                             <button
                               onClick={() => setDeletingId(pos.id)}
                               title="Delete Position"
-                              style={{ padding: '4px 8px', borderRadius: '4px', border: 'none', backgroundColor: '#FEE2E2', color: '#991B1B', fontSize: '11px', cursor: 'pointer' }}
+                              style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#FEE2E2', color: '#991B1B', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}
                             >
-                              🗑️
+                              🗑️ Delete
                             </button>
                           </div>
                         </td>
@@ -604,7 +619,7 @@ export default function OpenPositionsPage() {
           </div>
         )}
 
-        {/* Pagination Controls */}
+        {/* Pagination */}
         {totalPages > 1 && (
           <div style={{ padding: '14px 18px', borderTop: `1px solid ${borderCol}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: '12.5px', color: subTextCol }}>
@@ -622,7 +637,266 @@ export default function OpenPositionsPage() {
         )}
       </div>
 
-      {/* Add Position Modal */}
+      {/* Edit Drawer (REQ 2, 3) */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 100,
+          opacity: showEditDrawer ? 1 : 0,
+          pointerEvents: showEditDrawer ? 'auto' : 'none',
+          transition: 'opacity 0.25s ease-in-out',
+        }}
+        onClick={() => {
+          setShowEditDrawer(false);
+          setEditingPosition(null);
+          setValidationErrors({});
+          setApiError(null);
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '520px',
+            height: '100%',
+            backgroundColor: cardBg,
+            boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.15)',
+            transform: showEditDrawer ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Drawer Header */}
+          <div style={{ padding: '24px', borderBottom: `1px solid ${borderCol}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: textCol }}>✏️ Edit Position Parameters</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: subTextCol }}>Modify position parameters & trade configurations.</p>
+            </div>
+            <button
+              onClick={() => {
+                setShowEditDrawer(false);
+                setEditingPosition(null);
+                setValidationErrors({});
+                setApiError(null);
+              }}
+              style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: subTextCol }}
+            >
+              ❌
+            </button>
+          </div>
+
+          {/* Drawer Form Scrollable */}
+          <form onSubmit={handleEditSubmit} style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {apiError && (
+              <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
+                ⚠️ {apiError}
+              </div>
+            )}
+
+            {/* Read-Only Stats Preview (Req 3) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', borderRadius: '12px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
+              <div>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Current Price (CMP)</span>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: '#16A34A', marginTop: '3px' }}>₹{editingPosition?.currentPrice || 0}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Days Held</span>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: textCol, marginTop: '3px' }}>
+                  {Math.max(0, Math.floor((new Date().getTime() - new Date(editForm.entryDate || new Date()).getTime()) / (1000 * 60 * 60 * 24)))} Days
+                </div>
+              </div>
+              <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '8px', gridColumn: 'span 2' }} />
+              <div>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Investment Value</span>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: textCol, marginTop: '2px' }}>
+                  ₹{((parseFloat(editForm.buyPrice) || 0) * (parseFloat(editForm.quantity) || 0)).toLocaleString('en-IN')}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Current Value</span>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: textCol, marginTop: '2px' }}>
+                  ₹{((editingPosition?.currentPrice || 0) * (parseFloat(editForm.quantity) || 0)).toLocaleString('en-IN')}
+                </div>
+              </div>
+              <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '8px', gridColumn: 'span 2' }} />
+              <div>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Live P&amp;L</span>
+                <div style={{ fontSize: '14px', fontWeight: 900, color: ((editingPosition?.currentPrice || 0) >= (parseFloat(editForm.buyPrice) || 0) ? '#16A34A' : '#DC2626'), marginTop: '2px' }}>
+                  ₹{((editForm.tradeType === 'SELL'
+                    ? ((parseFloat(editForm.buyPrice) || 0) - (editingPosition?.currentPrice || 0)) * (parseFloat(editForm.quantity) || 0) - (editingPosition?.brokerCharges || 0)
+                    : ((editingPosition?.currentPrice || 0) - (parseFloat(editForm.buyPrice) || 0)) * (parseFloat(editForm.quantity) || 0) - (editingPosition?.brokerCharges || 0)
+                  ) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Risk/Reward Ratio</span>
+                <div style={{ fontSize: '14px', fontWeight: 900, color: textCol, marginTop: '2px' }}>
+                  {(() => {
+                    const bp = parseFloat(editForm.buyPrice) || 0;
+                    const tp = parseFloat(editForm.targetPrice) || 0;
+                    const sl = parseFloat(editForm.stopLoss) || 0;
+                    if (editForm.tradeType === 'BUY') {
+                      const risk = bp - sl;
+                      const reward = tp - bp;
+                      return risk > 0 && reward > 0 ? (reward / risk).toFixed(2) : 'N/A';
+                    } else {
+                      const risk = sl - bp;
+                      const reward = bp - tp;
+                      return risk > 0 && reward > 0 ? (reward / risk).toFixed(2) : 'N/A';
+                    }
+                  })()}
+                </div>
+              </div>
+              <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '8px', gridColumn: 'span 2' }} />
+              <div style={{ gridColumn: 'span 2' }}>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Last Updated</span>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: textCol, marginTop: '2px' }}>
+                  {editingPosition?.updatedAt ? new Date(editingPosition.updatedAt).toLocaleString('en-IN') : 'N/A'}
+                </div>
+              </div>
+            </div>
+
+            {/* Editable Fields */}
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Company Name</label>
+              <input
+                type="text"
+                value={editForm.company}
+                onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Stock Symbol</label>
+              <input
+                type="text"
+                value={editForm.symbol}
+                onChange={(e) => setEditForm({ ...editForm, symbol: e.target.value.toUpperCase() })}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+              />
+              {validationErrors.symbol && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.symbol}</span>}
+            </div>
+
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Trade Type</label>
+              <select
+                value={editForm.tradeType}
+                onChange={(e) => setEditForm({ ...editForm, tradeType: e.target.value })}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+              >
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Buy Price</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={editForm.buyPrice}
+                  onChange={(e) => setEditForm({ ...editForm, buyPrice: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                />
+                {validationErrors.buyPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.buyPrice}</span>}
+              </div>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Quantity</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={editForm.quantity}
+                  onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                />
+                {validationErrors.quantity && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.quantity}</span>}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Target Price</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={editForm.targetPrice}
+                  onChange={(e) => setEditForm({ ...editForm, targetPrice: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                />
+                {validationErrors.targetPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.targetPrice}</span>}
+              </div>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Stop Loss</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={editForm.stopLoss}
+                  onChange={(e) => setEditForm({ ...editForm, stopLoss: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                />
+                {validationErrors.stopLoss && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.stopLoss}</span>}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Buy Date</label>
+              <input
+                type="date"
+                value={editForm.entryDate}
+                onChange={(e) => setEditForm({ ...editForm, entryDate: e.target.value })}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Notes</label>
+              <textarea
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', height: '80px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+              />
+            </div>
+
+            {/* Actions Footer */}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: `1px solid ${borderCol}`, paddingTop: '18px', marginTop: '10px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditDrawer(false);
+                  setEditingPosition(null);
+                  setValidationErrors({});
+                  setApiError(null);
+                }}
+                className="btnSecondary"
+                style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 700 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btnPrimary"
+                style={{ padding: '10px 22px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, backgroundColor: '#16A34A' }}
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Add Modal */}
       {showAddModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ width: '500px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
@@ -682,7 +956,7 @@ export default function OpenPositionsPage() {
         </div>
       )}
 
-      {/* Close Trade Modal */}
+      {/* Close Position Modal */}
       {closingPosition && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ width: '420px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
@@ -716,21 +990,21 @@ export default function OpenPositionsPage() {
         </div>
       )}
 
-      {/* Single Delete Confirmation */}
+      {/* Delete Confirmation Modal (Req 7) */}
       {deletingId && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ width: '380px', padding: '20px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 800 }}>Confirm Delete</h4>
-            <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>Are you sure you want to permanently delete this open position?</p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-              <button onClick={() => setDeletingId(null)} className="btnSecondary" style={{ padding: '6px 14px', fontSize: '12px' }}>Cancel</button>
-              <button onClick={confirmDelete} style={{ padding: '6px 14px', backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
+          <div style={{ width: '380px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}`, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 800, color: textCol }}>Confirm Delete</h4>
+            <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>Are you sure you want to permanently delete this trade?</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setDeletingId(null)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '12.5px', borderRadius: '8px' }}>Cancel</button>
+              <button onClick={confirmDelete} style={{ padding: '8px 18px', backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Bulk Delete Confirmation */}
+      {/* Bulk Delete Confirm */}
       {showBulkDeleteConfirm && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ width: '400px', padding: '20px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>

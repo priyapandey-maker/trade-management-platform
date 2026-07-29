@@ -397,47 +397,6 @@ export class PortfolioService {
     });
   }
 
-  async duplicatePosition(id: string): Promise<PortfolioPosition> {
-    const pos = await prisma.portfolioPosition.findUnique({ where: { id } });
-    if (!pos) throw new NotFoundException(`Position with ID "${id}" not found.`);
-
-    return prisma.portfolioPosition.create({
-      data: {
-        symbol: `${pos.symbol}-COPY`,
-        company: `${pos.company} (Copy)`,
-        tradeType: pos.tradeType,
-        buyPrice: pos.buyPrice,
-        currentPrice: pos.currentPrice,
-        quantity: pos.quantity,
-        investedAmount: pos.investedAmount,
-        currentValue: pos.currentValue,
-        profitLoss: pos.profitLoss,
-        profitLossPct: pos.profitLossPct,
-        targetPrice: pos.targetPrice,
-        stopLoss: pos.stopLoss,
-        nearBuyProximityPct: pos.nearBuyProximityPct,
-        buyPriceAlertActive: true,
-        nearBuyAlertActive: true,
-        brokerCharges: pos.brokerCharges,
-        notes: pos.notes,
-        assetType: pos.assetType,
-        status: 'OPEN',
-        entryDate: new Date(),
-      },
-    });
-  }
-
-  async archivePosition(id: string, archive: boolean): Promise<PortfolioPosition> {
-    const pos = await prisma.portfolioPosition.findUnique({ where: { id } });
-    if (!pos) throw new NotFoundException(`Position with ID "${id}" not found.`);
-
-    return prisma.portfolioPosition.update({
-      where: { id },
-      data: {
-        status: archive ? 'ARCHIVED' : 'OPEN',
-      },
-    });
-  }
 
   async bulkDelete(ids: string[]): Promise<any> {
     return prisma.portfolioPosition.deleteMany({
