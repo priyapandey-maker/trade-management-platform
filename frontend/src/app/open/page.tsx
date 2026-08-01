@@ -47,6 +47,9 @@ export default function OpenPositionsPage() {
   const [newStop, setNewStop] = useState('');
   const [newNotes, setNewNotes] = useState('');
   const [newDate, setNewDate] = useState(new Date().toISOString().substring(0, 10));
+  const [newSellPrice, setNewSellPrice] = useState('');
+  const [newSellDate, setNewSellDate] = useState(new Date().toISOString().substring(0, 10));
+  const [newExitReason, setNewExitReason] = useState('MANUAL_EXIT');
 
   // Edit Drawer State
   const [editingPosition, setEditingPosition] = useState<any | null>(null);
@@ -61,6 +64,11 @@ export default function OpenPositionsPage() {
     stopLoss: '',
     entryDate: '',
     notes: '',
+    nearBuyProximityPct: '1.0',
+    muteAlertsUntil: '',
+    sellingPrice: '',
+    closedAt: '',
+    exitReason: 'MANUAL_EXIT',
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
@@ -99,6 +107,11 @@ export default function OpenPositionsPage() {
       stopLoss: pos.stopLoss ? pos.stopLoss.toString() : '',
       entryDate: pos.entryDate ? new Date(pos.entryDate).toISOString().substring(0, 10) : '',
       notes: pos.notes || '',
+      nearBuyProximityPct: pos.nearBuyProximityPct ? pos.nearBuyProximityPct.toString() : '1.0',
+      muteAlertsUntil: pos.muteAlertsUntil ? new Date(pos.muteAlertsUntil).toISOString().substring(0, 10) : '',
+      sellingPrice: pos.sellingPrice ? pos.sellingPrice.toString() : '',
+      closedAt: pos.closedAt ? new Date(pos.closedAt).toISOString().substring(0, 10) : '',
+      exitReason: pos.exitReason || 'MANUAL_EXIT',
     });
     setValidationErrors({});
     setApiError(null);
@@ -120,25 +133,31 @@ export default function OpenPositionsPage() {
     const bp = parseFloat(editForm.buyPrice);
     const tp = editForm.targetPrice ? parseFloat(editForm.targetPrice) : null;
     const sl = editForm.stopLoss ? parseFloat(editForm.stopLoss) : null;
+    const prox = parseFloat(editForm.nearBuyProximityPct);
 
     if (!symbol) errors.symbol = 'Stock symbol is required.';
     if (isNaN(qty) || qty <= 0) errors.quantity = 'Quantity must be greater than 0.';
     if (isNaN(bp) || bp <= 0) errors.buyPrice = 'Buy Price must be greater than 0.';
-    if (tp !== null && tp === bp) errors.targetPrice = 'Target Price cannot equal Buy Price.';
 
-    if (editForm.tradeType === 'BUY') {
+    const isSellWorkflow = editForm.tradeType === 'SELL';
+
+    let sp = 0;
+    if (isSellWorkflow) {
+      sp = parseFloat(editForm.sellingPrice);
+      if (isNaN(sp) || sp <= 0) {
+        errors.sellingPrice = 'Sell Price is required and must be greater than 0 for completed trades.';
+      }
+    } else {
+      if (tp !== null && tp === bp) errors.targetPrice = 'Target Price cannot equal Buy Price.';
+      if (isNaN(prox) || prox <= 0 || prox > 50) {
+        errors.nearBuyProximityPct = 'Proximity percentage must be between 0.1% and 50%.';
+      }
+
       if (sl !== null && sl >= bp) {
         errors.stopLoss = 'For BUY trade, Stop Loss must be less than Buy Price.';
       }
       if (tp !== null && tp <= bp) {
         errors.targetPrice = 'For BUY trade, Target Price must be greater than Buy Price.';
-      }
-    } else {
-      if (sl !== null && sl <= bp) {
-        errors.stopLoss = 'For SELL trade, Stop Loss must be greater than Buy Price.';
-      }
-      if (tp !== null && tp >= bp) {
-        errors.targetPrice = 'For SELL trade, Target Price must be less than Buy Price.';
       }
     }
 
@@ -151,6 +170,27 @@ export default function OpenPositionsPage() {
     const originalPositions = [...positions];
 
     // Recalculate local row values optimistically
+    const entryDate = editForm.entryDate ? new Date(editForm.entryDate).toISOString() : editingPosition.entryDate;
+    const investedAmount = bp * qty;
+
+    let currentValue = editingPosition.currentPrice * qty;
+    let profitLoss = 0;
+    let profitLossPct = 0;
+    let finalClosedAt = editingPosition.closedAt;
+    let holdingPeriod = editingPosition.holdingPeriod;
+
+    if (isSellWorkflow) {
+      currentValue = sp * qty;
+      profitLoss = currentValue - investedAmount;
+      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      finalClosedAt = editForm.closedAt ? new Date(editForm.closedAt).toISOString() : new Date().toISOString();
+      holdingPeriod = Math.max(0, Math.floor((new Date(finalClosedAt).getTime() - new Date(entryDate).getTime()) / (1000 * 60 * 60 * 24)));
+    } else {
+      currentValue = editingPosition.currentPrice * qty;
+      profitLoss = (editingPosition.currentPrice - bp) * qty - editingPosition.brokerCharges;
+      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+    }
+
     const updatedPos = {
       ...editingPosition,
       symbol,
@@ -160,15 +200,20 @@ export default function OpenPositionsPage() {
       quantity: qty,
       targetPrice: tp,
       stopLoss: sl,
-      entryDate: editForm.entryDate ? new Date(editForm.entryDate).toISOString() : editingPosition.entryDate,
+      entryDate,
       notes: editForm.notes,
-      investedAmount: bp * qty,
-      currentValue: editingPosition.currentPrice * qty,
-      profitLoss: editForm.tradeType === 'SELL'
-        ? (bp - editingPosition.currentPrice) * qty - editingPosition.brokerCharges
-        : (editingPosition.currentPrice - bp) * qty - editingPosition.brokerCharges,
+      nearBuyProximityPct: prox,
+      muteAlertsUntil: editForm.muteAlertsUntil || null,
+      investedAmount,
+      currentValue,
+      profitLoss,
+      profitLossPct,
+      sellingPrice: isSellWorkflow ? sp : undefined,
+      closedAt: isSellWorkflow ? finalClosedAt : undefined,
+      holdingPeriod,
+      exitReason: isSellWorkflow ? editForm.exitReason : undefined,
+      status: isSellWorkflow ? 'CLOSED' : editingPosition.status,
     };
-    updatedPos.profitLossPct = updatedPos.investedAmount > 0 ? (updatedPos.profitLoss / updatedPos.investedAmount) * 100 : 0;
 
     // Apply optimistic update & close drawer
     setPositions((prev) => prev.map((item) => (item.id === editingPosition.id ? updatedPos : item)));
@@ -185,6 +230,12 @@ export default function OpenPositionsPage() {
         stopLoss: sl,
         entryDate: editForm.entryDate,
         notes: editForm.notes,
+        nearBuyProximityPct: prox,
+        muteAlertsUntil: editForm.muteAlertsUntil || null,
+        sellingPrice: isSellWorkflow ? sp : undefined,
+        closedAt: isSellWorkflow ? editForm.closedAt : undefined,
+        exitReason: isSellWorkflow ? editForm.exitReason : undefined,
+        status: isSellWorkflow ? 'CLOSED' : undefined,
       });
       fetchPositions();
     } catch (err: any) {
@@ -199,18 +250,55 @@ export default function OpenPositionsPage() {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (user?.role !== 'OWNER') return;
+
+    const qty = parseFloat(newQty);
+    const bp = parseFloat(newBuyPrice);
+
+    if (isNaN(qty) || qty <= 0) {
+      alert('Quantity must be greater than 0.');
+      return;
+    }
+    if (isNaN(bp) || bp <= 0) {
+      alert('Buy Price must be greater than 0.');
+      return;
+    }
+
     try {
-      await api.post('/portfolio/position', {
-        symbol: newSymbol.toUpperCase(),
-        company: newCompany || newSymbol,
-        tradeType: newType,
-        buyPrice: parseFloat(newBuyPrice),
-        quantity: parseFloat(newQty),
-        targetPrice: newTarget ? parseFloat(newTarget) : null,
-        stopLoss: newStop ? parseFloat(newStop) : null,
-        notes: newNotes,
-        entryDate: newDate,
-      });
+      if (newType === 'SELL') {
+        const sp = parseFloat(newSellPrice);
+        if (isNaN(sp) || sp <= 0) {
+          alert('Sell Price is required and must be greater than 0 for completed historical trades.');
+          return;
+        }
+
+        await api.post('/portfolio/position', {
+          symbol: newSymbol.toUpperCase(),
+          company: newCompany || newSymbol,
+          tradeType: newType,
+          buyPrice: bp,
+          sellingPrice: sp,
+          quantity: qty,
+          targetPrice: newTarget ? parseFloat(newTarget) : null,
+          stopLoss: newStop ? parseFloat(newStop) : null,
+          notes: newNotes,
+          entryDate: newDate,
+          sellDate: newSellDate,
+          exitReason: newExitReason,
+        });
+      } else {
+        await api.post('/portfolio/position', {
+          symbol: newSymbol.toUpperCase(),
+          company: newCompany || newSymbol,
+          tradeType: newType,
+          buyPrice: bp,
+          quantity: qty,
+          targetPrice: newTarget ? parseFloat(newTarget) : null,
+          stopLoss: newStop ? parseFloat(newStop) : null,
+          notes: newNotes,
+          entryDate: newDate,
+        });
+      }
+
       setShowAddModal(false);
       setNewSymbol('');
       setNewCompany('');
@@ -219,6 +307,9 @@ export default function OpenPositionsPage() {
       setNewTarget('');
       setNewStop('');
       setNewNotes('');
+      setNewSellPrice('');
+      setNewSellDate(new Date().toISOString().substring(0, 10));
+      setNewExitReason('MANUAL_EXIT');
       fetchPositions();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to add position.');
@@ -679,7 +770,9 @@ export default function OpenPositionsPage() {
           {/* Drawer Header */}
           <div style={{ padding: '24px', borderBottom: `1px solid ${borderCol}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: textCol }}>✏️ Edit Position Parameters</h3>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: textCol }}>
+                {editForm.tradeType === 'SELL' ? '📝 Record/Edit Historical Trade' : '✏️ Edit Position Parameters'}
+              </h3>
               <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: subTextCol }}>Modify position parameters & trade configurations.</p>
             </div>
             <button
@@ -706,13 +799,23 @@ export default function OpenPositionsPage() {
             {/* Read-Only Stats Preview (Req 3) */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', borderRadius: '12px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
               <div>
-                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Current Price (CMP)</span>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: '#16A34A', marginTop: '3px' }}>₹{editingPosition?.currentPrice || 0}</div>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>
+                  {editForm.tradeType === 'SELL' ? 'Exit Price (Sell Price)' : 'Current Price (CMP)'}
+                </span>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: '#16A34A', marginTop: '3px' }}>
+                  ₹{editForm.tradeType === 'SELL' ? (parseFloat(editForm.sellingPrice) || 0) : (editingPosition?.currentPrice || 0)}
+                </div>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Days Held</span>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>
+                  {editForm.tradeType === 'SELL' ? 'Holding Period' : 'Days Held'}
+                </span>
                 <div style={{ fontSize: '18px', fontWeight: 900, color: textCol, marginTop: '3px' }}>
-                  {Math.max(0, Math.floor((new Date().getTime() - new Date(editForm.entryDate || new Date()).getTime()) / (1000 * 60 * 60 * 24)))} Days
+                  {(() => {
+                    const buyDate = new Date(editForm.entryDate || new Date());
+                    const sellDate = editForm.tradeType === 'SELL' ? new Date(editForm.closedAt || new Date()) : new Date();
+                    return Math.max(0, Math.floor((sellDate.getTime() - buyDate.getTime()) / (1000 * 60 * 60 * 24)));
+                  })()} Days
                 </div>
               </div>
               <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '8px', gridColumn: 'span 2' }} />
@@ -723,37 +826,43 @@ export default function OpenPositionsPage() {
                 </div>
               </div>
               <div>
-                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Current Value</span>
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>
+                  {editForm.tradeType === 'SELL' ? 'Exit Value' : 'Current Value'}
+                </span>
                 <div style={{ fontSize: '14px', fontWeight: 800, color: textCol, marginTop: '2px' }}>
-                  ₹{((editingPosition?.currentPrice || 0) * (parseFloat(editForm.quantity) || 0)).toLocaleString('en-IN')}
+                  ₹{((editForm.tradeType === 'SELL' ? (parseFloat(editForm.sellingPrice) || 0) : (editingPosition?.currentPrice || 0)) * (parseFloat(editForm.quantity) || 0)).toLocaleString('en-IN')}
                 </div>
               </div>
               <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '8px', gridColumn: 'span 2' }} />
               <div>
-                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Live P&amp;L</span>
-                <div style={{ fontSize: '14px', fontWeight: 900, color: ((editingPosition?.currentPrice || 0) >= (parseFloat(editForm.buyPrice) || 0) ? '#16A34A' : '#DC2626'), marginTop: '2px' }}>
-                  ₹{((editForm.tradeType === 'SELL'
-                    ? ((parseFloat(editForm.buyPrice) || 0) - (editingPosition?.currentPrice || 0)) * (parseFloat(editForm.quantity) || 0) - (editingPosition?.brokerCharges || 0)
-                    : ((editingPosition?.currentPrice || 0) - (parseFloat(editForm.buyPrice) || 0)) * (parseFloat(editForm.quantity) || 0) - (editingPosition?.brokerCharges || 0)
-                  ) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>
+                  {editForm.tradeType === 'SELL' ? 'Realized P&L' : 'Live P&L'}
+                </span>
+                <div style={{ fontSize: '14px', fontWeight: 900, color: (() => {
+                  const profit = editForm.tradeType === 'SELL'
+                    ? ((parseFloat(editForm.sellingPrice) || 0) - (parseFloat(editForm.buyPrice) || 0)) * (parseFloat(editForm.quantity) || 0)
+                    : ((editingPosition?.currentPrice || 0) - (parseFloat(editForm.buyPrice) || 0)) * (parseFloat(editForm.quantity) || 0) - (editingPosition?.brokerCharges || 0);
+                  return profit >= 0 ? '#16A34A' : '#DC2626';
+                })(), marginTop: '2px' }}>
+                  ₹{(() => {
+                    const profit = editForm.tradeType === 'SELL'
+                      ? ((parseFloat(editForm.sellingPrice) || 0) - (parseFloat(editForm.buyPrice) || 0)) * (parseFloat(editForm.quantity) || 0)
+                      : ((editingPosition?.currentPrice || 0) - (parseFloat(editForm.buyPrice) || 0)) * (parseFloat(editForm.quantity) || 0) - (editingPosition?.brokerCharges || 0);
+                    return profit.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+                  })()}
                 </div>
               </div>
               <div>
                 <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Risk/Reward Ratio</span>
                 <div style={{ fontSize: '14px', fontWeight: 900, color: textCol, marginTop: '2px' }}>
                   {(() => {
+                    if (editForm.tradeType === 'SELL') return 'N/A';
                     const bp = parseFloat(editForm.buyPrice) || 0;
                     const tp = parseFloat(editForm.targetPrice) || 0;
                     const sl = parseFloat(editForm.stopLoss) || 0;
-                    if (editForm.tradeType === 'BUY') {
-                      const risk = bp - sl;
-                      const reward = tp - bp;
-                      return risk > 0 && reward > 0 ? (reward / risk).toFixed(2) : 'N/A';
-                    } else {
-                      const risk = sl - bp;
-                      const reward = bp - tp;
-                      return risk > 0 && reward > 0 ? (reward / risk).toFixed(2) : 'N/A';
-                    }
+                    const risk = bp - sl;
+                    const reward = tp - bp;
+                    return risk > 0 && reward > 0 ? (reward / risk).toFixed(2) : 'N/A';
                   })()}
                 </div>
               </div>
@@ -800,65 +909,192 @@ export default function OpenPositionsPage() {
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Buy Price</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={editForm.buyPrice}
-                  onChange={(e) => setEditForm({ ...editForm, buyPrice: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
-                />
-                {validationErrors.buyPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.buyPrice}</span>}
-              </div>
-              <div>
-                <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Quantity</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={editForm.quantity}
-                  onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
-                />
-                {validationErrors.quantity && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.quantity}</span>}
-              </div>
-            </div>
+            {editForm.tradeType === 'SELL' ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Buy Price</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editForm.buyPrice}
+                      onChange={(e) => setEditForm({ ...editForm, buyPrice: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                    {validationErrors.buyPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.buyPrice}</span>}
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Sell Price *</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editForm.sellingPrice}
+                      onChange={(e) => setEditForm({ ...editForm, sellingPrice: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                    {validationErrors.sellingPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.sellingPrice}</span>}
+                  </div>
+                </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Target Price</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={editForm.targetPrice}
-                  onChange={(e) => setEditForm({ ...editForm, targetPrice: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
-                />
-                {validationErrors.targetPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.targetPrice}</span>}
-              </div>
-              <div>
-                <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Stop Loss</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={editForm.stopLoss}
-                  onChange={(e) => setEditForm({ ...editForm, stopLoss: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
-                />
-                {validationErrors.stopLoss && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.stopLoss}</span>}
-              </div>
-            </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Quantity</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editForm.quantity}
+                      onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                    {validationErrors.quantity && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.quantity}</span>}
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Exit Reason</label>
+                    <select
+                      value={editForm.exitReason}
+                      onChange={(e) => setEditForm({ ...editForm, exitReason: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    >
+                      <option value="TARGET_HIT">Target Hit</option>
+                      <option value="MANUAL_EXIT">Manual Exit</option>
+                      <option value="STOP_LOSS_HIT">Stop Loss Hit</option>
+                      <option value="TIME_EXIT">Time Exit</option>
+                      <option value="PARTIAL_EXIT">Partial Exit</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                </div>
 
-            <div>
-              <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Buy Date</label>
-              <input
-                type="date"
-                value={editForm.entryDate}
-                onChange={(e) => setEditForm({ ...editForm, entryDate: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
-              />
-            </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Buy Date</label>
+                    <input
+                      type="date"
+                      value={editForm.entryDate}
+                      onChange={(e) => setEditForm({ ...editForm, entryDate: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Sell Date</label>
+                    <input
+                      type="date"
+                      value={editForm.closedAt}
+                      onChange={(e) => setEditForm({ ...editForm, closedAt: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Target Price (Optional)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editForm.targetPrice}
+                      onChange={(e) => setEditForm({ ...editForm, targetPrice: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Stop Loss (Optional)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editForm.stopLoss}
+                      onChange={(e) => setEditForm({ ...editForm, stopLoss: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Buy Price</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editForm.buyPrice}
+                      onChange={(e) => setEditForm({ ...editForm, buyPrice: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                    {validationErrors.buyPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.buyPrice}</span>}
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Quantity</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editForm.quantity}
+                      onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                    {validationErrors.quantity && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.quantity}</span>}
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Target Price</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editForm.targetPrice}
+                      onChange={(e) => setEditForm({ ...editForm, targetPrice: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                    {validationErrors.targetPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.targetPrice}</span>}
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Stop Loss</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editForm.stopLoss}
+                      onChange={(e) => setEditForm({ ...editForm, stopLoss: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                    {validationErrors.stopLoss && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.stopLoss}</span>}
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Buy Date</label>
+                  <input
+                    type="date"
+                    value={editForm.entryDate}
+                    onChange={(e) => setEditForm({ ...editForm, entryDate: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Proximity Alert (±%)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editForm.nearBuyProximityPct}
+                      onChange={(e) => setEditForm({ ...editForm, nearBuyProximityPct: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                    {validationErrors.nearBuyProximityPct && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.nearBuyProximityPct}</span>}
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Mute Alerts Until</label>
+                    <input
+                      type="date"
+                      value={editForm.muteAlertsUntil}
+                      onChange={(e) => setEditForm({ ...editForm, muteAlertsUntil: e.target.value })}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Notes</label>
@@ -899,8 +1135,10 @@ export default function OpenPositionsPage() {
       {/* Add Modal */}
       {showAddModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ width: '500px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 800 }}>➕ Create New Open Position</h3>
+          <div style={{ width: '550px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 800 }}>
+              {newType === 'BUY' ? '➕ Create New Open Position' : '📝 Record Historical Closed Trade'}
+            </h3>
             <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
@@ -913,43 +1151,108 @@ export default function OpenPositionsPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Type</label>
-                  <select value={newType} onChange={(e) => setNewType(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
-                    <option value="BUY">BUY</option>
-                    <option value="SELL">SELL</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Price *</label>
-                  <input type="number" step="any" placeholder="₹" value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Quantity *</label>
-                  <input type="number" step="any" placeholder="Qty" value={newQty} onChange={(e) => setNewQty(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-                </div>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Type</label>
+                <select value={newType} onChange={(e) => setNewType(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
+                  <option value="BUY">BUY</option>
+                  <option value="SELL">SELL</option>
+                </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Target Price</label>
-                  <input type="number" step="any" placeholder="Target ₹" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Stop Loss</label>
-                  <input type="number" step="any" placeholder="Stop Loss ₹" value={newStop} onChange={(e) => setNewStop(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
-                </div>
-              </div>
+              {newType === 'SELL' ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Price *</label>
+                      <input type="number" step="any" placeholder="₹" value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Sell Price *</label>
+                      <input type="number" step="any" placeholder="₹" value={newSellPrice} onChange={(e) => setNewSellPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Quantity *</label>
+                      <input type="number" step="any" placeholder="Qty" value={newQty} onChange={(e) => setNewQty(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Exit Reason</label>
+                      <select value={newExitReason} onChange={(e) => setNewExitReason(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
+                        <option value="TARGET_HIT">Target Hit</option>
+                        <option value="MANUAL_EXIT">Manual Exit</option>
+                        <option value="STOP_LOSS_HIT">Stop Loss Hit</option>
+                        <option value="TIME_EXIT">Time Exit</option>
+                        <option value="PARTIAL_EXIT">Partial Exit</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Date *</label>
+                      <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Sell Date *</label>
+                      <input type="date" value={newSellDate} onChange={(e) => setNewSellDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Target Price (Optional)</label>
+                      <input type="number" step="any" placeholder="Target ₹" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Stop Loss (Optional)</label>
+                      <input type="number" step="any" placeholder="Stop Loss ₹" value={newStop} onChange={(e) => setNewStop(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Price *</label>
+                      <input type="number" step="any" placeholder="₹" value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Quantity *</label>
+                      <input type="number" step="any" placeholder="Qty" value={newQty} onChange={(e) => setNewQty(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Target Price</label>
+                      <input type="number" step="any" placeholder="Target ₹" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Stop Loss</label>
+                      <input type="number" step="any" placeholder="Stop Loss ₹" value={newStop} onChange={(e) => setNewStop(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Date *</label>
+                    <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                  </div>
+                </>
+              )}
 
               <div>
-                <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Date</label>
-                <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Notes</label>
+                <textarea placeholder="Trade notes..." value={newNotes} onChange={(e) => setNewNotes(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', height: '60px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
                 <button type="button" onClick={() => setShowAddModal(false)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '13px' }}>Cancel</button>
-                <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#16A34A' }}>Create Trade</button>
+                <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#16A34A' }}>
+                  {newType === 'BUY' ? 'Create Open Position' : 'Save Historical Trade'}
+                </button>
               </div>
             </form>
           </div>

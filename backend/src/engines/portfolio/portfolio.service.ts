@@ -1,6 +1,8 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject, forwardRef, BadRequestException } from '@nestjs/common';
 import { PrismaClient, PortfolioPosition } from '@prisma/client';
 import { MarketService } from '../market/market.service';
+import { NotificationService } from '../notification/NotificationService';
+import { TradeEventEngine } from '../notification/trade-event.engine';
 
 const prisma = new PrismaClient();
 
@@ -8,7 +10,13 @@ const prisma = new PrismaClient();
 export class PortfolioService {
   private readonly logger = new Logger(PortfolioService.name);
 
-  constructor(private readonly marketService: MarketService) {}
+  constructor(
+    private readonly marketService: MarketService,
+    @Inject(forwardRef(() => NotificationService))
+    private readonly notificationService: NotificationService,
+    @Inject(forwardRef(() => TradeEventEngine))
+    private readonly tradeEventEngine: TradeEventEngine,
+  ) {}
 
   private findQuotePrice(symbol: string, map: Record<string, number>): number | undefined {
     const norm = symbol.trim().toUpperCase();
@@ -237,57 +245,97 @@ export class PortfolioService {
     const symbol = data.symbol.trim().toUpperCase();
     const quantity = parseFloat(data.quantity);
     const buyPrice = parseFloat(data.buyPrice);
-    
-    let currentPrice = data.currentPrice ? parseFloat(data.currentPrice) : buyPrice;
-    try {
-      const liveQuote = await this.marketService.getQuote(symbol);
-      if (liveQuote && liveQuote.price) {
-        currentPrice = liveQuote.price;
-      }
-    } catch (e) {}
-
-    const investedAmount = buyPrice * quantity;
-    const currentValue = currentPrice * quantity;
-    const brokerCharges = data.brokerCharges ? parseFloat(data.brokerCharges) : 0;
     const tradeType = data.tradeType || 'BUY';
-
-    let profitLoss = 0;
-    if (tradeType === 'SELL') {
-      profitLoss = (buyPrice - currentPrice) * quantity - brokerCharges;
-    } else {
-      profitLoss = (currentPrice - buyPrice) * quantity - brokerCharges;
-    }
-    const profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
-
+    const brokerCharges = data.brokerCharges ? parseFloat(data.brokerCharges) : 0;
     const entryDate = data.entryDate ? new Date(data.entryDate) : new Date();
 
-    const position = await prisma.portfolioPosition.create({
-      data: {
-        symbol,
-        company: data.company || symbol,
-        tradeType,
-        buyPrice,
-        currentPrice,
-        quantity,
-        investedAmount,
-        currentValue,
-        profitLoss,
-        profitLossPct,
-        targetPrice: data.targetPrice ? parseFloat(data.targetPrice) : null,
-        stopLoss: data.stopLoss ? parseFloat(data.stopLoss) : null,
-        nearBuyProximityPct: data.nearBuyProximityPct ? parseFloat(data.nearBuyProximityPct) : 1.0,
-        buyPriceAlertActive: true,
-        nearBuyAlertActive: true,
-        brokerCharges,
-        notes: data.notes || null,
-        assetType: data.assetType || 'STOCK',
-        status: 'OPEN',
-        entryDate,
-      },
-    });
+    if (tradeType === 'SELL') {
+      // Historical Closed Trade Workflow
+      const sellingPrice = data.sellingPrice !== undefined ? parseFloat(data.sellingPrice) : parseFloat(data.sellPrice);
+      if (isNaN(sellingPrice) || sellingPrice <= 0) {
+        throw new BadRequestException('Sell Price is required and must be greater than 0 for historical trades.');
+      }
 
-    await this.marketService.subscribeSymbols([symbol]).catch(() => {});
-    return position;
+      const sellDate = data.sellDate ? new Date(data.sellDate) : (data.closedAt ? new Date(data.closedAt) : new Date());
+      const investedAmount = buyPrice * quantity;
+      const currentValue = sellingPrice * quantity; // Exit Value
+      const profitLoss = currentValue - investedAmount; // Exit Value - Investment
+      const profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      const holdingPeriod = Math.max(0, Math.floor((sellDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+      const position = await prisma.portfolioPosition.create({
+        data: {
+          symbol,
+          company: data.company || symbol,
+          tradeType,
+          buyPrice,
+          currentPrice: sellingPrice,
+          sellingPrice,
+          quantity,
+          investedAmount,
+          currentValue,
+          profitLoss,
+          profitLossPct,
+          targetPrice: data.targetPrice ? parseFloat(data.targetPrice) : null,
+          stopLoss: data.stopLoss ? parseFloat(data.stopLoss) : null,
+          nearBuyProximityPct: data.nearBuyProximityPct ? parseFloat(data.nearBuyProximityPct) : 1.0,
+          buyPriceAlertActive: false,
+          nearBuyAlertActive: false,
+          brokerCharges,
+          notes: data.notes || null,
+          assetType: data.assetType || 'STOCK',
+          status: 'CLOSED',
+          entryDate,
+          closedAt: sellDate,
+          holdingPeriod,
+          exitReason: data.exitReason || 'MANUAL_EXIT',
+        },
+      });
+
+      return position;
+    } else {
+      // Live Open Position Workflow (BUY)
+      let currentPrice = data.currentPrice ? parseFloat(data.currentPrice) : buyPrice;
+      try {
+        const liveQuote = await this.marketService.getQuote(symbol);
+        if (liveQuote && liveQuote.price) {
+          currentPrice = liveQuote.price;
+        }
+      } catch (e) {}
+
+      const investedAmount = buyPrice * quantity;
+      const currentValue = currentPrice * quantity;
+      const profitLoss = (currentPrice - buyPrice) * quantity - brokerCharges;
+      const profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+
+      const position = await prisma.portfolioPosition.create({
+        data: {
+          symbol,
+          company: data.company || symbol,
+          tradeType,
+          buyPrice,
+          currentPrice,
+          quantity,
+          investedAmount,
+          currentValue,
+          profitLoss,
+          profitLossPct,
+          targetPrice: data.targetPrice ? parseFloat(data.targetPrice) : null,
+          stopLoss: data.stopLoss ? parseFloat(data.stopLoss) : null,
+          nearBuyProximityPct: data.nearBuyProximityPct ? parseFloat(data.nearBuyProximityPct) : 1.0,
+          buyPriceAlertActive: true,
+          nearBuyAlertActive: true,
+          brokerCharges,
+          notes: data.notes || null,
+          assetType: data.assetType || 'STOCK',
+          status: 'OPEN',
+          entryDate,
+        },
+      });
+
+      await this.marketService.subscribeSymbols([symbol]).catch(() => {});
+      return position;
+    }
   }
 
   async editPosition(id: string, data: any): Promise<PortfolioPosition> {
@@ -296,20 +344,50 @@ export class PortfolioService {
 
     const buyPrice = data.buyPrice !== undefined ? parseFloat(data.buyPrice) : pos.buyPrice;
     const quantity = data.quantity !== undefined ? parseFloat(data.quantity) : pos.quantity;
-    const currentPrice = data.currentPrice !== undefined ? parseFloat(data.currentPrice) : pos.currentPrice;
     const brokerCharges = data.brokerCharges !== undefined ? parseFloat(data.brokerCharges) : pos.brokerCharges;
     const tradeType = data.tradeType !== undefined ? data.tradeType : pos.tradeType;
+    const status = data.status !== undefined ? data.status : pos.status;
+
+    let sellingPrice = pos.sellingPrice;
+    if (data.sellingPrice !== undefined) {
+      sellingPrice = parseFloat(data.sellingPrice);
+    } else if (data.sellPrice !== undefined) {
+      sellingPrice = parseFloat(data.sellPrice);
+    }
+
+    let closedAt = pos.closedAt;
+    if (data.closedAt) {
+      closedAt = new Date(data.closedAt);
+    } else if (data.sellDate) {
+      closedAt = new Date(data.sellDate);
+    }
+
+    const entryDate = data.entryDate ? new Date(data.entryDate) : pos.entryDate;
 
     const investedAmount = buyPrice * quantity;
-    const currentValue = currentPrice * quantity;
-
+    let currentValue = pos.currentValue;
+    let currentPrice = pos.currentPrice;
     let profitLoss = 0;
-    if (tradeType === 'SELL') {
-      profitLoss = (buyPrice - currentPrice) * quantity - brokerCharges;
+    let profitLossPct = 0;
+    let holdingPeriod = pos.holdingPeriod;
+
+    if (tradeType === 'SELL' || status === 'CLOSED' || data.status === 'CLOSED' || sellingPrice !== null) {
+      // Historical/Completed Trade
+      const sp = sellingPrice !== null && sellingPrice !== undefined ? sellingPrice : currentPrice;
+      currentPrice = sp;
+      currentValue = sp * quantity;
+      profitLoss = currentValue - investedAmount; // Exit Value - Investment
+      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      
+      const finalClosedAt = closedAt || new Date();
+      holdingPeriod = Math.max(0, Math.floor((finalClosedAt.getTime() - new Date(entryDate).getTime()) / (1000 * 60 * 60 * 24)));
     } else {
+      // Live Open Position (BUY)
+      currentPrice = data.currentPrice !== undefined ? parseFloat(data.currentPrice) : pos.currentPrice;
+      currentValue = currentPrice * quantity;
       profitLoss = (currentPrice - buyPrice) * quantity - brokerCharges;
+      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
     }
-    const profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
 
     const updateData: any = {
       buyPrice,
@@ -326,23 +404,29 @@ export class PortfolioService {
       nearBuyProximityPct: data.nearBuyProximityPct !== undefined ? parseFloat(data.nearBuyProximityPct) : pos.nearBuyProximityPct,
       notes: data.notes !== undefined ? data.notes : pos.notes,
       assetType: data.assetType !== undefined ? data.assetType : pos.assetType,
-      status: data.status !== undefined ? data.status : pos.status,
+      status: (tradeType === 'SELL') ? 'CLOSED' : status,
+      muteAlertsUntil: data.muteAlertsUntil !== undefined ? (data.muteAlertsUntil ? new Date(data.muteAlertsUntil) : null) : pos.muteAlertsUntil,
+      entryDate,
     };
 
-    if (data.entryDate) {
-      updateData.entryDate = new Date(data.entryDate);
+    if (tradeType === 'SELL' || status === 'CLOSED' || data.status === 'CLOSED' || sellingPrice !== null) {
+      updateData.status = 'CLOSED';
+      updateData.sellingPrice = sellingPrice !== null && sellingPrice !== undefined ? sellingPrice : currentPrice;
+      updateData.closedAt = closedAt || new Date();
+      updateData.holdingPeriod = holdingPeriod;
+      updateData.exitReason = data.exitReason || pos.exitReason || 'MANUAL_EXIT';
     }
 
-    if (data.status === 'CLOSED' || data.sellingPrice !== undefined) {
-      updateData.status = 'CLOSED';
-      updateData.sellingPrice = data.sellingPrice !== undefined ? parseFloat(data.sellingPrice) : pos.sellingPrice || currentPrice;
-      updateData.closedAt = data.closedAt ? new Date(data.closedAt) : new Date();
-      updateData.exitReason = data.exitReason || 'MANUAL_EXIT';
+    // ⚡ RESET TRIGGER KEYS ON EDIT (Req 14)
+    if (tradeType !== 'SELL' && status !== 'CLOSED') {
+      const priceChanged =
+        (data.buyPrice !== undefined && parseFloat(data.buyPrice) !== pos.buyPrice) ||
+        (data.targetPrice !== undefined && (data.targetPrice ? parseFloat(data.targetPrice) : null) !== pos.targetPrice) ||
+        (data.stopLoss !== undefined && (data.stopLoss ? parseFloat(data.stopLoss) : null) !== pos.stopLoss);
 
-      const start = new Date(updateData.entryDate || pos.entryDate).getTime();
-      const end = new Date(updateData.closedAt).getTime();
-      const diffDays = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
-      updateData.holdingPeriod = diffDays;
+      if (priceChanged) {
+        await this.notificationService.resetPositionTriggerKeys(pos.symbol).catch(() => {});
+      }
     }
 
     return prisma.portfolioPosition.update({
@@ -379,7 +463,7 @@ export class PortfolioService {
     const end = closedAt.getTime();
     const holdingPeriod = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
 
-    return prisma.portfolioPosition.update({
+    const result = await prisma.portfolioPosition.update({
       where: { id },
       data: {
         status: 'CLOSED',
@@ -395,6 +479,12 @@ export class PortfolioService {
         notes: notesInput !== undefined ? notesInput : pos.notes,
       },
     });
+
+    if (!exitReasonInput || (exitReasonInput !== 'TARGET_HIT' && exitReasonInput !== 'STOP_LOSS_HIT')) {
+      await this.tradeEventEngine.handleManualCloseEvent(pos, sp, profitLoss, profitLossPct).catch(() => {});
+    }
+
+    return result;
   }
 
 

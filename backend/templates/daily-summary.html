@@ -1,0 +1,34 @@
+<div style="text-align: center; margin-bottom: 24px;">
+  <span style="font-size: 40px;">📊</span>
+  <h2 style="font-size: 20px; font-weight: 800; color: #0F172A; margin: 10px 0 0 0;">Daily Portfolio Summary</h2>
+  <p style="font-size: 13.5px; color: #64748B; margin: 4px 0 0 0;">Here is your institutional portfolio performance update for today.</p>
+</div>
+
+<div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 18px; margin-bottom: 24px;">
+  <table style="width: 100%; font-size: 13.5px; border-collapse: collapse;">
+    <tr>
+      <td style="padding: 6px 0; color: #475569; font-weight: 700; width: 180px;">Active Open Positions</td>
+      <td style="padding: 6px 0; font-weight: 800; color: #0F172A;">{{totalOpen}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #475569; font-weight: 700;">Total Investment</td>
+      <td style="padding: 6px 0; font-weight: 800; color: #0F172A;">₹{{totalInvested}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #475569; font-weight: 700;">Current Valuation</td>
+      <td style="padding: 6px 0; font-weight: 800; color: #0F172A;">₹{{currentValue}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #475569; font-weight: 700;">Unrealized P&amp;L (Live)</td>
+      <td style="padding: 6px 0; font-weight: 900; color: {{color}};">₹{{unrealizedPnL}} ({{unrealizedPnLPct}}%)</td>
+    </tr>
+  </table>
+</div>
+
+<div style="font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
+  {{message}}
+</div>
+
+<div style="text-align: center;">
+  <a href="http://localhost:3000/dashboard" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Open Executive Dashboard</a>
+</div>

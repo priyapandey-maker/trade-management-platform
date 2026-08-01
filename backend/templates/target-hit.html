@@ -1,0 +1,38 @@
+<div style="text-align: center; margin-bottom: 24px;">
+  <span style="font-size: 40px;">🎯</span>
+  <h2 style="font-size: 20px; font-weight: 800; color: #16A34A; margin: 10px 0 0 0;">Automatic Target Hit</h2>
+  <p style="font-size: 13.5px; color: #64748B; margin: 4px 0 0 0;">An active position has successfully hit its configured Target Price. The trade has been automatically closed.</p>
+</div>
+
+<div style="background-color: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 18px; margin-bottom: 24px;">
+  <table style="width: 100%; font-size: 13.5px; border-collapse: collapse;">
+    <tr>
+      <td style="padding: 6px 0; color: #065F46; font-weight: 700; width: 140px;">Stock Symbol</td>
+      <td style="padding: 6px 0; font-weight: 800; color: #0F172A;">{{symbol}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #065F46; font-weight: 700;">Company</td>
+      <td style="padding: 6px 0; font-weight: 600; color: #334155;">{{company}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #065F46; font-weight: 700;">Execution Price</td>
+      <td style="padding: 6px 0; font-weight: 800; color: #16A34A; font-size: 15px;">₹{{currentPrice}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #065F46; font-weight: 700;">Buy Price</td>
+      <td style="padding: 6px 0; font-weight: 700; color: #334155;">₹{{buyPrice}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #065F46; font-weight: 700;">Profit / Loss</td>
+      <td style="padding: 6px 0; font-weight: 800; color: #16A34A;">₹{{profitLoss}} ({{profitLossPct}}%)</td>
+    </tr>
+  </table>
+</div>
+
+<div style="font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
+  {{message}}
+</div>
+
+<div style="text-align: center;">
+  <a href="http://localhost:3000/closed" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Open Closed Positions Desk</a>
+</div>

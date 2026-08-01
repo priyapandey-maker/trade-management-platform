@@ -10,7 +10,6 @@ async function main() {
   await prisma.portfolioPosition.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.idea.deleteMany({});
-  await prisma.alertHistory.deleteMany({});
   await prisma.ruleConfig.deleteMany({});
   await prisma.appSetting.deleteMany({});
 
