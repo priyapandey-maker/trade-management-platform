@@ -15,21 +15,26 @@ async function main() {
 
   console.log('✔ Databases cleared.');
 
-  // Create default OWNER account from environment variables or secure defaults
-  const ownerEmail = (process.env.OWNER_EMAIL || 'owner@shree.com').toLowerCase().trim();
-  const rawPassword = process.env.OWNER_PASSWORD || 'shree123';
-  const hashedPassword = await bcrypt.hash(rawPassword, 10);
+  // Create default OWNER accounts from environment variables or secure defaults
+  const ownerEmails = (process.env.OWNER_EMAIL || 'owner@shree.com').split(',').map(e => e.toLowerCase().trim());
+  const rawPasswords = (process.env.OWNER_PASSWORD || 'shree123').split(',').map(p => p.trim());
 
-  await prisma.user.create({
-    data: {
-      name: 'Owner Analyst',
-      email: ownerEmail,
-      password: hashedPassword,
-      role: 'OWNER',
-    },
-  });
+  for (let i = 0; i < ownerEmails.length; i++) {
+    const email = ownerEmails[i];
+    const password = rawPasswords[i] || rawPasswords[0]; // fallback to the first password if not enough are provided
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  console.log(`✔ Default OWNER account initialized: ${ownerEmail}`);
+    await prisma.user.create({
+      data: {
+        name: `Owner Analyst ${i + 1}`,
+        email,
+        password: hashedPassword,
+        role: 'OWNER',
+      },
+    });
+
+    console.log(`✔ Default OWNER account initialized: ${email}`);
+  }
 
   // Create default CLIENT account from environment variables or secure defaults
   const clientEmail = (process.env.CLIENT_EMAIL || 'client@shree.com').toLowerCase().trim();

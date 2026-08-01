@@ -48,9 +48,9 @@ export class AuthService {
       throw new ForbiddenException('Only platform owners can create client accounts.');
     }
 
-    const { name, email, password } = body;
+    const { name, email, password, role } = body;
     if (!name || !email || !password) {
-      throw new UnauthorizedException('Name, email, and password are required for client registration.');
+      throw new UnauthorizedException('Name, email, and password are required for registration.');
     }
 
     const trimmedEmail = email.toLowerCase().trim();
@@ -59,13 +59,14 @@ export class AuthService {
       throw new ConflictException('A user with this email address already exists.');
     }
 
+    const userRole = role === 'OWNER' ? 'OWNER' : 'CLIENT';
     const hashedPassword = await bcrypt.hash(password, 10);
     const client = await prisma.user.create({
       data: {
         name,
         email: trimmedEmail,
         password: hashedPassword,
-        role: 'CLIENT',
+        role: userRole,
       },
     });
 
