@@ -30,6 +30,22 @@ async function main() {
   });
 
   console.log(`✔ Default OWNER account initialized: ${ownerEmail}`);
+
+  // Create default CLIENT account from environment variables or secure defaults
+  const clientEmail = (process.env.CLIENT_EMAIL || 'client@shree.com').toLowerCase().trim();
+  const clientRawPassword = process.env.CLIENT_PASSWORD || 'client123';
+  const clientHashedPassword = await bcrypt.hash(clientRawPassword, 10);
+
+  await prisma.user.create({
+    data: {
+      name: 'Client Viewer',
+      email: clientEmail,
+      password: clientHashedPassword,
+      role: 'CLIENT',
+    },
+  });
+
+  console.log(`✔ Default CLIENT account initialized: ${clientEmail}`);
   console.log('✔ Seeding complete (No mock or sample trades generated).');
 }
 
