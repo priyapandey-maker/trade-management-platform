@@ -14,6 +14,16 @@ export default function ClosedPositionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Search & Filter
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -272,9 +282,9 @@ export default function ClosedPositionsPage() {
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* Title */}
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 900, color: textCol, margin: 0 }}>Closed Positions History</h1>
+          <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: 900, color: textCol, margin: 0 }}>Closed Positions History</h1>
           <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>
             Completed trade records, trade duration badges, realized profit/loss, and exit rationales.
           </p>
@@ -292,7 +302,7 @@ export default function ClosedPositionsPage() {
       )}
 
       {/* TOP 4 SUMMARY CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Closed Trades</div>
           <div style={{ fontSize: '22px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{totalClosedTrades}</div>
@@ -321,13 +331,13 @@ export default function ClosedPositionsPage() {
       </div>
 
       {/* Filter Toolbar */}
-      <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px 20px', borderRadius: '12px', marginBottom: '20px', display: 'flex', gap: '12px' }}>
+      <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px 20px', borderRadius: '12px', marginBottom: '20px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '12px', alignItems: 'stretch' }}>
         <input
           type="text"
           placeholder="🔍 Search closed symbol..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ width: '260px', padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}
+          style={{ width: isMobile ? '100%' : '260px', padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}
         />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}>
           <option value="ALL">All Exit Reasons</option>
@@ -348,6 +358,142 @@ export default function ClosedPositionsPage() {
             <p style={{ fontSize: '13px', color: subTextCol, marginTop: '4px' }}>
               Closed positions will automatically record trade duration badges and net realized profit/loss.
             </p>
+          </div>
+        ) : isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px' }}>
+            {filteredPositions.map((pos) => {
+              const isProfit = pos.profitLoss >= 0;
+
+              return (
+                <div
+                  key={pos.id}
+                  style={{
+                    backgroundColor: cardBg,
+                    border: `1px solid ${borderCol}`,
+                    borderRadius: '12px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ fontSize: '15px', fontWeight: 900, color: textCol }}>{pos.symbol}</div>
+                      <div style={{ fontSize: '12px', color: subTextCol }}>{pos.company}</div>
+                    </div>
+                    <div>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: pos.exitReason === 'TARGET_HIT' ? '#DCFCE7' : pos.exitReason === 'STOP_LOSS_HIT' ? '#FEE2E2' : '#FEF3C7',
+                          color: pos.exitReason === 'TARGET_HIT' ? '#15803D' : pos.exitReason === 'STOP_LOSS_HIT' ? '#991B1B' : '#92400E',
+                        }}
+                      >
+                        {pos.exitReason === 'TARGET_HIT' ? '🎯 Target Hit' : pos.exitReason === 'STOP_LOSS_HIT' ? '🛑 SL Hit' : 'Manual Exit'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: `1px solid ${borderCol}`, margin: '4px 0' }} />
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '13px' }}>
+                    <div>
+                      <span style={{ color: subTextCol }}>Buy Price: </span>
+                      <strong style={{ color: textCol }}>₹{pos.buyPrice?.toFixed(2)}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Exit Price: </span>
+                      <strong style={{ color: textCol }}>₹{(pos.sellingPrice || pos.currentPrice)?.toFixed(2)}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Quantity: </span>
+                      <strong style={{ color: textCol }}>{pos.quantity}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Duration: </span>
+                      <strong style={{ color: textCol }}>{pos.holdingPeriod || 0} Days</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Entry Date: </span>
+                      <strong style={{ color: textCol }}>{formatDate(pos.entryDate)}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Exit Date: </span>
+                      <strong style={{ color: textCol }}>{formatDate(pos.closedAt)}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: `1px solid ${borderCol}`, margin: '4px 0' }} />
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: '11px', color: subTextCol }}>Realized P&amp;L:</span>
+                      <div style={{ fontSize: '14px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
+                        {isProfit ? '+' : ''}₹{pos.profitLoss?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '11px', color: subTextCol }}>Return %:</span>
+                      <div style={{ fontSize: '14px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
+                        {isProfit ? '+' : ''}{pos.profitLossPct?.toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {user?.role === 'OWNER' && (
+                    <>
+                      <div style={{ borderTop: `1px solid ${borderCol}`, margin: '8px 0' }} />
+                      <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                        <button
+                          onClick={() => handleOpenEditDrawer(pos)}
+                          style={{
+                            flex: 1,
+                            height: '44px',
+                            borderRadius: '8px',
+                            border: `1px solid ${borderCol}`,
+                            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                            color: textCol,
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          ✏️ Edit Record
+                        </button>
+                        <button
+                          onClick={() => setDeletingId(pos.id)}
+                          style={{
+                            flex: 1,
+                            height: '44px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: '#FEE2E2',
+                            color: '#991B1B',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          🗑️ Delete Record
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -490,7 +636,7 @@ export default function ClosedPositionsPage() {
             position: 'absolute',
             top: 0,
             right: 0,
-            width: '520px',
+            width: isMobile ? '100%' : '520px',
             height: '100%',
             backgroundColor: cardBg,
             boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.15)',

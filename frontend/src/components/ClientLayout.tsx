@@ -18,11 +18,24 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [refreshInterval, setRefreshInterval] = useState(60); // 60s default
   const [lastUpdatedTime, setLastUpdatedTime] = useState('');
 
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem('shree_sidebar_collapsed');
     if (saved === 'true') {
       setIsCollapsed(true);
     }
+
+    // Set initial size
+    setIsMobile(window.innerWidth < 768);
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const toggleCollapse = () => {
@@ -52,11 +65,17 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     return <>{children}</>;
   }
 
-  const sidebarWidth = isCollapsed ? 80 : 260;
+  const sidebarWidth = isMobile ? 0 : (isCollapsed ? 80 : 260);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: isDark ? '#0B0F17' : '#F8FAFC', color: isDark ? '#F8FAFC' : '#0F172A' }}>
-      <Sidebar isCollapsed={isCollapsed} toggleCollapse={toggleCollapse} />
+      <Sidebar 
+        isCollapsed={isCollapsed} 
+        toggleCollapse={toggleCollapse} 
+        isMobile={isMobile}
+        showMobile={showMobileSidebar}
+        onClose={() => setShowMobileSidebar(false)}
+      />
       <Header
         sidebarWidth={sidebarWidth}
         isCollapsed={isCollapsed}
@@ -65,12 +84,14 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         setRefreshInterval={setRefreshInterval}
         onManualRefresh={handleManualRefresh}
         lastUpdatedTime={lastUpdatedTime}
+        isMobile={isMobile}
+        toggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
       />
       <main
         style={{
           marginLeft: `${sidebarWidth}px`,
           marginTop: '70px',
-          padding: '28px 32px',
+          padding: isMobile ? '16px' : '28px 32px',
           minHeight: 'calc(100vh - 70px)',
           transition: 'margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           boxSizing: 'border-box',

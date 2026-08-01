@@ -26,6 +26,16 @@ export default function OpenPositionsPage() {
   // Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [closingPosition, setClosingPosition] = useState<any | null>(null);
@@ -423,9 +433,9 @@ export default function OpenPositionsPage() {
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
       {/* Header Panel */}
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 900, color: textCol, margin: 0 }}>Open Positions</h1>
+          <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: 900, color: textCol, margin: 0 }}>Open Positions</h1>
           <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>
             Live active trades, right-side configuration editor, and real-time target/stop proximity metrics.
           </p>
@@ -450,7 +460,7 @@ export default function OpenPositionsPage() {
       )}
 
       {/* Highlights & KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Open Trades</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{totalOpenTrades}</div>
@@ -514,7 +524,7 @@ export default function OpenPositionsPage() {
 
       {/* Filters Bar */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '14px 18px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, maxWidth: '600px' }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: '12px', flex: 1, width: '100%', maxWidth: isMobile ? 'none' : '600px' }}>
           <input
             type="text"
             placeholder="Search symbol, company..."
@@ -573,6 +583,181 @@ export default function OpenPositionsPage() {
                 ➕ Create First Trade
               </button>
             )}
+          </div>
+        ) : isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px' }}>
+            {paginatedPositions.map((pos) => {
+              const targetRem = getTargetRemaining(pos);
+              const stopRem = getStopRemaining(pos);
+              const isProfit = pos.profitLoss >= 0;
+
+              return (
+                <div
+                  key={pos.id}
+                  style={{
+                    backgroundColor: stopRem.isWarning ? (isDark ? '#451A1A' : '#FFF5F5') : (isDark ? '#1E293B' : '#FFFFFF'),
+                    border: `1px solid ${borderCol}`,
+                    borderRadius: '12px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ fontSize: '15px', fontWeight: 900, color: textCol }}>{pos.symbol}</div>
+                      <div style={{ fontSize: '12px', color: subTextCol }}>{pos.company}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? '#DCFCE7' : '#FEE2E2', color: pos.tradeType === 'BUY' ? '#15803D' : '#991B1B', fontSize: '11px', fontWeight: 800 }}>
+                        {pos.tradeType}
+                      </span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: textCol }}>
+                        Qty: {pos.quantity}
+                      </span>
+                    </div>
+                  </div>
+
+                  {(pos.atBuyPrice || pos.nearBuyPrice) && (
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {pos.atBuyPrice && (
+                        <span style={{ fontSize: '9.5px', fontWeight: 900, backgroundColor: '#DCFCE7', color: '#15803D', padding: '2px 6px', borderRadius: '4px' }}>
+                          🎯 At Buy Price
+                        </span>
+                      )}
+                      {!pos.atBuyPrice && pos.nearBuyPrice && (
+                        <span style={{ fontSize: '9.5px', fontWeight: 900, backgroundColor: '#FEF3C7', color: '#B45309', padding: '2px 6px', borderRadius: '4px' }}>
+                          📍 Near Buy (±1%)
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div style={{ borderTop: `1px solid ${borderCol}`, margin: '4px 0' }} />
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '13px' }}>
+                    <div>
+                      <span style={{ color: subTextCol }}>Buy Price: </span>
+                      <strong style={{ color: textCol }}>₹{pos.buyPrice}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>CMP: </span>
+                      <strong style={{ color: '#16A34A' }}>₹{pos.currentPrice}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Target: </span>
+                      <strong style={{ color: '#16A34A' }}>{pos.targetPrice ? `₹${pos.targetPrice}` : '-'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Stop Loss: </span>
+                      <strong style={{ color: '#DC2626' }}>{pos.stopLoss ? `₹${pos.stopLoss}` : '-'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Target Rem.: </span>
+                      <strong style={{ color: '#16A34A' }}>{targetRem.text}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Stop Rem.: </span>
+                      <strong style={{ color: '#DC2626' }}>{stopRem.text}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Holding: </span>
+                      <strong style={{ color: textCol }}>{pos.holdingPeriod} Days</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol }}>Invested: </span>
+                      <strong style={{ color: textCol }}>₹{pos.investedAmount.toLocaleString('en-IN')}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: `1px solid ${borderCol}`, margin: '4px 0' }} />
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: '11px', color: subTextCol }}>Current Value:</span>
+                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: textCol }}>₹{pos.currentValue.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '11px', color: subTextCol }}>Live P&amp;L:</span>
+                      <div style={{ fontSize: '14px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
+                        {isProfit ? '+' : ''}₹{pos.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ({isProfit ? '+' : ''}{pos.profitLossPct.toFixed(2)}%)
+                      </div>
+                    </div>
+                  </div>
+
+                  {user?.role === 'OWNER' && (
+                    <>
+                      <div style={{ borderTop: `1px solid ${borderCol}`, margin: '8px 0' }} />
+                      <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                        <button
+                          onClick={() => {
+                            setClosingPosition(pos);
+                            setClosePrice(pos.currentPrice.toString());
+                          }}
+                          style={{
+                            flex: 1.5,
+                            height: '44px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: '#16A34A',
+                            color: '#FFFFFF',
+                            fontSize: '13px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          ✅ Close Position
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditDrawer(pos)}
+                          style={{
+                            flex: 1,
+                            height: '44px',
+                            borderRadius: '8px',
+                            border: `1px solid ${borderCol}`,
+                            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                            color: textCol,
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => setDeletingId(pos.id)}
+                          style={{
+                            flex: 1,
+                            height: '44px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: '#FEE2E2',
+                            color: '#991B1B',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -755,7 +940,7 @@ export default function OpenPositionsPage() {
             position: 'absolute',
             top: 0,
             right: 0,
-            width: '520px',
+            width: isMobile ? '100%' : '520px',
             height: '100%',
             backgroundColor: cardBg,
             boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.15)',
@@ -1134,8 +1319,8 @@ export default function OpenPositionsPage() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ width: '550px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ width: isMobile ? '100%' : '550px', height: isMobile ? '100%' : 'auto', maxHeight: isMobile ? '100vh' : '90vh', overflowY: 'auto', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: isMobile ? '0' : '12px', border: isMobile ? 'none' : `1px solid ${borderCol}` }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 800 }}>
               {newType === 'BUY' ? '➕ Create New Open Position' : '📝 Record Historical Closed Trade'}
             </h3>
@@ -1261,8 +1446,8 @@ export default function OpenPositionsPage() {
 
       {/* Close Position Modal */}
       {closingPosition && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ width: '420px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ width: isMobile ? '100%' : '420px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: isMobile ? '12px 12px 0 0' : '12px', border: `1px solid ${borderCol}` }}>
             <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 800 }}>✅ Close Trade: {closingPosition.symbol}</h3>
             <form onSubmit={handleCloseSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>

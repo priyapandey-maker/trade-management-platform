@@ -13,6 +13,16 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const fetchPortfolioData = useCallback(async () => {
     try {
       setLoading(true);
@@ -50,8 +60,8 @@ export default function PortfolioPage() {
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 900, color: textCol, margin: 0 }}>Portfolio Valuation Dashboard</h1>
+      <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: 900, color: textCol, margin: 0 }}>Portfolio Valuation Dashboard</h1>
         <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>
           Comprehensive 14-point KPI valuation audit, active holdings CMP breakdown, and risk metrics.
         </p>
@@ -155,7 +165,7 @@ export default function PortfolioPage() {
           </div>
 
           {/* BREAKDOWN CARDS (Largest, Highest Profit, Highest Loss) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '16px' }}>
             <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol }}>💼 LARGEST POSITION</div>
               <div style={{ fontSize: '18px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{largestPosition ? largestPosition.symbol : '—'}</div>

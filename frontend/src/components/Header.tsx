@@ -13,6 +13,8 @@ interface HeaderProps {
   setRefreshInterval: (sec: number) => void;
   onManualRefresh: () => void;
   lastUpdatedTime: string;
+  isMobile?: boolean;
+  toggleMobileSidebar?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,10 +25,15 @@ export const Header: React.FC<HeaderProps> = ({
   setRefreshInterval,
   onManualRefresh,
   lastUpdatedTime,
+  isMobile = false,
+  toggleMobileSidebar,
 }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
+
+  // Mobile search state
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   // Live compact clock
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -296,188 +303,364 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header
-        style={{
-          height: '70px',
-          position: 'fixed',
-          top: 0,
-          left: `${sidebarWidth}px`,
-          right: 0,
-          backgroundColor: bgCol,
-          borderBottom: `1px solid ${borderCol}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 28px',
-          zIndex: 30,
-          transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {/* LEFT SECTION */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button
-            onClick={toggleSidebar}
-            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: subTextCol,
-              fontSize: '20px',
-              padding: '6px 8px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            ☰
-          </button>
-
-          <div>
-            <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, letterSpacing: '0.04em' }}>
-              SHREE ASSOCIATES
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT SECTION: Search -> Clock -> Market Status -> Refresh -> Dark Mode -> Bell -> Profile */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, justifyContent: 'flex-end' }}>
-          
-          {/* 1. SEARCH BAR */}
-          <div style={{ position: 'relative', width: '240px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: isDark ? '#1E293B' : '#F8FAFC', border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`, borderRadius: '8px', padding: '6px 12px' }}>
-              <span style={{ fontSize: '13px', color: subTextCol, marginRight: '8px' }}>🔍</span>
-              <input
-                type="text"
-                placeholder="Search Symbol..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={() => searchTerm.trim() && setShowSearchResults(true)}
-                style={{ width: '100%', border: 'none', background: 'transparent', color: textCol, fontSize: '12.5px', outline: 'none' }}
-              />
-            </div>
-
-            {showSearchResults && searchResults.length > 0 && (
-              <div style={{ position: 'absolute', top: '42px', left: 0, right: 0, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', maxHeight: '300px', overflowY: 'auto', zIndex: 50, padding: '4px' }}>
-                {searchResults.map((res) => (
-                  <div key={res.id} onClick={() => { setShowSearchResults(false); setSearchTerm(''); window.location.href = res.status === 'CLOSED' ? '/closed' : '/open'; }} style={{ padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: textCol }}>
-                    <div>
-                      <span style={{ fontWeight: 800 }}>{res.symbol}</span>
-                      <span style={{ marginLeft: '8px', color: subTextCol, fontSize: '11.5px' }}>{res.company}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 2. CLOCK */}
-          <div style={{ textAlign: 'right', fontSize: '12px', color: subTextCol, fontWeight: 600 }}>
-            <div style={{ color: textCol, fontWeight: 800, fontSize: '12.5px' }}>{currentTime}</div>
-            <div style={{ fontSize: '10.5px' }}>{currentDate}</div>
-          </div>
-
-          {/* 3. MARKET STATUS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block', boxShadow: '0 0 6px #16A34A' }} />
-              <span style={{ color: textCol }}>NSE LIVE</span>
-            </div>
-          </div>
-
-          {/* 4. REFRESH CONTROL */}
-          <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowRefreshMenu(!showRefreshMenu)} style={{ padding: '7px 12px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>🔄 Refresh</span>
-            </button>
-            {showRefreshMenu && (
-              <div style={{ position: 'absolute', top: '42px', right: 0, width: '170px', backgroundColor: isDark ? '#1E293B' : '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px' }}>
-                <button onClick={() => { onManualRefresh(); setShowRefreshMenu(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: textCol }}>⚡ Instant Refresh</button>
-                <div style={{ borderTop: `1px solid ${borderCol}`, margin: '4px 0' }} />
-                {[
-                  { label: 'Auto: OFF', val: 0 },
-                  { label: 'Auto: 30 sec', val: 30 },
-                  { label: 'Auto: 60 sec', val: 60 },
-                  { label: 'Auto: 5 min', val: 300 },
-                ].map((item) => (
-                  <button key={item.val} onClick={() => { setRefreshInterval(item.val); setShowRefreshMenu(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', backgroundColor: refreshInterval === item.val ? (isDark ? '#334155' : '#F1F5F9') : 'transparent', cursor: 'pointer', fontSize: '12px', fontWeight: refreshInterval === item.val ? 800 : 500, color: textCol, borderRadius: '6px' }}>
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 5. DARK MODE */}
-          <button onClick={toggleTheme} title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`} style={{ padding: '7px 11px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, fontSize: '14px', cursor: 'pointer' }}>
-            {isDark ? '☀️' : '🌙'}
-          </button>
-
-          {/* 6. NOTIFICATION BELL WITH UNREAD BADGE */}
-          <button
-            onClick={() => setShowNotifDrawer(true)}
-            style={{
-              padding: '7px 11px',
-              borderRadius: '8px',
-              border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`,
-              backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
-              color: textCol,
-              fontSize: '15px',
-              cursor: 'pointer',
-              position: 'relative',
-            }}
-          >
-            🔔
-            {unreadCount > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-4px',
-                  backgroundColor: '#DC2626',
-                  color: '#FFFFFF',
-                  fontSize: '9.5px',
-                  fontWeight: 900,
-                  borderRadius: '50%',
-                  width: '17px',
-                  height: '17px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 0 5px rgba(220, 38, 38, 0.6)',
-                }}
+      {isMobile ? (
+        <header
+          style={{
+            height: '70px',
+            position: 'fixed',
+            top: 0,
+            left: `${sidebarWidth}px`,
+            right: 0,
+            backgroundColor: bgCol,
+            borderBottom: `1px solid ${borderCol}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 16px',
+            zIndex: 30,
+            transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+          }}
+        >
+          {showMobileSearch ? (
+            /* Mobile Search Overlay Mode */
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '10px' }}>
+              <button
+                onClick={() => { setShowMobileSearch(false); setSearchTerm(''); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: subTextCol, fontSize: '18px', padding: '6px' }}
               >
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          {/* 7. PROFILE MENU */}
-          <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12.5px', fontWeight: 700 }}>
-              <span>👤 {user?.name || 'Analyst'}</span>
-            </button>
-            {showProfileMenu && (
-              <div style={{ position: 'absolute', top: '42px', right: 0, width: '210px', backgroundColor: isDark ? '#1E293B' : '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px 0' }}>
-                <div style={{ padding: '8px 16px', borderBottom: `1px solid ${borderCol}`, fontSize: '11.5px', color: subTextCol }}>
-                  Logged in as <br />
-                  <strong style={{ color: textCol, fontSize: '12.5px' }}>{user?.email}</strong>
-                </div>
-
-                {user?.role === 'OWNER' && (
-                  <>
-                    <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>👥 Manage Clients</button>
-                    <button onClick={handleOpenSettings} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>⚙️ Notification Settings</button>
-                  </>
-                )}
-
-                <button onClick={logout} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700, color: '#EF4444' }}>🚪 Sign Out</button>
+                ⬅️
+              </button>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', border: `1px solid ${borderCol}`, borderRadius: '8px', padding: '8px 12px' }}>
+                <input
+                  type="text"
+                  placeholder="Search Symbol..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  autoFocus
+                  style={{ width: '100%', border: 'none', background: 'transparent', color: textCol, fontSize: '14px', outline: 'none' }}
+                />
               </div>
-            )}
+              {searchTerm.trim() && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: subTextCol, fontSize: '14px' }}
+                >
+                  Clear
+                </button>
+              )}
+              
+              {/* Search results drawer on mobile search mode */}
+              {searchResults.length > 0 && (
+                <div style={{ position: 'absolute', top: '70px', left: 0, right: 0, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderBottom: `1px solid ${borderCol}`, boxShadow: '0 12px 30px rgba(0,0,0,0.15)', maxHeight: 'calc(100vh - 70px)', overflowY: 'auto', zIndex: 50, padding: '8px' }}>
+                  {searchResults.map((res) => (
+                    <div key={res.id} onClick={() => { setShowSearchResults(false); setShowMobileSearch(false); setSearchTerm(''); window.location.href = res.status === 'CLOSED' ? '/closed' : '/open'; }} style={{ padding: '12px', borderBottom: `1px solid ${borderCol}`, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: textCol }}>
+                      <div>
+                        <span style={{ fontWeight: 800 }}>{res.symbol}</span>
+                        <span style={{ marginLeft: '8px', color: subTextCol, fontSize: '12px' }}>{res.company}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Mobile Standard Mode */
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  onClick={toggleMobileSidebar}
+                  aria-label="Open navigation"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: subTextCol,
+                    fontSize: '22px',
+                    padding: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  ☰
+                </button>
+                <div style={{ fontSize: '14px', fontWeight: 900, color: textCol, letterSpacing: '0.04em' }}>
+                  SHREE ASSOCIATES
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Search Toggle Icon */}
+                <button
+                  onClick={() => setShowMobileSearch(true)}
+                  aria-label="Search"
+                  style={{
+                    padding: '8px',
+                    background: 'none',
+                    border: 'none',
+                    color: textCol,
+                    fontSize: '16px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  🔍
+                </button>
+
+                {/* Bell */}
+                <button
+                  onClick={() => setShowNotifDrawer(true)}
+                  aria-label="Notifications"
+                  style={{
+                    padding: '8px',
+                    background: 'none',
+                    border: 'none',
+                    color: textCol,
+                    fontSize: '16px',
+                    cursor: 'pointer',
+                    position: 'relative',
+                  }}
+                >
+                  🔔
+                  {unreadCount > 0 && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '0px',
+                        right: '0px',
+                        backgroundColor: '#DC2626',
+                        color: '#FFFFFF',
+                        fontSize: '9px',
+                        fontWeight: 900,
+                        borderRadius: '50%',
+                        width: '15px',
+                        height: '15px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 0 5px rgba(220, 38, 38, 0.6)',
+                      }}
+                    >
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Profile dropdown */}
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setShowProfileMenu(!showProfileMenu)} aria-label="Profile" style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: textCol, fontSize: '16px', padding: '8px' }}>
+                    👤
+                  </button>
+                  {showProfileMenu && (
+                    <div style={{ position: 'absolute', top: '42px', right: 0, width: '210px', backgroundColor: isDark ? '#1E293B' : '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px 0' }}>
+                      <div style={{ padding: '8px 16px', borderBottom: `1px solid ${borderCol}`, fontSize: '11.5px', color: subTextCol }}>
+                        Logged in as <br />
+                        <strong style={{ color: textCol, fontSize: '12.5px' }}>{user?.email}</strong>
+                      </div>
+
+                      {user?.role === 'OWNER' && (
+                        <>
+                          <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>👥 Manage Clients</button>
+                          <button onClick={handleOpenSettings} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>⚙️ Settings</button>
+                        </>
+                      )}
+
+                      {/* Dark/Light mode toggle in mobile profile dropdown */}
+                      <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>
+                        {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+                      </button>
+
+                      <button onClick={logout} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700, color: '#EF4444' }}>🚪 Sign Out</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </header>
+      ) : (
+        <header
+          style={{
+            height: '70px',
+            position: 'fixed',
+            top: 0,
+            left: `${sidebarWidth}px`,
+            right: 0,
+            backgroundColor: bgCol,
+            borderBottom: `1px solid ${borderCol}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 28px',
+            zIndex: 30,
+            transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+          }}
+        >
+          {/* LEFT SECTION */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={toggleSidebar}
+              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: subTextCol,
+                fontSize: '20px',
+                padding: '6px 8px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              ☰
+            </button>
+
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, letterSpacing: '0.04em' }}>
+                SHREE ASSOCIATES
+              </div>
+            </div>
           </div>
-        </div>
-      </header>
+
+          {/* RIGHT SECTION: Search -> Clock -> Market Status -> Refresh -> Dark Mode -> Bell -> Profile */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, justifyContent: 'flex-end' }}>
+            
+            {/* 1. SEARCH BAR */}
+            <div style={{ position: 'relative', width: '240px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', backgroundColor: isDark ? '#1E293B' : '#F8FAFC', border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`, borderRadius: '8px', padding: '6px 12px' }}>
+                <span style={{ fontSize: '13px', color: subTextCol, marginRight: '8px' }}>🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search Symbol..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={() => searchTerm.trim() && setShowSearchResults(true)}
+                  style={{ width: '100%', border: 'none', background: 'transparent', color: textCol, fontSize: '12.5px', outline: 'none' }}
+                />
+              </div>
+
+              {showSearchResults && searchResults.length > 0 && (
+                <div style={{ position: 'absolute', top: '42px', left: 0, right: 0, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', maxHeight: '300px', overflowY: 'auto', zIndex: 50, padding: '4px' }}>
+                  {searchResults.map((res) => (
+                    <div key={res.id} onClick={() => { setShowSearchResults(false); setSearchTerm(''); window.location.href = res.status === 'CLOSED' ? '/closed' : '/open'; }} style={{ padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: textCol }}>
+                      <div>
+                        <span style={{ fontWeight: 800 }}>{res.symbol}</span>
+                        <span style={{ marginLeft: '8px', color: subTextCol, fontSize: '11.5px' }}>{res.company}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2. CLOCK */}
+            <div style={{ textAlign: 'right', fontSize: '12px', color: subTextCol, fontWeight: 600 }}>
+              <div style={{ color: textCol, fontWeight: 800, fontSize: '12.5px' }}>{currentTime}</div>
+              <div style={{ fontSize: '10.5px' }}>{currentDate}</div>
+            </div>
+
+            {/* 3. MARKET STATUS */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block', boxShadow: '0 0 6px #16A34A' }} />
+                <span style={{ color: textCol }}>NSE LIVE</span>
+              </div>
+            </div>
+
+            {/* 4. REFRESH CONTROL */}
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setShowRefreshMenu(!showRefreshMenu)} style={{ padding: '7px 12px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🔄 Refresh</span>
+              </button>
+              {showRefreshMenu && (
+                <div style={{ position: 'absolute', top: '42px', right: 0, width: '170px', backgroundColor: isDark ? '#1E293B' : '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px' }}>
+                  <button onClick={() => { onManualRefresh(); setShowRefreshMenu(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: textCol }}>⚡ Instant Refresh</button>
+                  <div style={{ borderTop: `1px solid ${borderCol}`, margin: '4px 0' }} />
+                  {[
+                    { label: 'Auto: OFF', val: 0 },
+                    { label: 'Auto: 30 sec', val: 30 },
+                    { label: 'Auto: 60 sec', val: 60 },
+                    { label: 'Auto: 5 min', val: 300 },
+                  ].map((item) => (
+                    <button key={item.val} onClick={() => { setRefreshInterval(item.val); setShowRefreshMenu(false); }} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', backgroundColor: refreshInterval === item.val ? (isDark ? '#334155' : '#F1F5F9') : 'transparent', cursor: 'pointer', fontSize: '12px', fontWeight: refreshInterval === item.val ? 800 : 500, color: textCol, borderRadius: '6px' }}>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 5. DARK MODE */}
+            <button onClick={toggleTheme} title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`} style={{ padding: '7px 11px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, fontSize: '14px', cursor: 'pointer' }}>
+              {isDark ? '☀️' : '🌙'}
+            </button>
+
+            {/* 6. NOTIFICATION BELL WITH UNREAD BADGE */}
+            <button
+              onClick={() => setShowNotifDrawer(true)}
+              style={{
+                padding: '7px 11px',
+                borderRadius: '8px',
+                border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`,
+                backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                color: textCol,
+                fontSize: '15px',
+                cursor: 'pointer',
+                position: 'relative',
+              }}
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    backgroundColor: '#DC2626',
+                    color: '#FFFFFF',
+                    fontSize: '9.5px',
+                    fontWeight: 900,
+                    borderRadius: '50%',
+                    width: '17px',
+                    height: '17px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 5px rgba(220, 38, 38, 0.6)',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* 7. PROFILE MENU */}
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12.5px', fontWeight: 700 }}>
+                <span>👤 {user?.name || 'Analyst'}</span>
+              </button>
+              {showProfileMenu && (
+                <div style={{ position: 'absolute', top: '42px', right: 0, width: '210px', backgroundColor: isDark ? '#1E293B' : '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px 0' }}>
+                  <div style={{ padding: '8px 16px', borderBottom: `1px solid ${borderCol}`, fontSize: '11.5px', color: subTextCol }}>
+                    Logged in as <br />
+                    <strong style={{ color: textCol, fontSize: '12.5px' }}>{user?.email}</strong>
+                  </div>
+
+                  {user?.role === 'OWNER' && (
+                    <>
+                      <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>👥 Manage Clients</button>
+                      <button onClick={handleOpenSettings} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>⚙️ Notification Settings</button>
+                    </>
+                  )}
+
+                  <button onClick={logout} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700, color: '#EF4444' }}>🚪 Sign Out</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+      )}
 
       {/* Slide-over Notifications Drawer (BELL DRAWER - Req 10) */}
       <div

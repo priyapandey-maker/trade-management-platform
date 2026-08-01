@@ -10,6 +10,16 @@ export default function DashboardPage() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,14 +61,14 @@ export default function DashboardPage() {
       {/* Executive Header & Layout Option Switcher */}
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 900, color: textCol, margin: 0 }}>Executive Dashboard</h1>
+          <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: 900, color: textCol, margin: 0 }}>Executive Dashboard</h1>
           <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>
             High-level executive overview, institutional risk metrics, and presentation views.
           </p>
         </div>
 
         {/* 3 Layout Option Selector */}
-        <div style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', border: `1px solid ${borderCol}`, borderRadius: '10px', padding: '4px', display: 'flex', gap: '4px' }}>
+        <div style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', border: `1px solid ${borderCol}`, borderRadius: '10px', padding: '4px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '4px', width: isMobile ? '100%' : 'auto' }}>
           <button
             onClick={() => setLayoutOption('OPTION_1')}
             style={{
@@ -129,7 +139,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
               {/* Top Executive KPI Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Portfolio Valuation</div>
                   <div style={{ fontSize: '26px', fontWeight: 900, color: textCol, marginTop: '6px' }}>₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN')}</div>
@@ -160,7 +170,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Middle Section: Best/Worst Performers & Recent Activity */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
                 
                 {/* Top Movers Breakdown */}
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
@@ -236,7 +246,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
               {/* Top Desk Metrics */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Capital Deployed</div>
                   <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>₹{(summary.totalCapitalDeployed || 0).toLocaleString('en-IN')}</div>
@@ -309,7 +319,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
               {/* Giant Minimalist KPI Header Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '20px' }}>
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '28px', borderRadius: '16px', textAlign: 'center' }}>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Total Portfolio Value</div>
                   <div style={{ fontSize: '38px', fontWeight: 900, color: textCol, marginTop: '10px' }}>₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN')}</div>
@@ -334,7 +344,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Clean Executive Summary Cards Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '16px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 800, color: textCol, margin: '0 0 16px 0' }}>💼 Portfolio Composition</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
