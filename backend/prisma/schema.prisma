@@ -91,6 +91,7 @@ model PortfolioPosition {
   nearBuyAlertActive  Boolean              @default(true)
   notes               String?
   assetType           String               @default("STOCK")
+  investorName        String               @default("Shree")
   status              String               @default("OPEN") // "OPEN" | "CLOSED" | "ARCHIVED"
   closedAt            DateTime?
   muteAlertsUntil     DateTime?

@@ -29,6 +29,14 @@ export default function OpenPositionsPage() {
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
 
+  // Investor management state
+  const [newInvestorName, setNewInvestorName] = useState('Shree');
+  const [isCreatingNewInvestor, setIsCreatingNewInvestor] = useState(false);
+  const [customNewInvestor, setCustomNewInvestor] = useState('');
+
+  const [isEditingNewInvestor, setIsEditingNewInvestor] = useState(false);
+  const [customEditInvestor, setCustomEditInvestor] = useState('');
+
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -79,6 +87,7 @@ export default function OpenPositionsPage() {
     sellingPrice: '',
     closedAt: '',
     exitReason: 'MANUAL_EXIT',
+    investorName: 'Shree',
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
@@ -122,7 +131,10 @@ export default function OpenPositionsPage() {
       sellingPrice: pos.sellingPrice ? pos.sellingPrice.toString() : '',
       closedAt: pos.closedAt ? new Date(pos.closedAt).toISOString().substring(0, 10) : '',
       exitReason: pos.exitReason || 'MANUAL_EXIT',
+      investorName: pos.investorName || 'Shree',
     });
+    setIsEditingNewInvestor(false);
+    setCustomEditInvestor('');
     setValidationErrors({});
     setApiError(null);
     setShowEditDrawer(true);
@@ -246,6 +258,7 @@ export default function OpenPositionsPage() {
         closedAt: isSellWorkflow ? editForm.closedAt : undefined,
         exitReason: isSellWorkflow ? editForm.exitReason : undefined,
         status: isSellWorkflow ? 'CLOSED' : undefined,
+        investorName: isEditingNewInvestor ? customEditInvestor.trim() || 'Shree' : editForm.investorName,
       });
       fetchPositions();
     } catch (err: any) {
@@ -294,6 +307,7 @@ export default function OpenPositionsPage() {
           entryDate: newDate,
           sellDate: newSellDate,
           exitReason: newExitReason,
+          investorName: isCreatingNewInvestor ? customNewInvestor.trim() || 'Shree' : newInvestorName,
         });
       } else {
         await api.post('/portfolio/position', {
@@ -306,6 +320,7 @@ export default function OpenPositionsPage() {
           stopLoss: newStop ? parseFloat(newStop) : null,
           notes: newNotes,
           entryDate: newDate,
+          investorName: isCreatingNewInvestor ? customNewInvestor.trim() || 'Shree' : newInvestorName,
         });
       }
 
@@ -379,7 +394,7 @@ export default function OpenPositionsPage() {
   const exportCSV = () => {
     const headers = 'Symbol,Company,Trade Type,Quantity,Buy Price,CMP,Invested Amount,Current Value,Profit/Loss,Profit %';
     const rows = positions.map(
-      (p) => `${p.symbol},"${p.company}",${p.tradeType},${p.quantity},${p.buyPrice},${p.currentPrice},${p.investedAmount},${p.currentValue},${p.profitLoss},${p.profitLossPct}`
+      (p) => `${p.symbol},"${p.company}",${p.tradeType},${p.quantity.toFixed(2)},${p.buyPrice.toFixed(2)},${p.currentPrice.toFixed(2)},${p.investedAmount.toFixed(2)},${p.currentValue.toFixed(2)},${p.profitLoss.toFixed(2)},${p.profitLossPct.toFixed(2)}`
     );
     const blob = new Blob([[headers, ...rows].join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -476,7 +491,7 @@ export default function OpenPositionsPage() {
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Unrealized Live P&amp;L</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: overallPnL >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
-            {overallPnL >= 0 ? '+' : ''}₹{overallPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            {overallPnL >= 0 ? '+' : ''}₹{overallPnL.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Open Profit/Loss</div>
         </div>
@@ -491,7 +506,7 @@ export default function OpenPositionsPage() {
               <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, marginTop: '4px' }}>{highestPos.company} ({highestPos.symbol})</div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                 <span style={{ fontSize: '15px', fontWeight: 900, color: '#16A34A' }}>+{highestPos.profitLossPct.toFixed(2)}%</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>(+₹{highestPos.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })})</span>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>(+₹{highestPos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
               </div>
             </>
           ) : (
@@ -512,7 +527,7 @@ export default function OpenPositionsPage() {
                   {secondHighestPos.profitLossPct >= 0 ? '+' : ''}{secondHighestPos.profitLossPct.toFixed(2)}%
                 </span>
                 <span style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>
-                  ({secondHighestPos.profitLoss >= 0 ? '+' : ''}₹{secondHighestPos.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })})
+                  ({secondHighestPos.profitLoss >= 0 ? '+' : ''}₹{secondHighestPos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                 </span>
               </div>
             </>
@@ -532,16 +547,6 @@ export default function OpenPositionsPage() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', flex: 1, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
           />
-
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
-          >
-            <option value="ALL">All Types</option>
-            <option value="BUY">BUY Only</option>
-            <option value="SELL">SELL Only</option>
-          </select>
 
           <select
             value={`${sortBy}-${sortOrder}`}
@@ -655,7 +660,7 @@ export default function OpenPositionsPage() {
                       <strong style={{ color: '#DC2626' }}>{pos.stopLoss ? `₹${pos.stopLoss}` : '-'}</strong>
                     </div>
                     <div>
-                      <span style={{ color: subTextCol }}>Target Rem.: </span>
+                      <span style={{ color: subTextCol }}>Est. Target: </span>
                       <strong style={{ color: '#16A34A' }}>{targetRem.text}</strong>
                     </div>
                     <div>
@@ -682,7 +687,7 @@ export default function OpenPositionsPage() {
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '11px', color: subTextCol }}>Live P&amp;L:</span>
                       <div style={{ fontSize: '14px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        {isProfit ? '+' : ''}₹{pos.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ({isProfit ? '+' : ''}{pos.profitLossPct.toFixed(2)}%)
+                        {isProfit ? '+' : ''}₹{pos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isProfit ? '+' : ''}{pos.profitLossPct.toFixed(2)}%)
                       </div>
                     </div>
                   </div>
@@ -773,7 +778,7 @@ export default function OpenPositionsPage() {
                   <th style={{ padding: '12px', fontWeight: 800 }}>CMP</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Target</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Stop Loss</th>
-                  <th style={{ padding: '12px', fontWeight: 800, color: '#16A34A' }}>Target Rem.</th>
+                  <th style={{ padding: '12px', fontWeight: 800, color: '#16A34A' }}>Est. Target</th>
                   <th style={{ padding: '12px', fontWeight: 800, color: '#DC2626' }}>Stop Rem.</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Holding</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Invested</th>
@@ -853,7 +858,7 @@ export default function OpenPositionsPage() {
                       <td style={{ padding: '10px', fontWeight: 700 }}>₹{pos.currentValue.toLocaleString('en-IN')}</td>
 
                       <td style={{ padding: '10px', fontWeight: 800, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        <div>{isProfit ? '+' : ''}₹{pos.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                        <div>{isProfit ? '+' : ''}₹{pos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div style={{ fontSize: '11px' }}>({isProfit ? '+' : ''}{pos.profitLossPct.toFixed(2)}%)</div>
                       </td>
 
@@ -1092,6 +1097,46 @@ export default function OpenPositionsPage() {
                 <option value="BUY">BUY</option>
                 <option value="SELL">SELL</option>
               </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Investor Name *</label>
+              {isEditingNewInvestor ? (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <input
+                    type="text"
+                    placeholder="New Investor Name..."
+                    value={customEditInvestor}
+                    onChange={(e) => setCustomEditInvestor(e.target.value)}
+                    required
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingNewInvestor(false)}
+                    style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    Choose Existing
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={editForm.investorName || 'Shree'}
+                  onChange={(e) => {
+                    if (e.target.value === '__NEW__') {
+                      setIsEditingNewInvestor(true);
+                    } else {
+                      setEditForm({ ...editForm, investorName: e.target.value });
+                    }
+                  }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                >
+                  {Array.from(new Set(['Shree', 'Priya', 'Rahul', 'Amit', ...positions.map(p => p.investorName).filter(Boolean)])).map(inv => (
+                    <option key={inv} value={inv}>{inv}</option>
+                  ))}
+                  <option value="__NEW__">+ Create New Investor...</option>
+                </select>
+              )}
             </div>
 
             {editForm.tradeType === 'SELL' ? (
@@ -1342,6 +1387,46 @@ export default function OpenPositionsPage() {
                   <option value="BUY">BUY</option>
                   <option value="SELL">SELL</option>
                 </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Investor Name *</label>
+                {isCreatingNewInvestor ? (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <input
+                      type="text"
+                      placeholder="New Investor Name..."
+                      value={customNewInvestor}
+                      onChange={(e) => setCustomNewInvestor(e.target.value)}
+                      required
+                      style={{ flex: 1, padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingNewInvestor(false)}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12px' }}
+                    >
+                      Choose Existing
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    value={newInvestorName}
+                    onChange={(e) => {
+                      if (e.target.value === '__NEW__') {
+                        setIsCreatingNewInvestor(true);
+                      } else {
+                        setNewInvestorName(e.target.value);
+                      }
+                    }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '4px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                  >
+                    {Array.from(new Set(['Shree', 'Priya', 'Rahul', 'Amit', ...positions.map(p => p.investorName).filter(Boolean)])).map(inv => (
+                      <option key={inv} value={inv}>{inv}</option>
+                    ))}
+                    <option value="__NEW__">+ Create New Investor...</option>
+                  </select>
+                )}
               </div>
 
               {newType === 'SELL' ? (

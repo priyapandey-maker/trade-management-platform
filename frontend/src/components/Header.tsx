@@ -318,7 +318,7 @@ export const Header: React.FC<HeaderProps> = ({
             justifyContent: 'space-between',
             padding: '0 16px',
             zIndex: 30,
-            transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'left 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
@@ -492,7 +492,7 @@ export const Header: React.FC<HeaderProps> = ({
             justifyContent: 'space-between',
             padding: '0 28px',
             zIndex: 30,
-            transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'left 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >

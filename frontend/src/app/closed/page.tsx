@@ -31,6 +31,9 @@ export default function ClosedPositionsPage() {
   // Delete Modal
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Rotating Performer Widget
+  const [performerIndex, setPerformerIndex] = useState(0);
+
   // Edit Drawer State (REQ 3)
   const [editingPosition, setEditingPosition] = useState<any | null>(null);
   const [showEditDrawer, setShowEditDrawer] = useState(false);
@@ -49,9 +52,12 @@ export default function ClosedPositionsPage() {
     sellingPrice: '',
     closedAt: '',
     exitReason: 'MANUAL_EXIT',
+    investorName: 'Shree',
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isEditingNewInvestor, setIsEditingNewInvestor] = useState(false);
+  const [customEditInvestor, setCustomEditInvestor] = useState('');
 
   // Open Edit Drawer
   const handleOpenEditDrawer = (pos: any) => {
@@ -71,7 +77,10 @@ export default function ClosedPositionsPage() {
       sellingPrice: pos.sellingPrice ? pos.sellingPrice.toString() : (pos.currentPrice ? pos.currentPrice.toString() : ''),
       closedAt: pos.closedAt ? new Date(pos.closedAt).toISOString().substring(0, 10) : '',
       exitReason: pos.exitReason || 'MANUAL_EXIT',
+      investorName: pos.investorName || 'Shree',
     });
+    setIsEditingNewInvestor(false);
+    setCustomEditInvestor('');
     setValidationErrors({});
     setApiError(null);
     setShowEditDrawer(true);
@@ -195,6 +204,7 @@ export default function ClosedPositionsPage() {
         closedAt: isSellWorkflow ? editForm.closedAt : undefined,
         exitReason: isSellWorkflow ? editForm.exitReason : undefined,
         status: isSellWorkflow ? 'CLOSED' : undefined,
+        investorName: isEditingNewInvestor ? customEditInvestor.trim() || 'Shree' : editForm.investorName,
       });
       fetchClosedPositions();
     } catch (err: any) {
@@ -247,7 +257,7 @@ export default function ClosedPositionsPage() {
   const exportCSV = () => {
     const headers = ['Symbol,Company,BuyPrice,ExitPrice,Qty,EntryDate,ExitDate,HoldingPeriod,PnL,PnLPct,Reason'];
     const rows = positions.map(
-      (p) => `${p.symbol},"${p.company}",${p.buyPrice},${p.sellingPrice || p.currentPrice},${p.quantity},${p.entryDate},${p.closedAt},${p.holdingPeriod || 0},${p.profitLoss},${p.profitLossPct},${p.exitReason}`
+      (p) => `${p.symbol},"${p.company}",${p.buyPrice.toFixed(2)},${(p.sellingPrice || p.currentPrice).toFixed(2)},${p.quantity.toFixed(2)},${p.entryDate},${p.closedAt},${p.holdingPeriod || 0},${p.profitLoss.toFixed(2)},${p.profitLossPct.toFixed(2)},${p.exitReason}`
     );
     const blob = new Blob([[headers, ...rows].join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -263,6 +273,32 @@ export default function ClosedPositionsPage() {
   const wins = positions.filter((p) => p.profitLoss > 0).length;
   const winRate = totalClosedTrades > 0 ? (wins / totalClosedTrades) * 100 : 0;
   const avgHoldingPeriod = totalClosedTrades > 0 ? positions.reduce((sum, p) => sum + (p.holdingPeriod || 0), 0) / totalClosedTrades : 0;
+
+  const sortedByProfit = [...positions].sort((a, b) => b.profitLossPct - a.profitLossPct);
+  const best1 = sortedByProfit[0] || null;
+  const best2 = sortedByProfit[1] || null;
+  const best3 = sortedByProfit[2] || null;
+
+  const worst1 = sortedByProfit[sortedByProfit.length - 1] || null;
+  const worst2 = sortedByProfit.length > 1 ? sortedByProfit[sortedByProfit.length - 2] : null;
+  const worst3 = sortedByProfit.length > 2 ? sortedByProfit[sortedByProfit.length - 3] : null;
+
+  const performers = [
+    { label: '🏆 #1 Best Performer', data: best1, color: '#16A34A' },
+    { label: '🥈 #2 Best Performer', data: best2, color: '#16A34A' },
+    { label: '🥉 #3 Best Performer', data: best3, color: '#16A34A' },
+    { label: '📉 #1 Worst Performer', data: worst1, color: '#DC2626' },
+    { label: '📉 #2 Worst Performer', data: worst2, color: '#DC2626' },
+    { label: '📉 #3 Worst Performer', data: worst3, color: '#DC2626' },
+  ].filter((p) => p.data !== null);
+
+  useEffect(() => {
+    if (performers.length === 0) return;
+    const interval = setInterval(() => {
+      setPerformerIndex((prev) => (prev + 1) % performers.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [performers.length]);
 
   const filteredPositions = positions.filter((pos) => {
     const term = search.toLowerCase();
@@ -312,21 +348,54 @@ export default function ClosedPositionsPage() {
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Realized P&amp;L</div>
           <div style={{ fontSize: '22px', fontWeight: 900, color: realizedPnL >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
-            {realizedPnL >= 0 ? '+' : ''}₹{realizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            {realizedPnL >= 0 ? '+' : ''}₹{realizedPnL.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Locked Net Return</div>
         </div>
 
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Win Rate</div>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: '#16A34A', marginTop: '6px' }}>{winRate.toFixed(1)}%</div>
-          <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Successful Exits</div>
+          <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', marginBottom: '8px' }}>Trade Efficiency</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ flex: 1, borderRight: `1px solid ${borderCol}`, paddingRight: '12px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#16A34A' }}>{winRate.toFixed(1)}%</div>
+              <div style={{ fontSize: '11px', color: subTextCol, marginTop: '2px' }}>Win Rate</div>
+            </div>
+            <div style={{ flex: 1, paddingLeft: '12px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: textCol }}>{avgHoldingPeriod.toFixed(1)}d</div>
+              <div style={{ fontSize: '11px', color: subTextCol, marginTop: '2px' }}>Avg Holding</div>
+            </div>
+          </div>
         </div>
 
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Avg Holding Period</div>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{avgHoldingPeriod.toFixed(1)} Days</div>
-          <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Trade Duration Average</div>
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px', overflow: 'hidden', minHeight: '88px' }}>
+          {performers.length > 0 && performers[performerIndex] ? (
+            <div key={performerIndex} className="animate-fade-slide">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: performers[performerIndex].color, textTransform: 'uppercase' }}>
+                  {performers[performerIndex].label}
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: textCol }}>
+                  {performers[performerIndex].data.symbol}
+                </span>
+              </div>
+              <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {performers[performerIndex].data.company}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 900, color: performers[performerIndex].color }}>
+                  {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{performers[performerIndex].data.profitLossPct.toFixed(2)}%
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: subTextCol }}>
+                  ({performers[performerIndex].data.profitLoss >= 0 ? '+' : ''}₹{performers[performerIndex].data.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Top Performers</div>
+              <div style={{ fontSize: '13px', color: subTextCol, marginTop: '10px' }}>No trades recorded.</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -434,16 +503,38 @@ export default function ClosedPositionsPage() {
                     <div>
                       <span style={{ fontSize: '11px', color: subTextCol }}>Realized P&amp;L:</span>
                       <div style={{ fontSize: '14px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        {isProfit ? '+' : ''}₹{pos.profitLoss?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        {isProfit ? '+' : ''}₹{pos.profitLoss?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '11px', color: subTextCol }}>Return %:</span>
                       <div style={{ fontSize: '14px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        {isProfit ? '+' : ''}{pos.profitLossPct?.toFixed(1)}%
+                        {isProfit ? '+' : ''}{pos.profitLossPct?.toFixed(2)}%
                       </div>
                     </div>
                   </div>
+
+                  {pos.targetPrice && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', padding: '10px', borderRadius: '8px', fontSize: '12px', marginTop: '4px' }}>
+                      <div>
+                        <span style={{ color: subTextCol }}>Potential: </span>
+                        <strong style={{ color: textCol }}>₹{(pos.potentialProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        {(pos.missedProfit || 0) > 0 && (
+                          <span style={{ color: '#DC2626', fontWeight: 700 }}>
+                            Missed: -₹{pos.missedProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        )}
+                        {(pos.extraProfit || 0) > 0 && (
+                          <span style={{ color: '#16A34A', fontWeight: 700 }}>
+                            Extra: +₹{pos.extraProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        )}
+                        {!(pos.missedProfit || 0) && !(pos.extraProfit || 0) && <span style={{ color: subTextCol }}>No deviation</span>}
+                      </div>
+                    </div>
+                  )}
 
                   {user?.role === 'OWNER' && (
                     <>
@@ -510,6 +601,8 @@ export default function ClosedPositionsPage() {
                   <th style={{ padding: '12px', fontWeight: 800 }}>Trade Duration</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Realized P&amp;L</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Return %</th>
+                  <th style={{ padding: '12px', fontWeight: 800 }}>Potential Profit</th>
+                  <th style={{ padding: '12px', fontWeight: 800 }}>Missed / Extra Profit</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Exit Reason</th>
                   {user?.role === 'OWNER' && <th style={{ padding: '12px', textAlign: 'center', width: '90px' }}>Actions</th>}
                 </tr>
@@ -535,10 +628,26 @@ export default function ClosedPositionsPage() {
                       </td>
 
                       <td style={{ padding: '12px 10px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        {isProfit ? '+' : ''}₹{pos.profitLoss?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        {isProfit ? '+' : ''}₹{pos.profitLoss?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td style={{ padding: '12px 10px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        {isProfit ? '+' : ''}{pos.profitLossPct?.toFixed(1)}%
+                        {isProfit ? '+' : ''}{pos.profitLossPct?.toFixed(2)}%
+                      </td>
+                      <td style={{ padding: '12px 10px', fontWeight: 700, color: textCol }}>
+                        {pos.targetPrice ? `₹${(pos.potentialProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                      </td>
+                      <td style={{ padding: '12px 10px' }}>
+                        {(pos.missedProfit || 0) > 0 && (
+                          <span style={{ fontSize: '12px', color: '#DC2626', fontWeight: 700 }}>
+                            Missed: -₹{pos.missedProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        )}
+                        {(pos.extraProfit || 0) > 0 && (
+                          <span style={{ fontSize: '12px', color: '#16A34A', fontWeight: 700 }}>
+                            Extra: +₹{pos.extraProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        )}
+                        {!(pos.missedProfit || 0) && !(pos.extraProfit || 0) && '—'}
                       </td>
                       <td style={{ padding: '12px 10px' }}>
                         <span
@@ -788,6 +897,46 @@ export default function ClosedPositionsPage() {
                 <option value="BUY">BUY</option>
                 <option value="SELL">SELL</option>
               </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Investor Name *</label>
+              {isEditingNewInvestor ? (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <input
+                    type="text"
+                    placeholder="New Investor Name..."
+                    value={customEditInvestor}
+                    onChange={(e) => setCustomEditInvestor(e.target.value)}
+                    required
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingNewInvestor(false)}
+                    style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    Choose Existing
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={editForm.investorName || 'Shree'}
+                  onChange={(e) => {
+                    if (e.target.value === '__NEW__') {
+                      setIsEditingNewInvestor(true);
+                    } else {
+                      setEditForm({ ...editForm, investorName: e.target.value });
+                    }
+                  }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                >
+                  {Array.from(new Set(['Shree', 'Priya', 'Rahul', 'Amit', ...positions.map(p => p.investorName).filter(Boolean)])).map(inv => (
+                    <option key={inv} value={inv}>{inv}</option>
+                  ))}
+                  <option value="__NEW__">+ Create New Investor...</option>
+                </select>
+              )}
             </div>
 
             {editForm.tradeType === 'SELL' ? (

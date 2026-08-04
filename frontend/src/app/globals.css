@@ -47,3 +47,14 @@ a {
     padding-bottom: 10px !important;
   }
 }
+
+@keyframes fadeSlide {
+  0% { opacity: 0; transform: translateY(6px); }
+  15% { opacity: 1; transform: translateY(0); }
+  85% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+.animate-fade-slide {
+  animation: fadeSlide 4s infinite ease-in-out;
+}

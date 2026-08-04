@@ -4,6 +4,15 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
+import {
+  ResponsiveContainer,
+  LineChart, Line,
+  BarChart, Bar,
+  PieChart, Pie, Cell,
+  AreaChart, Area,
+  RadialBarChart, RadialBar, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip
+} from 'recharts';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -12,8 +21,10 @@ export default function DashboardPage() {
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     setIsMobile(window.innerWidth < 768);
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
@@ -26,6 +37,9 @@ export default function DashboardPage() {
 
   // Switchable Dashboard Layout Option: 'OPTION_1' | 'OPTION_2' | 'OPTION_3'
   const [layoutOption, setLayoutOption] = useState<'OPTION_1' | 'OPTION_2' | 'OPTION_3'>('OPTION_1');
+
+  // Performer Widget Index
+  const [performerIndex, setPerformerIndex] = useState(0);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -50,10 +64,110 @@ export default function DashboardPage() {
   const openPositions = data?.positions?.open || [];
   const closedPositions = data?.positions?.closed || [];
 
+  // Sort & setup performers lists
+  const allNonArchived = [...openPositions, ...closedPositions];
+  const sortedOverall = [...allNonArchived].sort((a, b) => b.profitLossPct - a.profitLossPct);
+  const best1 = sortedOverall[0] || null;
+  const best2 = sortedOverall[1] || null;
+  const best3 = sortedOverall[2] || null;
+
+  const worst1 = sortedOverall[sortedOverall.length - 1] || null;
+  const worst2 = sortedOverall.length > 1 ? sortedOverall[sortedOverall.length - 2] : null;
+  const worst3 = sortedOverall.length > 2 ? sortedOverall[sortedOverall.length - 3] : null;
+
+  const performers = [
+    { label: '🏆 #1 Best Performer', data: best1, color: '#16A34A' },
+    { label: '🥈 #2 Best Performer', data: best2, color: '#16A34A' },
+    { label: '🥉 #3 Best Performer', data: best3, color: '#16A34A' },
+    { label: '📉 #1 Worst Performer', data: worst1, color: '#DC2626' },
+    { label: '📉 #2 Worst Performer', data: worst2, color: '#DC2626' },
+    { label: '📉 #3 Worst Performer', data: worst3, color: '#DC2626' },
+  ].filter((p) => p.data !== null);
+
+  useEffect(() => {
+    if (performers.length === 0) return;
+    const interval = setInterval(() => {
+      setPerformerIndex((prev) => (prev + 1) % performers.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [performers.length]);
+
   const cardBg = isDark ? '#1E293B' : '#FFFFFF';
   const borderCol = isDark ? '#334155' : '#E2E8F0';
   const textCol = isDark ? '#F8FAFC' : '#0F172A';
   const subTextCol = isDark ? '#94A3B8' : '#64748B';
+
+  const chartThemeColor = '#16A34A';
+  const chartAltColor = '#2563EB';
+
+  // 1. Line Chart Data
+  const lineData = openPositions.map((p: any) => ({
+    symbol: p.symbol,
+    BuyPrice: p.buyPrice,
+    CMP: p.currentPrice,
+  }));
+
+  // 2. Bar Chart Data
+  const barData = closedPositions.map((p: any) => ({
+    symbol: p.symbol,
+    PnL: p.profitLoss,
+  }));
+
+  // 3. Pie Chart Data
+  const pieData = openPositions.map((p: any) => ({
+    name: p.symbol,
+    value: p.investedAmount,
+  }));
+
+  const COLORS = ['#2563EB', '#10B981', '#64748B', '#0D9488', '#7C3AED', '#EA580C'];
+
+  // 4. Stacked Bar Chart Data
+  const stackedData = openPositions.map((p: any) => ({
+    symbol: p.symbol,
+    Invested: p.investedAmount,
+    Value: p.currentValue,
+  }));
+
+  // 5. Area Chart Data (Cumulative returns over closed exits)
+  let cumulativeValue = 0;
+  const areaData = [...closedPositions]
+    .sort((a, b) => new Date(a.closedAt || a.entryDate).getTime() - new Date(b.closedAt || b.entryDate).getTime())
+    .map((p: any) => {
+      cumulativeValue += p.profitLoss;
+      return {
+        date: new Date(p.closedAt || p.entryDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+        Gain: cumulativeValue,
+      };
+    });
+
+  // 6. Radial Chart Data (Investor Shares)
+  const radialData = (data?.investors || []).map((inv: any, idx: number) => ({
+    name: inv.name,
+    uv: inv.totalInvestment,
+    fill: COLORS[idx % COLORS.length],
+  }));
+
+  // 7. Heatmap Grid Data
+  const heatmapData = openPositions.map((p: any) => ({
+    symbol: p.symbol,
+    pct: p.profitLossPct,
+    val: p.profitLoss,
+  }));
+
+  // 8. Histogram Data (Holding periods)
+  const histogramBins = [
+    { range: '0-5d', count: 0 },
+    { range: '6-15d', count: 0 },
+    { range: '16-30d', count: 0 },
+    { range: '31d+', count: 0 },
+  ];
+  closedPositions.forEach((p: any) => {
+    const days = p.holdingPeriod || 0;
+    if (days <= 5) histogramBins[0].count++;
+    else if (days <= 15) histogramBins[1].count++;
+    else if (days <= 30) histogramBins[2].count++;
+    else histogramBins[3].count++;
+  });
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -100,7 +214,7 @@ export default function DashboardPage() {
               boxShadow: layoutOption === 'OPTION_2' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
             }}
           >
-            🖥️ Trading Desk
+            🖥️ Trading Desk (Charts)
           </button>
 
           <button
@@ -142,14 +256,16 @@ export default function DashboardPage() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Portfolio Valuation</div>
-                  <div style={{ fontSize: '26px', fontWeight: 900, color: textCol, marginTop: '6px' }}>₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '26px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
+                    ₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                   <div style={{ fontSize: '12px', color: '#16A34A', fontWeight: 700, marginTop: '4px' }}>Active Capital Value</div>
                 </div>
 
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Unrealized Live P&amp;L</div>
                   <div style={{ fontSize: '26px', fontWeight: 900, color: (summary.currentPortfolioProfitLoss || 0) >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
-                    {(summary.currentPortfolioProfitLoss || 0) >= 0 ? '+' : ''}₹{(summary.currentPortfolioProfitLoss || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    {(summary.currentPortfolioProfitLoss || 0) >= 0 ? '+' : ''}₹{(summary.currentPortfolioProfitLoss || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div style={{ fontSize: '12px', color: subTextCol, marginTop: '4px' }}>Current Market Gain/Loss</div>
                 </div>
@@ -163,54 +279,46 @@ export default function DashboardPage() {
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Realized Closed P&amp;L</div>
                   <div style={{ fontSize: '26px', fontWeight: 900, color: (summary.realizedProfit || 0) >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
-                    {(summary.realizedProfit || 0) >= 0 ? '+' : ''}₹{(summary.realizedProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    {(summary.realizedProfit || 0) >= 0 ? '+' : ''}₹{(summary.realizedProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div style={{ fontSize: '12px', color: subTextCol, marginTop: '4px' }}>Win Rate: {(summary.winRate || 0).toFixed(1)}%</div>
+                  <div style={{ fontSize: '12px', color: subTextCol, marginTop: '4px' }}>Win Rate: {(summary.winRate || 0).toFixed(2)}%</div>
                 </div>
               </div>
 
-              {/* Middle Section: Best/Worst Performers & Recent Activity */}
+              {/* Middle Section: Rotating Performer Widget & Recent Activity */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
                 
-                {/* Top Movers Breakdown */}
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: textCol, margin: '0 0 16px 0' }}>🏆 Top &amp; Worst Performers</h3>
+                {/* Rotating Performer Card */}
+                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', overflow: 'hidden', minHeight: '180px' }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, color: textCol, margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    📊 Portfolio Performer Rotation
+                  </h3>
                   
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {summary.bestPerformingTrade ? (
-                      <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#16A34A', textTransform: 'uppercase' }}>Top Performer</div>
-                        <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, marginTop: '4px' }}>
-                          {summary.bestPerformingTrade.company} ({summary.bestPerformingTrade.symbol})
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '13px' }}>
-                          <span style={{ color: '#16A34A', fontWeight: 900 }}>+{summary.bestPerformingTrade.profitLossPct.toFixed(2)}%</span>
-                          <span style={{ fontWeight: 700, color: textCol }}>+₹{summary.bestPerformingTrade.profitLoss.toLocaleString('en-IN')}</span>
-                        </div>
+                  {performers.length > 0 && performers[performerIndex] ? (
+                    <div key={performerIndex} className="animate-fade-slide" style={{ padding: '16px', borderRadius: '8px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: performers[performerIndex].color, textTransform: 'uppercase' }}>
+                          {performers[performerIndex].label}
+                        </span>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: textCol }}>
+                          {performers[performerIndex].data.symbol}
+                        </span>
                       </div>
-                    ) : (
-                      <div style={{ fontSize: '13px', color: subTextCol }}>No trade data</div>
-                    )}
-
-                    {summary.worstPerformingTrade ? (
-                      <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#DC2626', textTransform: 'uppercase' }}>Lowest Performer</div>
-                        <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, marginTop: '4px' }}>
-                          {summary.worstPerformingTrade.company} ({summary.worstPerformingTrade.symbol})
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '13px' }}>
-                          <span style={{ color: summary.worstPerformingTrade.profitLossPct >= 0 ? '#16A34A' : '#DC2626', fontWeight: 900 }}>
-                            {summary.worstPerformingTrade.profitLossPct.toFixed(2)}%
-                          </span>
-                          <span style={{ fontWeight: 700, color: textCol }}>
-                            ₹{summary.worstPerformingTrade.profitLoss.toLocaleString('en-IN')}
-                          </span>
-                        </div>
+                      <div style={{ fontSize: '18px', fontWeight: 900, color: textCol, marginTop: '8px' }}>
+                        {performers[performerIndex].data.company}
                       </div>
-                    ) : (
-                      <div style={{ fontSize: '13px', color: subTextCol }}>No trade data</div>
-                    )}
-                  </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                        <span style={{ fontSize: '16px', fontWeight: 900, color: performers[performerIndex].color }}>
+                          {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{performers[performerIndex].data.profitLossPct.toFixed(2)}%
+                        </span>
+                        <span style={{ fontSize: '13.5px', fontWeight: 700, color: subTextCol }}>
+                          {performers[performerIndex].data.profitLoss >= 0 ? '+' : ''}₹{performers[performerIndex].data.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ color: subTextCol, fontSize: '13.5px' }}>No positions recorded.</div>
+                  )}
                 </div>
 
                 {/* Recent Activity Table */}
@@ -226,7 +334,7 @@ export default function DashboardPage() {
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontWeight: 800, color: p.profitLoss >= 0 ? '#16A34A' : '#DC2626' }}>
-                            {p.profitLoss >= 0 ? '+' : ''}₹{p.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                            {p.profitLoss >= 0 ? '+' : ''}₹{p.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
                           <div style={{ fontSize: '11px', color: subTextCol }}>{p.holdingPeriod} Days Active</div>
                         </div>
@@ -240,7 +348,7 @@ export default function DashboardPage() {
           )}
 
           {/* ========================================================================= */}
-          {/* OPTION 2: TRADING DESK (Dealing Desk Layout) */}
+          {/* OPTION 2: TRADING DESK (Dealing Desk Layout with Recharts) */}
           {/* ========================================================================= */}
           {layoutOption === 'OPTION_2' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -249,13 +357,17 @@ export default function DashboardPage() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Capital Deployed</div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>₹{(summary.totalCapitalDeployed || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
+                    ₹{(summary.totalCapitalDeployed || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                   <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Total Exposure Deployed</div>
                 </div>
 
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Available Cash Balance</div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#16A34A', marginTop: '6px' }}>₹{(summary.availableCashBalance || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#16A34A', marginTop: '6px' }}>
+                    ₹{(summary.availableCashBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                   <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Unallocated Capital</div>
                 </div>
 
@@ -267,48 +379,199 @@ export default function DashboardPage() {
 
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Desk Win Rate</div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#16A34A', marginTop: '6px' }}>{(summary.winRate || 0).toFixed(1)}%</div>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#16A34A', marginTop: '6px' }}>{(summary.winRate || 0).toFixed(2)}%</div>
                   <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Closed Success Ratio</div>
                 </div>
               </div>
 
-              {/* Active Trading Desk Positions Grid */}
-              <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: textCol, margin: '0 0 16px 0' }}>⚡ Active Dealing Desk Positions</h3>
-                
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
-                    <thead>
-                      <tr style={{ borderBottom: `2px solid ${borderCol}`, color: subTextCol, textAlign: 'left' }}>
-                        <th style={{ padding: '10px' }}>Symbol</th>
-                        <th style={{ padding: '10px' }}>Type</th>
-                        <th style={{ padding: '10px' }}>Qty</th>
-                        <th style={{ padding: '10px' }}>Buy Price</th>
-                        <th style={{ padding: '10px' }}>CMP</th>
-                        <th style={{ padding: '10px' }}>Target</th>
-                        <th style={{ padding: '10px' }}>Stop Loss</th>
-                        <th style={{ padding: '10px' }}>Live P&amp;L</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {openPositions.map((p: any) => (
-                        <tr key={p.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
-                          <td style={{ padding: '10px', fontWeight: 800, color: textCol }}>{p.symbol}</td>
-                          <td style={{ padding: '10px', fontWeight: 700, color: p.tradeType === 'BUY' ? '#16A34A' : '#DC2626' }}>{p.tradeType}</td>
-                          <td style={{ padding: '10px', color: textCol }}>{p.quantity}</td>
-                          <td style={{ padding: '10px', color: textCol }}>₹{p.buyPrice}</td>
-                          <td style={{ padding: '10px', fontWeight: 800, color: '#16A34A' }}>₹{p.currentPrice}</td>
-                          <td style={{ padding: '10px', color: '#16A34A' }}>{p.targetPrice ? `₹${p.targetPrice}` : '-'}</td>
-                          <td style={{ padding: '10px', color: '#DC2626' }}>{p.stopLoss ? `₹${p.stopLoss}` : '-'}</td>
-                          <td style={{ padding: '10px', fontWeight: 800, color: p.profitLoss >= 0 ? '#16A34A' : '#DC2626' }}>
-                            {p.profitLoss >= 0 ? '+' : ''}₹{p.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ({p.profitLossPct.toFixed(2)}%)
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* 8 Charts Grid */}
+              {mounted && (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '20px' }}>
+                  
+                  {/* 1. Line Chart: Live CMP vs Buy Price */}
+                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>📈 LINE CHART: Buy Price vs CMP</h4>
+                    {lineData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="88%">
+                        <LineChart data={lineData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
+                          <XAxis dataKey="symbol" stroke={subTextCol} fontSize={10} />
+                          <YAxis stroke={subTextCol} fontSize={10} />
+                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
+                          <Line type="monotone" dataKey="BuyPrice" stroke="#3b82f6" strokeWidth={2.5} activeDot={{ r: 8 }} />
+                          <Line type="monotone" dataKey="CMP" stroke="#10b981" strokeWidth={2.5} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No open positions</div>
+                    )}
+                  </div>
+
+                  {/* 2. Bar Chart: Realized P&L by Symbol */}
+                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>📊 BAR CHART: Realized P&amp;L</h4>
+                    {barData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="88%">
+                        <BarChart data={barData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
+                          <XAxis dataKey="symbol" stroke={subTextCol} fontSize={10} />
+                          <YAxis stroke={subTextCol} fontSize={10} />
+                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
+                          <Bar dataKey="PnL" fill={chartThemeColor}>
+                            {barData.map((entry: any, idx: number) => (
+                              <Cell key={`cell-${idx}`} fill={entry.PnL >= 0 ? '#10b981' : '#ef4444'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No closed positions</div>
+                    )}
+                  </div>
+
+                  {/* 3. Pie Chart: Capital Allocation Share */}
+                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🍕 PIE CHART: Portfolio Composition</h4>
+                    {pieData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="88%">
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {pieData.map((entry: any, idx: number) => (
+                              <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: any) => value ? `₹${value.toLocaleString('en-IN')}` : ''} contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No open positions</div>
+                    )}
+                  </div>
+
+                  {/* 4. Stacked Bar Chart: Deployed vs Current value */}
+                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🗄️ STACKED BAR: Invested vs Current value</h4>
+                    {stackedData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="88%">
+                        <BarChart data={stackedData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
+                          <XAxis dataKey="symbol" stroke={subTextCol} fontSize={10} />
+                          <YAxis stroke={subTextCol} fontSize={10} />
+                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
+                          <Bar dataKey="Invested" stackId="a" fill="#3b82f6" />
+                          <Bar dataKey="Value" stackId="a" fill="#10b981" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No open positions</div>
+                    )}
+                  </div>
+
+                  {/* 5. Area Chart: Cumulative Realized Returns */}
+                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🏔️ AREA CHART: Cumulative Realized Gain</h4>
+                    {areaData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="88%">
+                        <AreaChart data={areaData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
+                          <XAxis dataKey="date" stroke={subTextCol} fontSize={10} />
+                          <YAxis stroke={subTextCol} fontSize={10} />
+                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
+                          <Area type="monotone" dataKey="Gain" stroke="#10b981" fill="#10b981" fillOpacity={0.15} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No closed trades to map trend</div>
+                    )}
+                  </div>
+
+                  {/* 6. Radial Bar Chart: Investor Capital Managed */}
+                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🎯 RADIAL BAR: Investor Capital Share</h4>
+                    {radialData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="88%">
+                        <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" barSize={10} data={radialData}>
+                          <RadialBar background dataKey="uv" />
+                          <Tooltip formatter={(value: any) => value ? `₹${value.toLocaleString('en-IN')}` : ''} contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
+                        </RadialBarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No investor share recorded</div>
+                    )}
+                  </div>
+
+                  {/* 7. Heatmap Grid: Asset Risk Distribution Grid */}
+                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px', overflow: 'hidden' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🌶️ PERFORMANCE HEATMAP: Active Assets</h4>
+                    {heatmapData.length > 0 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px', height: '80%', overflowY: 'auto', padding: '5px' }}>
+                        {heatmapData.map((h: any) => {
+                          const isProfit = h.pct >= 0;
+                          const bg = isProfit
+                            ? `rgba(16, 185, 129, ${Math.min(1, 0.15 + Math.abs(h.pct) / 20)})`
+                            : `rgba(239, 68, 68, ${Math.min(1, 0.15 + Math.abs(h.pct) / 20)})`;
+                          const col = isProfit ? '#10b981' : '#ef4444';
+                          return (
+                            <div
+                              key={h.symbol}
+                              style={{
+                                backgroundColor: bg,
+                                border: `1.5px solid ${col}`,
+                                borderRadius: '8px',
+                                padding: '12px 8px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'transform 0.2s',
+                              }}
+                              title={`${h.symbol}: ${h.pct.toFixed(2)}% (₹${h.val.toLocaleString('en-IN')})`}
+                              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                            >
+                              <div style={{ fontSize: '12.5px', fontWeight: 900, color: textCol }}>{h.symbol}</div>
+                              <div style={{ fontSize: '11px', fontWeight: 800, color: textCol, marginTop: '4px' }}>
+                                {isProfit ? '+' : ''}{h.pct.toFixed(1)}%
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No open assets</div>
+                    )}
+                  </div>
+
+                  {/* 8. Histogram: Holding Period Distribution */}
+                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🧱 HISTOGRAM: Closed Holding Duration Bins</h4>
+                    {closedPositions.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="88%">
+                        <BarChart data={histogramBins}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
+                          <XAxis dataKey="range" stroke={subTextCol} fontSize={10} />
+                          <YAxis stroke={subTextCol} fontSize={10} />
+                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
+                          <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No closed positions to map frequency</div>
+                    )}
+                  </div>
+
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -322,14 +585,16 @@ export default function DashboardPage() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '20px' }}>
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '28px', borderRadius: '16px', textAlign: 'center' }}>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Total Portfolio Value</div>
-                  <div style={{ fontSize: '38px', fontWeight: 900, color: textCol, marginTop: '10px' }}>₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '38px', fontWeight: 900, color: textCol, marginTop: '10px' }}>
+                    ₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                   <div style={{ fontSize: '13px', color: '#16A34A', fontWeight: 700, marginTop: '6px' }}>Net Institutional Assets</div>
                 </div>
 
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '28px', borderRadius: '16px', textAlign: 'center' }}>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Unrealized Return</div>
                   <div style={{ fontSize: '38px', fontWeight: 900, color: (summary.currentPortfolioProfitLoss || 0) >= 0 ? '#16A34A' : '#DC2626', marginTop: '10px' }}>
-                    {(summary.currentPortfolioProfitLoss || 0) >= 0 ? '+' : ''}₹{(summary.currentPortfolioProfitLoss || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    {(summary.currentPortfolioProfitLoss || 0) >= 0 ? '+' : ''}₹{(summary.currentPortfolioProfitLoss || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div style={{ fontSize: '13px', color: subTextCol, marginTop: '6px' }}>Current Market Gain</div>
                 </div>
@@ -337,7 +602,7 @@ export default function DashboardPage() {
                 <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '28px', borderRadius: '16px', textAlign: 'center' }}>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Realized Return</div>
                   <div style={{ fontSize: '38px', fontWeight: 900, color: (summary.realizedProfit || 0) >= 0 ? '#16A34A' : '#DC2626', marginTop: '10px' }}>
-                    {(summary.realizedProfit || 0) >= 0 ? '+' : ''}₹{(summary.realizedProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    {(summary.realizedProfit || 0) >= 0 ? '+' : ''}₹{(summary.realizedProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div style={{ fontSize: '13px', color: subTextCol, marginTop: '6px' }}>Historical Booked Gain</div>
                 </div>
@@ -350,7 +615,9 @@ export default function DashboardPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${borderCol}` }}>
                       <span style={{ color: subTextCol }}>Total Capital Deployed</span>
-                      <strong style={{ color: textCol }}>₹{(summary.totalCapitalDeployed || 0).toLocaleString('en-IN')}</strong>
+                      <strong style={{ color: textCol }}>
+                        ₹{(summary.totalCapitalDeployed || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${borderCol}` }}>
                       <span style={{ color: subTextCol }}>Active Open Trades</span>
@@ -368,7 +635,7 @@ export default function DashboardPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${borderCol}` }}>
                       <span style={{ color: subTextCol }}>Closed Win Rate</span>
-                      <strong style={{ color: '#16A34A' }}>{(summary.winRate || 0).toFixed(1)}%</strong>
+                      <strong style={{ color: '#16A34A' }}>{(summary.winRate || 0).toFixed(2)}%</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${borderCol}` }}>
                       <span style={{ color: subTextCol }}>Average Trade Return</span>

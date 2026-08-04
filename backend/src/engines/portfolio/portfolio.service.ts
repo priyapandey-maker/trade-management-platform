@@ -160,9 +160,36 @@ export class PortfolioService {
           const exitTime = p.closedAt ? new Date(p.closedAt).getTime() : now.getTime();
           frozenPeriod = Math.max(0, Math.floor((exitTime - entryTime) / (1000 * 60 * 60 * 24)));
         }
+
+        // Potential, Missed, Extra Profit calculation
+        const bp = p.buyPrice || 0;
+        const tp = p.targetPrice !== null && p.targetPrice !== undefined ? p.targetPrice : bp;
+        const potentialProfit = (tp - bp) * p.quantity;
+        const actualProfit = p.profitLoss;
+        
+        let missedProfit = 0;
+        let extraProfit = 0;
+        
+        if (p.targetPrice !== null && p.targetPrice !== undefined) {
+          if (p.exitReason === 'TARGET_HIT') {
+            if (actualProfit > potentialProfit) {
+              extraProfit = actualProfit - potentialProfit;
+            }
+          } else {
+            if (actualProfit < potentialProfit) {
+              missedProfit = potentialProfit - actualProfit;
+            } else if (actualProfit > potentialProfit) {
+              extraProfit = actualProfit - potentialProfit;
+            }
+          }
+        }
+
         closedList.push({
           ...p,
           holdingPeriod: frozenPeriod,
+          potentialProfit,
+          missedProfit,
+          extraProfit,
         });
       } else {
         archivedList.push(p);
@@ -213,6 +240,55 @@ export class PortfolioService {
     const totalCapitalDeployed = totalInvestment + closedList.reduce((sum: number, p: any) => sum + p.investedAmount, 0);
     const availableCashBalance = Math.max(0, 1000000 - totalInvestment);
 
+    // Investor Management Calculations
+    const investorsMap: Record<string, any> = {};
+    for (const p of refreshedPositions) {
+      if (p.status === 'ARCHIVED') continue;
+      const inv = p.investorName || 'Shree';
+      if (!investorsMap[inv]) {
+        investorsMap[inv] = {
+          name: inv,
+          totalInvestment: 0,
+          currentValue: 0,
+          realizedProfit: 0,
+          unrealizedProfit: 0,
+          totalTrades: 0,
+          openTrades: 0,
+          closedTrades: 0,
+          wins: 0,
+        };
+      }
+      const data = investorsMap[inv];
+      data.totalTrades += 1;
+      if (p.status === 'OPEN') {
+        data.openTrades += 1;
+        const liveOpen = openList.find((ol) => ol.id === p.id);
+        const curVal = liveOpen ? liveOpen.currentValue : p.currentValue;
+        const profLoss = liveOpen ? liveOpen.profitLoss : p.profitLoss;
+        data.totalInvestment += p.investedAmount;
+        data.currentValue += curVal;
+        data.unrealizedProfit += profLoss;
+      } else if (p.status === 'CLOSED') {
+        data.closedTrades += 1;
+        data.realizedProfit += p.profitLoss;
+        if (p.profitLoss > 0) {
+          data.wins += 1;
+        }
+      }
+    }
+
+    const investorsList = Object.values(investorsMap).map((inv: any) => {
+      const netProfit = inv.realizedProfit + inv.unrealizedProfit;
+      const roi = inv.totalInvestment > 0 ? (netProfit / inv.totalInvestment) * 100 : 0;
+      const winRate = inv.closedTrades > 0 ? (inv.wins / inv.closedTrades) * 100 : 0;
+      return {
+        ...inv,
+        netProfit,
+        roi,
+        winRate,
+      };
+    });
+
     return {
       positions: {
         open: openList,
@@ -220,6 +296,7 @@ export class PortfolioService {
         archived: archivedList,
         all: refreshedPositions,
       },
+      investors: investorsList,
       summary: {
         totalPortfolioValue,
         totalInvestment,
@@ -284,6 +361,7 @@ export class PortfolioService {
           brokerCharges,
           notes: data.notes || null,
           assetType: data.assetType || 'STOCK',
+          investorName: data.investorName || 'Shree',
           status: 'CLOSED',
           entryDate,
           closedAt: sellDate,
@@ -328,6 +406,7 @@ export class PortfolioService {
           brokerCharges,
           notes: data.notes || null,
           assetType: data.assetType || 'STOCK',
+          investorName: data.investorName || 'Shree',
           status: 'OPEN',
           entryDate,
         },
@@ -404,6 +483,7 @@ export class PortfolioService {
       nearBuyProximityPct: data.nearBuyProximityPct !== undefined ? parseFloat(data.nearBuyProximityPct) : pos.nearBuyProximityPct,
       notes: data.notes !== undefined ? data.notes : pos.notes,
       assetType: data.assetType !== undefined ? data.assetType : pos.assetType,
+      investorName: data.investorName !== undefined ? data.investorName : pos.investorName,
       status: (tradeType === 'SELL') ? 'CLOSED' : status,
       muteAlertsUntil: data.muteAlertsUntil !== undefined ? (data.muteAlertsUntil ? new Date(data.muteAlertsUntil) : null) : pos.muteAlertsUntil,
       entryDate,

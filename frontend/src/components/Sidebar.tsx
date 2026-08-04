@@ -30,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Closed Positions', href: '/closed', icon: '✅' },
     { name: 'Portfolio', href: '/portfolio', icon: '👛' },
     { name: 'Dashboard', href: '/dashboard', icon: '🎛️' },
+    { name: 'Investors', href: '/investors', icon: '👥' },
   ];
 
   const bgCol = isDark ? '#0F172A' : '#FFFFFF';
@@ -71,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             flexDirection: 'column',
             zIndex: 100,
             transform: showMobile ? 'translateX(0)' : 'translateX(-100%)',
-            transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
@@ -151,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         display: 'flex',
         flexDirection: 'column',
         zIndex: 40,
-        transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'width 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
