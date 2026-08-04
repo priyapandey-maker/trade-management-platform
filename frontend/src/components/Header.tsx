@@ -384,9 +384,6 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   ☰
                 </button>
-                <div style={{ fontSize: '14px', fontWeight: 900, color: textCol, letterSpacing: '0.04em' }}>
-                  SHREE ASSOCIATES
-                </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -497,7 +494,7 @@ export const Header: React.FC<HeaderProps> = ({
           }}
         >
           {/* LEFT SECTION */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', width: '120px' }}>
             <button
               onClick={toggleSidebar}
               title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
@@ -515,19 +512,11 @@ export const Header: React.FC<HeaderProps> = ({
             >
               ☰
             </button>
-
-            <div>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, letterSpacing: '0.04em' }}>
-                SHREE ASSOCIATES
-              </div>
-            </div>
           </div>
 
-          {/* RIGHT SECTION: Search -> Clock -> Market Status -> Refresh -> Dark Mode -> Bell -> Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, justifyContent: 'flex-end' }}>
-            
-            {/* 1. SEARCH BAR */}
-            <div style={{ position: 'relative', width: '240px' }}>
+          {/* MIDDLE SECTION: Centered Search Bar */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ position: 'relative', width: '280px' }}>
               <div style={{ display: 'flex', alignItems: 'center', backgroundColor: isDark ? '#1E293B' : '#F8FAFC', border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}`, borderRadius: '8px', padding: '6px 12px' }}>
                 <span style={{ fontSize: '13px', color: subTextCol, marginRight: '8px' }}>🔍</span>
                 <input
@@ -553,14 +542,18 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
             </div>
+          </div>
 
-            {/* 2. CLOCK */}
+          {/* RIGHT SECTION: Clock -> Market Status -> Refresh -> Dark Mode -> Bell -> Profile */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'flex-end' }}>
+            
+            {/* 1. CLOCK */}
             <div style={{ textAlign: 'right', fontSize: '12px', color: subTextCol, fontWeight: 600 }}>
               <div style={{ color: textCol, fontWeight: 800, fontSize: '12.5px' }}>{currentTime}</div>
               <div style={{ fontSize: '10.5px' }}>{currentDate}</div>
             </div>
 
-            {/* 3. MARKET STATUS */}
+            {/* 2. MARKET STATUS */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block', boxShadow: '0 0 6px #16A34A' }} />
@@ -568,7 +561,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            {/* 4. REFRESH CONTROL */}
+            {/* 3. REFRESH CONTROL */}
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowRefreshMenu(!showRefreshMenu)} style={{ padding: '7px 12px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>🔄 Refresh</span>
@@ -591,12 +584,12 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* 5. DARK MODE */}
+            {/* 4. DARK MODE */}
             <button onClick={toggleTheme} title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`} style={{ padding: '7px 11px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, fontSize: '14px', cursor: 'pointer' }}>
               {isDark ? '☀️' : '🌙'}
             </button>
 
-            {/* 6. NOTIFICATION BELL WITH UNREAD BADGE */}
+            {/* 5. NOTIFICATION BELL WITH UNREAD BADGE */}
             <button
               onClick={() => setShowNotifDrawer(true)}
               style={{
@@ -635,7 +628,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* 7. PROFILE MENU */}
+            {/* 6. PROFILE MENU */}
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12.5px', fontWeight: 700 }}>
                 <span>👤 {user?.name || 'Analyst'}</span>
