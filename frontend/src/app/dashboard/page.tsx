@@ -45,7 +45,7 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get('/portfolio');
+      const res = await api.get('/portfolio/dashboard');
       setData(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch executive dashboard metrics.');
@@ -61,28 +61,8 @@ export default function DashboardPage() {
   }, [fetchDashboardData]);
 
   const summary = data?.summary || {};
-  const openPositions = data?.positions?.open || [];
-  const closedPositions = data?.positions?.closed || [];
-
-  // Sort & setup performers lists
-  const allNonArchived = [...openPositions, ...closedPositions];
-  const sortedOverall = [...allNonArchived].sort((a, b) => b.profitLossPct - a.profitLossPct);
-  const best1 = sortedOverall[0] || null;
-  const best2 = sortedOverall[1] || null;
-  const best3 = sortedOverall[2] || null;
-
-  const worst1 = sortedOverall[sortedOverall.length - 1] || null;
-  const worst2 = sortedOverall.length > 1 ? sortedOverall[sortedOverall.length - 2] : null;
-  const worst3 = sortedOverall.length > 2 ? sortedOverall[sortedOverall.length - 3] : null;
-
-  const performers = [
-    { label: '🏆 #1 Best Performer', data: best1, color: '#16A34A' },
-    { label: '🥈 #2 Best Performer', data: best2, color: '#16A34A' },
-    { label: '🥉 #3 Best Performer', data: best3, color: '#16A34A' },
-    { label: '📉 #1 Worst Performer', data: worst1, color: '#DC2626' },
-    { label: '📉 #2 Worst Performer', data: worst2, color: '#DC2626' },
-    { label: '📉 #3 Worst Performer', data: worst3, color: '#DC2626' },
-  ].filter((p) => p.data !== null);
+  const performers = data?.performers || [];
+  const recentPositions = data?.recentPositions || [];
 
   useEffect(() => {
     if (performers.length === 0) return;
@@ -99,75 +79,21 @@ export default function DashboardPage() {
 
   const chartThemeColor = '#16A34A';
   const chartAltColor = '#2563EB';
-
-  // 1. Line Chart Data
-  const lineData = openPositions.map((p: any) => ({
-    symbol: p.symbol,
-    BuyPrice: p.buyPrice,
-    CMP: p.currentPrice,
-  }));
-
-  // 2. Bar Chart Data
-  const barData = closedPositions.map((p: any) => ({
-    symbol: p.symbol,
-    PnL: p.profitLoss,
-  }));
-
-  // 3. Pie Chart Data
-  const pieData = openPositions.map((p: any) => ({
-    name: p.symbol,
-    value: p.investedAmount,
-  }));
-
   const COLORS = ['#2563EB', '#10B981', '#64748B', '#0D9488', '#7C3AED', '#EA580C'];
 
-  // 4. Stacked Bar Chart Data
-  const stackedData = openPositions.map((p: any) => ({
-    symbol: p.symbol,
-    Invested: p.investedAmount,
-    Value: p.currentValue,
-  }));
-
-  // 5. Area Chart Data (Cumulative returns over closed exits)
-  let cumulativeValue = 0;
-  const areaData = [...closedPositions]
-    .sort((a, b) => new Date(a.closedAt || a.entryDate).getTime() - new Date(b.closedAt || b.entryDate).getTime())
-    .map((p: any) => {
-      cumulativeValue += p.profitLoss;
-      return {
-        date: new Date(p.closedAt || p.entryDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
-        Gain: cumulativeValue,
-      };
-    });
-
-  // 6. Radial Chart Data (Investor Shares)
-  const radialData = (data?.investors || []).map((inv: any, idx: number) => ({
-    name: inv.name,
-    uv: inv.totalInvestment,
-    fill: COLORS[idx % COLORS.length],
-  }));
-
-  // 7. Heatmap Grid Data
-  const heatmapData = openPositions.map((p: any) => ({
-    symbol: p.symbol,
-    pct: p.profitLossPct,
-    val: p.profitLoss,
-  }));
-
-  // 8. Histogram Data (Holding periods)
-  const histogramBins = [
+  const lineData = data?.charts?.line || [];
+  const barData = data?.charts?.bar || [];
+  const pieData = data?.charts?.pie || [];
+  const stackedData = data?.charts?.stacked || [];
+  const areaData = data?.charts?.area || [];
+  const radialData = data?.charts?.radial || [];
+  const heatmapData = data?.charts?.heatmap || [];
+  const histogramBins = data?.charts?.histogram || [
     { range: '0-5d', count: 0 },
     { range: '6-15d', count: 0 },
     { range: '16-30d', count: 0 },
     { range: '31d+', count: 0 },
   ];
-  closedPositions.forEach((p: any) => {
-    const days = p.holdingPeriod || 0;
-    if (days <= 5) histogramBins[0].count++;
-    else if (days <= 15) histogramBins[1].count++;
-    else if (days <= 30) histogramBins[2].count++;
-    else histogramBins[3].count++;
-  });
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -326,7 +252,7 @@ export default function DashboardPage() {
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: textCol, margin: '0 0 16px 0' }}>📋 Recent Position Activity</h3>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {openPositions.slice(0, 4).map((p: any) => (
+                    {recentPositions.map((p: any) => (
                       <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '8px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}`, fontSize: '13px' }}>
                         <div>
                           <strong style={{ color: textCol }}>{p.symbol}</strong>
@@ -555,7 +481,7 @@ export default function DashboardPage() {
                   {/* 8. Histogram: Holding Period Distribution */}
                   <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
                     <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🧱 HISTOGRAM: Closed Holding Duration Bins</h4>
-                    {closedPositions.length > 0 ? (
+                    {histogramBins.some((b: any) => b.count > 0) ? (
                       <ResponsiveContainer width="100%" height="88%">
                         <BarChart data={histogramBins}>
                           <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />

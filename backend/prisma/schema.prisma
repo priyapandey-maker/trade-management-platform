@@ -22,6 +22,10 @@ model Idea {
   status         String   @default("ACTIVE") // "ACTIVE" | "WATCHING" | "TARGET_HIT" | "STOP_LOSS_HIT" | "ARCHIVED"
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@index([symbol])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model User {
@@ -97,6 +101,12 @@ model PortfolioPosition {
   muteAlertsUntil     DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+
+  @@index([symbol])
+  @@index([status])
+  @@index([tradeType])
+  @@index([createdAt])
+  @@index([investorName])
 }
 
 model Notification {
@@ -141,6 +151,9 @@ model NotificationDelivery {
   error          String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  @@index([notificationId])
+  @@index([status])
 }
 
 model RuleConfig {

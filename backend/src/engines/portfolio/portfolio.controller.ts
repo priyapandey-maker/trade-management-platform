@@ -7,9 +7,14 @@ import { AuthGuard } from '../auth/auth.controller';
 export class PortfolioController {
   constructor(private readonly portfolioService: PortfolioService) {}
 
-  @Get()
+   @Get()
   async getPortfolio() {
     return this.portfolioService.getPortfolio();
+  }
+
+  @Get('dashboard')
+  async getDashboard() {
+    return this.portfolioService.getDashboard();
   }
 
   @Post('position')

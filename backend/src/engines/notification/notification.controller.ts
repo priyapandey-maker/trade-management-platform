@@ -9,11 +9,23 @@ const prisma = new PrismaClient();
 @Controller('notification')
 @UseGuards(AuthGuard)
 export class NotificationController {
+  private notificationsCache: { [key: string]: { data: any; timestamp: number } } = {};
+
+  private clearCache() {
+    this.notificationsCache = {};
+  }
+
   constructor(private readonly notificationService: NotificationService) {}
 
   @Get()
   async getNotifications(@Req() req: any, @Query('status') status?: string, @Query('search') search?: string) {
     const userId = req.user.sub;
+    const cacheKey = `${userId}:${status || ''}:${search || ''}`;
+    const nowTime = Date.now();
+    const cached = this.notificationsCache[cacheKey];
+    if (cached && nowTime - cached.timestamp < 5000) {
+      return cached.data;
+    }
 
     const where: any = { userId };
     if (status === 'unread') {
@@ -38,11 +50,14 @@ export class NotificationController {
       },
     });
 
-    return { notifications };
+    const result = { notifications };
+    this.notificationsCache[cacheKey] = { data: result, timestamp: nowTime };
+    return result;
   }
 
   @Patch('mark-all-read')
   async markAllRead(@Req() req: any) {
+    this.clearCache();
     const userId = req.user.sub;
     await prisma.notification.updateMany({
       where: { userId, read: false },
@@ -53,6 +68,7 @@ export class NotificationController {
 
   @Patch(':id/read')
   async markRead(@Param('id') id: string, @Req() req: any) {
+    this.clearCache();
     const userId = req.user.sub;
     const notification = await prisma.notification.findFirst({
       where: { id, userId },
@@ -69,6 +85,7 @@ export class NotificationController {
 
   @Delete('clear-all')
   async clearAll(@Req() req: any) {
+    this.clearCache();
     const userId = req.user.sub;
     await prisma.notification.deleteMany({
       where: { userId },
@@ -78,6 +95,7 @@ export class NotificationController {
 
   @Delete(':id')
   async deleteNotification(@Param('id') id: string, @Req() req: any) {
+    this.clearCache();
     const userId = req.user.sub;
     const notification = await prisma.notification.findFirst({
       where: { id, userId },

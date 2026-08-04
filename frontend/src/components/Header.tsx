@@ -17,7 +17,43 @@ interface HeaderProps {
   toggleMobileSidebar?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
+const Clock: React.FC<{ isDark: boolean; textCol: string; subTextCol: string }> = React.memo(({ isDark, textCol, subTextCol }) => {
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [currentDate, setCurrentDate] = useState<string>('');
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        })
+      );
+      setCurrentDate(
+        now.toLocaleDateString('en-IN', {
+          weekday: 'short',
+          day: '2-digit',
+          month: 'short',
+        })
+      );
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ textAlign: 'right', fontSize: '12px', color: subTextCol, fontWeight: 600 }}>
+      <div style={{ color: textCol, fontWeight: 800, fontSize: '12.5px' }}>{currentTime}</div>
+      <div style={{ fontSize: '10.5px' }}>{currentDate}</div>
+    </div>
+  );
+});
+Clock.displayName = 'Clock';
+
+export const Header: React.FC<HeaderProps> = React.memo(({
   sidebarWidth,
   isCollapsed,
   toggleSidebar,
@@ -35,9 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
   // Mobile search state
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
-  // Live compact clock
-  const [currentTime, setCurrentTime] = useState<string>('');
-  const [currentDate, setCurrentDate] = useState<string>('');
+
 
   // Global search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,28 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showRefreshMenu, setShowRefreshMenu] = useState(false);
 
-  useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      setCurrentTime(
-        now.toLocaleTimeString('en-IN', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-        })
-      );
-      setCurrentDate(
-        now.toLocaleDateString('en-IN', {
-          weekday: 'short',
-          day: '2-digit',
-          month: 'short',
-        })
-      );
-    };
-    updateClock();
-    const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
-  }, []);
+
 
   // Poll In-App notifications
   const fetchNotifications = async () => {
@@ -548,10 +561,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'flex-end' }}>
             
             {/* 1. CLOCK */}
-            <div style={{ textAlign: 'right', fontSize: '12px', color: subTextCol, fontWeight: 600 }}>
-              <div style={{ color: textCol, fontWeight: 800, fontSize: '12.5px' }}>{currentTime}</div>
-              <div style={{ fontSize: '10.5px' }}>{currentDate}</div>
-            </div>
+            <Clock isDark={isDark} textCol={textCol} subTextCol={subTextCol} />
 
             {/* 2. MARKET STATUS */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12px' }}>
@@ -948,4 +958,5 @@ export const Header: React.FC<HeaderProps> = ({
       )}
     </>
   );
-};
+});
+Header.displayName = 'Header';

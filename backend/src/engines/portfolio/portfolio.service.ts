@@ -9,6 +9,13 @@ const prisma = new PrismaClient();
 @Injectable()
 export class PortfolioService {
   private readonly logger = new Logger(PortfolioService.name);
+  private portfolioCache: { data: any; timestamp: number } | null = null;
+  private dashboardCache: { data: any; timestamp: number } | null = null;
+
+  private clearCache() {
+    this.portfolioCache = null;
+    this.dashboardCache = null;
+  }
 
   constructor(
     private readonly marketService: MarketService,
@@ -27,6 +34,12 @@ export class PortfolioService {
   }
 
   async getPortfolio(): Promise<any> {
+    const nowTime = Date.now();
+    if (this.portfolioCache && nowTime - this.portfolioCache.timestamp < 10000) {
+      this.logger.debug('Returning cached portfolio data');
+      return this.portfolioCache.data;
+    }
+
     const positions: PortfolioPosition[] = await prisma.portfolioPosition.findMany({
       orderBy: { entryDate: 'desc' },
     });
@@ -289,7 +302,7 @@ export class PortfolioService {
       };
     });
 
-    return {
+    const result = {
       positions: {
         open: openList,
         closed: closedList,
@@ -316,9 +329,12 @@ export class PortfolioService {
         availableCashBalance,
       },
     };
+    this.portfolioCache = { data: result, timestamp: Date.now() };
+    return result;
   }
 
   async addPosition(data: any): Promise<PortfolioPosition> {
+    this.clearCache();
     const symbol = data.symbol.trim().toUpperCase();
     const quantity = parseFloat(data.quantity);
     const buyPrice = parseFloat(data.buyPrice);
@@ -418,6 +434,7 @@ export class PortfolioService {
   }
 
   async editPosition(id: string, data: any): Promise<PortfolioPosition> {
+    this.clearCache();
     const pos = await prisma.portfolioPosition.findUnique({ where: { id } });
     if (!pos) throw new NotFoundException(`Position with ID "${id}" not found.`);
 
@@ -523,6 +540,7 @@ export class PortfolioService {
     notesInput?: string,
     exitReasonInput?: string,
   ): Promise<PortfolioPosition> {
+    this.clearCache();
     const pos = await prisma.portfolioPosition.findUnique({ where: { id } });
     if (!pos) throw new NotFoundException(`Position with ID "${id}" not found.`);
 
@@ -569,12 +587,14 @@ export class PortfolioService {
 
 
   async bulkDelete(ids: string[]): Promise<any> {
+    this.clearCache();
     return prisma.portfolioPosition.deleteMany({
       where: { id: { in: ids } },
     });
   }
 
   async bulkUpdate(positionsData: any[]): Promise<any[]> {
+    this.clearCache();
     const results: PortfolioPosition[] = [];
     for (const data of positionsData) {
       if (data.id) {
@@ -589,6 +609,141 @@ export class PortfolioService {
   }
 
   async deletePosition(id: string): Promise<any> {
+    this.clearCache();
     return prisma.portfolioPosition.delete({ where: { id } });
+  }
+
+  async getDashboard(): Promise<any> {
+    const now = Date.now();
+    if (this.dashboardCache && now - this.dashboardCache.timestamp < 20000) {
+      this.logger.debug('Returning cached dashboard data');
+      return this.dashboardCache.data;
+    }
+
+    const portfolioData = await this.getPortfolio();
+    const { positions, summary, investors } = portfolioData;
+    const { open, closed } = positions;
+
+    // 1. Line Chart Data (Live Open Positions Buy Price vs CMP)
+    const line = open.map((p: any) => ({
+      symbol: p.symbol,
+      BuyPrice: p.buyPrice,
+      CMP: p.currentPrice,
+    }));
+
+    // 2. Bar Chart Data (Realized P&L by Symbol)
+    const bar = closed.map((p: any) => ({
+      symbol: p.symbol,
+      PnL: p.profitLoss,
+    }));
+
+    // 3. Pie Chart Data (Composition)
+    const pie = open.map((p: any) => ({
+      name: p.symbol,
+      value: p.investedAmount,
+    }));
+
+    // 4. Stacked Bar Chart Data (Invested vs Value)
+    const stacked = open.map((p: any) => ({
+      symbol: p.symbol,
+      Invested: p.investedAmount,
+      Value: p.currentValue,
+    }));
+
+    // 5. Area Chart Data (Cumulative Realized Return)
+    let cumulative = 0;
+    const area = [...closed]
+      .sort((a: any, b: any) => new Date(a.closedAt || a.entryDate).getTime() - new Date(b.closedAt || b.entryDate).getTime())
+      .map((p: any) => {
+        cumulative += p.profitLoss;
+        return {
+          date: new Date(p.closedAt || p.entryDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+          Gain: cumulative,
+        };
+      });
+
+    // 6. Radial Chart Data (Investor Allocations)
+    const COLORS = ['#2563EB', '#10B981', '#64748B', '#0D9488', '#7C3AED', '#EA580C'];
+    const radial = investors.map((inv: any, idx: number) => ({
+      name: inv.name,
+      uv: inv.totalInvestment,
+      fill: COLORS[idx % COLORS.length],
+    }));
+
+    // 7. Heatmap Grid Data
+    const heatmap = open.map((p: any) => ({
+      symbol: p.symbol,
+      pct: p.profitLossPct,
+      val: p.profitLoss,
+    }));
+
+    // 8. Histogram Bins
+    const histogram = [
+      { range: '0-5d', count: 0 },
+      { range: '6-15d', count: 0 },
+      { range: '16-30d', count: 0 },
+      { range: '31d+', count: 0 },
+    ];
+    closed.forEach((p: any) => {
+      const days = p.holdingPeriod || 0;
+      if (days <= 5) histogram[0].count++;
+      else if (days <= 15) histogram[1].count++;
+      else if (days <= 30) histogram[2].count++;
+      else histogram[3].count++;
+    });
+
+    // 9. Performers List
+    const allNonArchived = [...open, ...closed];
+    const sortedOverall = [...allNonArchived].sort((a: any, b: any) => b.profitLossPct - a.profitLossPct);
+    const best1 = sortedOverall[0] || null;
+    const best2 = sortedOverall[1] || null;
+    const best3 = sortedOverall[2] || null;
+
+    const worst1 = sortedOverall[sortedOverall.length - 1] || null;
+    const worst2 = sortedOverall.length > 1 ? sortedOverall[sortedOverall.length - 2] : null;
+    const worst3 = sortedOverall.length > 2 ? sortedOverall[sortedOverall.length - 3] : null;
+
+    const performers = [
+      { label: '🏆 #1 Best Performer', data: best1, color: '#16A34A' },
+      { label: '🥈 #2 Best Performer', data: best2, color: '#16A34A' },
+      { label: '🥉 #3 Best Performer', data: best3, color: '#16A34A' },
+      { label: '📉 #1 Worst Performer', data: worst1, color: '#DC2626' },
+      { label: '📉 #2 Worst Performer', data: worst2, color: '#DC2626' },
+      { label: '📉 #3 Worst Performer', data: worst3, color: '#DC2626' },
+    ].filter((p) => p.data !== null);
+
+    // 10. Fetch top 5 notifications
+    const recentNotifications = await prisma.notification.findMany({
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const recentPositions = open.slice(0, 4).map((p: any) => ({
+      id: p.id,
+      symbol: p.symbol,
+      company: p.company,
+      profitLoss: p.profitLoss,
+      holdingPeriod: p.holdingPeriod,
+    }));
+
+    const dashboardData = {
+      summary,
+      performers,
+      recentNotifications,
+      recentPositions,
+      charts: {
+        line,
+        bar,
+        pie,
+        stacked,
+        area,
+        radial,
+        heatmap,
+        histogram,
+      },
+    };
+
+    this.dashboardCache = { data: dashboardData, timestamp: now };
+    return dashboardData;
   }
 }

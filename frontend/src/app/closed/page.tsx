@@ -26,7 +26,20 @@ export default function ClosedPositionsPage() {
 
   // Search & Filter
   const [search, setSearch] = useState('');
+  const [displaySearch, setDisplaySearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // Lazy Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(displaySearch);
+      setCurrentPage(1);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [displaySearch]);
 
   // Delete Modal
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -310,6 +323,9 @@ export default function ClosedPositionsPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const totalPages = Math.ceil(filteredPositions.length / itemsPerPage);
+  const paginatedPositions = filteredPositions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const cardBg = isDark ? '#1E293B' : '#FFFFFF';
   const borderCol = isDark ? '#334155' : '#E2E8F0';
   const textCol = isDark ? '#F8FAFC' : '#0F172A';
@@ -404,8 +420,8 @@ export default function ClosedPositionsPage() {
         <input
           type="text"
           placeholder="🔍 Search closed symbol..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={displaySearch}
+          onChange={(e) => setDisplaySearch(e.target.value)}
           style={{ width: isMobile ? '100%' : '260px', padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}
         />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}>
@@ -419,7 +435,15 @@ export default function ClosedPositionsPage() {
       {/* Closed Positions Table */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: subTextCol }}>Loading completed trades...</div>
+          <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <div key={n} style={{ height: '48px', borderRadius: '8px', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', opacity: 0.6, display: 'flex', alignItems: 'center', padding: '0 16px', justifyContent: 'space-between' }}>
+                <div style={{ width: '120px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
+                <div style={{ width: '80px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
+                <div style={{ width: '100px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
+              </div>
+            ))}
+          </div>
         ) : filteredPositions.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center' }}>
             <div style={{ fontSize: '42px', marginBottom: '12px' }}>📚</div>
@@ -430,7 +454,7 @@ export default function ClosedPositionsPage() {
           </div>
         ) : isMobile ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px' }}>
-            {filteredPositions.map((pos) => {
+            {paginatedPositions.map((pos) => {
               const isProfit = pos.profitLoss >= 0;
 
               return (
@@ -608,7 +632,7 @@ export default function ClosedPositionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPositions.map((pos) => {
+                {paginatedPositions.map((pos) => {
                   const isProfit = pos.profitLoss >= 0;
                   return (
                     <tr key={pos.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
@@ -698,6 +722,23 @@ export default function ClosedPositionsPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div style={{ padding: '14px 18px', borderTop: `1px solid ${borderCol}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '12.5px', color: subTextCol }}>
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredPositions.length)} of {filteredPositions.length} positions
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, background: 'none', color: textCol, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '12px' }}>
+                Previous
+              </button>
+              <button disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, background: 'none', color: textCol, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '12px' }}>
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

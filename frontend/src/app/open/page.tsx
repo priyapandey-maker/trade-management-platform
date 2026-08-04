@@ -17,11 +17,20 @@ export default function OpenPositionsPage() {
 
   // Search, Filter, Sort, Pagination
   const [search, setSearch] = useState('');
+  const [displaySearch, setDisplaySearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState('entryDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(displaySearch);
+      setCurrentPage(1);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [displaySearch]);
 
   // Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -543,8 +552,8 @@ export default function OpenPositionsPage() {
           <input
             type="text"
             placeholder="Search symbol, company..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={displaySearch}
+            onChange={(e) => setDisplaySearch(e.target.value)}
             style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', flex: 1, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
           />
 
@@ -575,7 +584,15 @@ export default function OpenPositionsPage() {
       {/* TABLE */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', overflow: 'hidden' }}>
         {loading && positions.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: subTextCol }}>Loading live open positions...</div>
+          <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <div key={n} style={{ height: '48px', borderRadius: '8px', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', opacity: 0.6, display: 'flex', alignItems: 'center', padding: '0 16px', justifyContent: 'space-between' }}>
+                <div style={{ width: '120px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
+                <div style={{ width: '80px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
+                <div style={{ width: '100px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
+              </div>
+            ))}
+          </div>
         ) : filteredPositions.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center' }}>
             <div style={{ fontSize: '42px', marginBottom: '12px' }}>💼</div>
