@@ -1,6 +1,12 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaClient, PortfolioPosition } from '@prisma/client';
 import Decimal from 'decimal.js';
+import {
+  calculateInvestment,
+  calculateCurrentValue,
+  calculateLivePnL,
+  calculateReturnPct
+} from '../../shared/financial-calculations';
 
 const prisma = new PrismaClient();
 
@@ -239,11 +245,10 @@ export class TradeImportService {
     for (const item of readyRows) {
       const d = item.data;
 
-      // Use Decimal.js to prevent Javascript floating point arithmetic issues
-      const invested = new Decimal(d.buyPrice).mul(d.quantity);
-      // For open positions, CMP defaults to Buy Price initially
-      const currentValue = new Decimal(d.buyPrice).mul(d.quantity); 
-      const profitLoss = new Decimal(0);
+      const investedAmount = calculateInvestment(d.buyPrice, d.quantity);
+      const currentValue = calculateCurrentValue(d.buyPrice, d.quantity); 
+      const profitLoss = calculateLivePnL(d.buyPrice, d.buyPrice, d.quantity, d.tradeType);
+      const profitLossPct = calculateReturnPct(d.buyPrice, d.buyPrice, d.tradeType);
 
       const created = await prisma.portfolioPosition.create({
         data: {
@@ -255,10 +260,10 @@ export class TradeImportService {
           targetPrice: d.targetPrice,
           stopLoss: d.stopLoss,
           quantity: d.quantity,
-          investedAmount: invested.toNumber(),
-          currentValue: currentValue.toNumber(),
-          profitLoss: profitLoss.toNumber(),
-          profitLossPct: 0,
+          investedAmount,
+          currentValue,
+          profitLoss,
+          profitLossPct,
           entryDate: d.entryDate,
           notes: d.notes,
           investorName: d.investorName,

@@ -16,6 +16,8 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Link from 'next/link';
+import { TrendingUp, TrendingDown, RefreshCw, FileText } from 'lucide-react';
+import { formatDecimal } from '@/lib/financial-calculations';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -59,7 +61,7 @@ export default function DashboardPage() {
     if (performers.length === 0) return;
     const interval = setInterval(() => {
       setPerformerIndex((prev) => (prev + 1) % performers.length);
-    }, 4000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [performers.length]);
 
@@ -216,7 +218,7 @@ export default function DashboardPage() {
           <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>Institutional dealing board and platform control center</p>
         </div>
         <button onClick={exportPDF} style={{ padding: '9px 18px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          📥 Export PDF Report
+          <FileText size={16} /> Export PDF Report
         </button>
       </div>
 
@@ -232,14 +234,14 @@ export default function DashboardPage() {
             <div>
               <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Portfolio Valuation</div>
               <div style={{ fontSize: '32px', fontWeight: 900, color: textCol, marginTop: '8px' }}>
-                ₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{formatDecimal(summary.totalPortfolioValue)}
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '16px' }}>
               <div>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: (summary.currentPortfolioProfitLoss || 0) >= 0 ? '#10B981' : '#EF4444' }}>
-                  {(summary.currentPortfolioProfitLoss || 0) >= 0 ? '▲ +' : '▼ '}
-                  {(((summary.currentPortfolioProfitLoss || 0) / (summary.totalInvestment || 1)) * 100).toFixed(2)}%
+                <span style={{ fontSize: '14px', fontWeight: 800, color: (summary.currentPortfolioProfitLoss || 0) >= 0 ? '#10B981' : '#EF4444', display: 'inline-flex', alignItems: 'center' }}>
+                  {(summary.currentPortfolioProfitLoss || 0) >= 0 ? <TrendingUp size={16} style={{ marginRight: '4px' }} /> : <TrendingDown size={16} style={{ marginRight: '4px' }} />}
+                  {formatDecimal(Math.abs((summary.currentPortfolioProfitLoss || 0) / (summary.totalInvestment || 1) * 100))}%
                 </span>
                 <span style={{ fontSize: '12px', color: subTextCol, marginLeft: '8px' }}>Today's Change</span>
               </div>
@@ -261,26 +263,26 @@ export default function DashboardPage() {
               <div>
                 <div style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>Realized Gains</div>
                 <div style={{ fontSize: '20px', fontWeight: 900, color: (summary.realizedProfit || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '6px' }}>
-                  ₹{(summary.realizedProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  ₹{formatDecimal(summary.realizedProfit)}
                 </div>
               </div>
               <div>
                 <div style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>Unrealized Balance</div>
                 <div style={{ fontSize: '20px', fontWeight: 900, color: (summary.unrealizedProfit || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '6px' }}>
-                  ₹{(summary.unrealizedProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  ₹{formatDecimal(summary.unrealizedProfit)}
                 </div>
               </div>
               <div>
                 <div style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>Available Liquid Cash</div>
                 <div style={{ fontSize: '20px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
-                  ₹{(summary.availableCashBalance || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  ₹{formatDecimal(summary.availableCashBalance)}
                 </div>
               </div>
             </div>
             
             <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '12px', marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: subTextCol }}>
-              <span>Capital Deployed: <strong>₹{(summary.totalCapitalDeployed || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong></span>
-              <span>Overall Win Rate: <strong>{(summary.winRate || 0).toFixed(1)}%</strong></span>
+              <span>Capital Deployed: <strong>₹{formatDecimal(summary.totalCapitalDeployed)}</strong></span>
+              <span>Overall Win Rate: <strong>{formatDecimal(summary.winRate)}%</strong></span>
             </div>
           </div>
 
@@ -367,75 +369,74 @@ export default function DashboardPage() {
         </div>
 
         {/* ========================================================== */}
-        {/* ROW 4: GAINERS, LOSERS, ROTATION CARD, RECENT ACTIVITY */}
+        {/* ROW 4: ROTATION CARD & RECENT ACTIVITY */}
         {/* ========================================================== */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : (isTablet ? '1fr 1fr' : 'repeat(4, 1fr)'), gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
           
-          {/* Top Gainers */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-            <h4 style={{ fontSize: '12.5px', fontWeight: 800, color: '#10B981', margin: '0 0 14px 0', textTransform: 'uppercase' }}>🚀 Top Gainers</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {topGainers.map((g: any) => (
-                <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                  <span style={{ fontWeight: 700, color: textCol }}>{g.symbol}</span>
-                  <span style={{ color: '#10B981', fontWeight: 800 }}>+{g.profitLossPct.toFixed(2)}%</span>
-                </div>
-              ))}
-              {topGainers.length === 0 && <span style={{ fontSize: '12px', color: subTextCol }}>No open positions</span>}
-            </div>
-          </div>
-
-          {/* Top Losers */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-            <h4 style={{ fontSize: '12.5px', fontWeight: 800, color: '#EF4444', margin: '0 0 14px 0', textTransform: 'uppercase' }}>📉 Top Losers</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {topLosers.map((l: any) => (
-                <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                  <span style={{ fontWeight: 700, color: textCol }}>{l.symbol}</span>
-                  <span style={{ color: '#EF4444', fontWeight: 800 }}>{l.profitLossPct.toFixed(2)}%</span>
-                </div>
-              ))}
-              {topLosers.length === 0 && <span style={{ fontSize: '12px', color: subTextCol }}>No open positions</span>}
-            </div>
-          </div>
-
           {/* Performer Rotation Widget */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             {performers.length > 0 && performers[performerIndex] ? (
               <div key={performerIndex} style={{ animation: 'fadeIn 0.4s ease' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 800, color: performers[performerIndex].color, textTransform: 'uppercase' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: performers[performerIndex].color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {performers[performerIndex].label}
                   </span>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: textCol }}>{performers[performerIndex].data.symbol}</span>
-                </div>
-                <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, marginTop: '4px' }}>
-                  {performers[performerIndex].data.company}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: performers[performerIndex].color }}>
-                    {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{performers[performerIndex].data.profitLossPct.toFixed(2)}%
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: textCol }} title={performers[performerIndex].data.company}>
+                    {performers[performerIndex].data.symbol}
                   </span>
+                </div>
+                
+                <div style={{ borderTop: `1px solid ${borderCol}`, margin: '8px 0' }} />
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px 16px' }}>
+                  <div>
+                    <div style={{ fontSize: '10px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>CMP</div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: textCol, marginTop: '2px' }}>
+                      CMP: ₹{formatDecimal(performers[performerIndex].data.currentPrice)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '10px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Today's Return</div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: (performers[performerIndex].data.changePercent || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '2px' }}>
+                      {(performers[performerIndex].data.changePercent || 0) >= 0 ? '+' : ''}{formatDecimal(performers[performerIndex].data.changePercent)}%
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '10px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Overall Return</div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: performers[performerIndex].data.profitLossPct >= 0 ? '#10B981' : '#EF4444', marginTop: '2px' }}>
+                      {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{formatDecimal(performers[performerIndex].data.profitLossPct)}%
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '10px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Profit / Loss</div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: performers[performerIndex].data.profitLoss >= 0 ? '#10B981' : '#EF4444', marginTop: '2px' }}>
+                      {performers[performerIndex].data.profitLoss >= 0 ? '+' : ''}₹{formatDecimal(performers[performerIndex].data.profitLoss)}
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
-              <span style={{ fontSize: '12px', color: subTextCol }}>No perform stats</span>
+              <span style={{ fontSize: '12px', color: subTextCol }}>No performer stats available.</span>
             )}
           </div>
 
           {/* Recent Activity */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-            <h4 style={{ fontSize: '12.5px', fontWeight: 800, color: textCol, margin: '0 0 14px 0', textTransform: 'uppercase' }}>📋 Activity</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {recentPositions.slice(0, 3).map((p: any) => (
-                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                  <span style={{ fontWeight: 700, color: textCol }}>{p.symbol}</span>
-                  <span style={{ color: p.profitLoss >= 0 ? '#10B981' : '#EF4444', fontWeight: 700 }}>
-                    {p.profitLoss >= 0 ? '+' : ''}₹{p.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-              ))}
-              {recentPositions.length === 0 && <span style={{ fontSize: '12px', color: subTextCol }}>No recent trades</span>}
+          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <h4 style={{ fontSize: '12.5px', fontWeight: 800, color: textCol, margin: '0 0 14px 0', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                📋 Recent Activity
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {recentPositions.slice(0, 3).map((p: any) => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
+                    <span style={{ fontWeight: 700, color: textCol }} title={p.company}>{p.symbol}</span>
+                    <span style={{ color: p.profitLoss >= 0 ? '#10B981' : '#EF4444', fontWeight: 700 }}>
+                      {p.profitLoss >= 0 ? '+' : ''}₹{formatDecimal(p.profitLoss)}
+                    </span>
+                  </div>
+                ))}
+                {recentPositions.length === 0 && <span style={{ fontSize: '12px', color: subTextCol }}>No recent trades</span>}
+              </div>
             </div>
           </div>
 
@@ -464,7 +465,7 @@ export default function DashboardPage() {
             <tbody>
               {openPositions.slice(0, 10).map((p: any) => (
                 <tr key={p.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
-                  <td style={{ padding: '12px 14px', fontWeight: 800, color: textCol }}>{p.symbol}</td>
+                  <td style={{ padding: '12px 14px', fontWeight: 800, color: textCol }} title={p.company}>{p.symbol}</td>
                   <td style={{ padding: '12px 14px', color: textCol }}>{p.investorName}</td>
                   <td style={{ padding: '12px 14px' }}>
                     <span style={{ fontSize: '10px', fontWeight: 800, padding: '3px 8px', borderRadius: '4px', backgroundColor: p.tradeType === 'SELL' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: p.tradeType === 'SELL' ? '#EF4444' : '#10B981' }}>

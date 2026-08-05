@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
+import { User, TrendingUp, TrendingDown, Clock, FileText } from 'lucide-react';
+import { formatDecimal } from '@/lib/financial-calculations';
 
 interface InvestorStats {
   name: string;
@@ -93,15 +95,15 @@ export default function InvestorsPage() {
         </div>
         <button
           onClick={fetchInvestorsData}
-          style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, fontWeight: 700, cursor: 'pointer' }}
+          style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
         >
-          🔄 Refresh
+          <Clock size={13} /> Refresh
         </button>
       </div>
 
       {error && (
         <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
-          ⚠️ {error}
+          {error}
         </div>
       )}
 
@@ -110,7 +112,7 @@ export default function InvestorsPage() {
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Assets Under Management (AUM)</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
-            ₹{totalCapitalManaged.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{formatDecimal(totalCapitalManaged)}
           </div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Total Active Deployed Principal</div>
         </div>
@@ -118,7 +120,7 @@ export default function InvestorsPage() {
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Current Portfolio Value</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
-            ₹{totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{formatDecimal(totalValue)}
           </div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Live Portfolio Net Worth</div>
         </div>
@@ -126,7 +128,7 @@ export default function InvestorsPage() {
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Net Gain</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: totalNetProfit >= 0 ? '#10B981' : '#EF4444', marginTop: '6px' }}>
-            {totalNetProfit >= 0 ? '+' : ''}₹{totalNetProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {totalNetProfit >= 0 ? '+' : ''}₹{formatDecimal(totalNetProfit)}
           </div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Realized + Unrealized</div>
         </div>
@@ -134,16 +136,15 @@ export default function InvestorsPage() {
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Overall Portfolio ROI</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: overallROI >= 0 ? '#10B981' : '#EF4444', marginTop: '6px' }}>
-            {overallROI >= 0 ? '+' : ''}{overallROI.toFixed(2)}%
+            {overallROI >= 0 ? '+' : ''}{formatDecimal(overallROI)}%
           </div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Average Capital Efficiency</div>
         </div>
       </div>
 
-      {/* Segmented Capital Distribution Bar */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '13px', fontWeight: 800, color: textCol, textTransform: 'uppercase', margin: '0 0 14px 0' }}>
-          📊 Capital Allocation Share
+        <h3 style={{ fontSize: '13px', fontWeight: 800, color: textCol, textTransform: 'uppercase', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          Capital Allocation Share
         </h3>
 
         {totalCapitalManaged > 0 ? (
@@ -162,7 +163,7 @@ export default function InvestorsPage() {
                       height: '100%',
                       transition: 'all 0.3s ease',
                     }}
-                    title={`${inv.name}: ₹${inv.totalInvestment.toLocaleString('en-IN')} (${pct.toFixed(1)}%)`}
+                    title={`${inv.name}: ₹${formatDecimal(inv.totalInvestment)} (${formatDecimal(pct)}%)`}
                   />
                 );
               })}
@@ -177,7 +178,7 @@ export default function InvestorsPage() {
                     <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: col }} />
                     <span style={{ fontWeight: 700, color: textCol }}>{inv.name}</span>
                     <span style={{ color: subTextCol }}>
-                      ₹{inv.totalInvestment.toLocaleString('en-IN')} ({pct.toFixed(1)}%)
+                      ₹{formatDecimal(inv.totalInvestment)} ({formatDecimal(pct)}%)
                     </span>
                   </div>
                 );
@@ -254,13 +255,13 @@ export default function InvestorsPage() {
                       {inv.name} {isExpanded ? '▼' : '►'}
                     </h3>
                     <span style={{ fontSize: '11.5px', color: subTextCol, fontWeight: 700 }}>
-                      Portfolio Share: {share.toFixed(1)}%
+                      Portfolio Share: {formatDecimal(share)}%
                     </span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontSize: '11px', color: subTextCol, textTransform: 'uppercase', display: 'block', fontWeight: 800 }}>ROI</span>
                     <span style={{ fontSize: '18px', fontWeight: 900, color: inv.roi >= 0 ? '#10B981' : '#EF4444' }}>
-                      {inv.roi >= 0 ? '+' : ''}{inv.roi.toFixed(2)}%
+                      {inv.roi >= 0 ? '+' : ''}{formatDecimal(inv.roi)}%
                     </span>
                   </div>
                 </div>
@@ -272,25 +273,25 @@ export default function InvestorsPage() {
                   <div>
                     <span style={{ fontSize: '11px', color: subTextCol, textTransform: 'uppercase', display: 'block' }}>Total Capital Deployed</span>
                     <strong style={{ fontSize: '15px', color: textCol }}>
-                      ₹{inv.totalInvestment.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₹{formatDecimal(inv.totalInvestment)}
                     </strong>
                   </div>
                   <div>
                     <span style={{ fontSize: '11px', color: subTextCol, textTransform: 'uppercase', display: 'block' }}>Current Value</span>
                     <strong style={{ fontSize: '15px', color: textCol }}>
-                      ₹{inv.currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₹{formatDecimal(inv.currentValue)}
                     </strong>
                   </div>
                   <div>
                     <span style={{ fontSize: '11px', color: subTextCol, textTransform: 'uppercase', display: 'block' }}>Net Profit/Loss</span>
                     <strong style={{ fontSize: '15px', color: isProfit ? '#10B981' : '#EF4444' }}>
-                      {isProfit ? '+' : ''}₹{inv.netProfit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {isProfit ? '+' : ''}₹{formatDecimal(inv.netProfit)}
                     </strong>
                   </div>
                   <div>
                     <span style={{ fontSize: '11px', color: subTextCol, textTransform: 'uppercase', display: 'block' }}>Win Rate (Closed)</span>
                     <strong style={{ fontSize: '15px', color: '#10B981' }}>
-                      {inv.winRate.toFixed(1)}%
+                      {formatDecimal(inv.winRate)}%
                     </strong>
                   </div>
                 </div>
@@ -311,20 +312,20 @@ export default function InvestorsPage() {
                     style={{ marginTop: '20px', borderTop: `1px solid ${borderCol}`, paddingTop: '16px', cursor: 'default' }}
                   >
                     <h4 style={{ fontSize: '13px', fontWeight: 800, color: textCol, margin: '0 0 12px 0', textTransform: 'uppercase' }}>
-                      💼 Investor Portfolio breakdown
+                      Investor Portfolio breakdown
                     </h4>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                       <div>
                         <span style={{ fontSize: '11px', color: subTextCol, display: 'block', textTransform: 'uppercase' }}>Largest Active Position</span>
                         <span style={{ fontSize: '13.5px', fontWeight: 700, color: textCol }}>
-                          {largestHolding ? `${largestHolding.symbol} (₹${largestHolding.currentValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })})` : '—'}
+                          {largestHolding ? `${largestHolding.symbol} (₹${formatDecimal(largestHolding.currentValue)})` : '—'}
                         </span>
                       </div>
                       <div>
                         <span style={{ fontSize: '11px', color: subTextCol, display: 'block', textTransform: 'uppercase' }}>Avg Holding Duration</span>
                         <span style={{ fontSize: '13.5px', fontWeight: 700, color: textCol }}>
-                          {avgHoldingDays > 0 ? `${avgHoldingDays.toFixed(1)} Days` : '—'}
+                          {avgHoldingDays > 0 ? `${formatDecimal(avgHoldingDays)} Days` : '—'}
                         </span>
                       </div>
                     </div>
@@ -333,7 +334,7 @@ export default function InvestorsPage() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
                       {Object.entries(sectorAllocation).map(([sec, val]: any) => (
                         <div key={sec} style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', border: `1px solid ${borderCol}`, padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px', color: textCol }}>
-                          {sec}: <strong>{((val / (inv.totalInvestment || 1)) * 100).toFixed(1)}%</strong>
+                          {sec}: <strong>{formatDecimal((val / (inv.totalInvestment || 1)) * 100)}%</strong>
                         </div>
                       ))}
                       {Object.keys(sectorAllocation).length === 0 && <div style={{ fontSize: '12px', color: subTextCol }}>No open assets</div>}
@@ -355,9 +356,9 @@ export default function InvestorsPage() {
                             <tr key={p.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
                               <td style={{ padding: '8px 10px', fontWeight: 800, color: textCol }}>{p.symbol}</td>
                               <td style={{ padding: '8px 10px', color: textCol }}>{p.quantity}</td>
-                              <td style={{ padding: '8px 10px', color: textCol }}>₹{p.investedAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                              <td style={{ padding: '8px 10px', color: textCol }}>₹{formatDecimal(p.investedAmount)}</td>
                               <td style={{ padding: '8px 10px', fontWeight: 700, color: p.profitLoss >= 0 ? '#10B981' : '#EF4444' }}>
-                                {p.profitLoss >= 0 ? '+' : ''}{p.profitLossPct.toFixed(1)}%
+                                {p.profitLoss >= 0 ? '+' : ''}{formatDecimal(p.profitLossPct)}%
                               </td>
                             </tr>
                           ))}

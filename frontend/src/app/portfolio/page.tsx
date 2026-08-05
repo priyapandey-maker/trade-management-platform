@@ -14,6 +14,8 @@ import {
 } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Clock, FileText } from 'lucide-react';
+import { formatDecimal } from '@/lib/financial-calculations';
 
 export default function PortfolioPage() {
   const { theme } = useTheme();
@@ -688,7 +690,6 @@ export default function PortfolioPage() {
                   <thead>
                     <tr style={{ borderBottom: `2px solid ${borderCol}`, textAlign: 'left', color: subTextCol }}>
                       <th style={{ padding: '10px' }}>Symbol</th>
-                      <th style={{ padding: '10px' }}>Company</th>
                       <th style={{ padding: '10px' }}>Asset Type</th>
                       <th style={{ padding: '10px' }}>Qty</th>
                       <th style={{ padding: '10px' }}>Buy Price</th>
@@ -703,20 +704,19 @@ export default function PortfolioPage() {
                       const isProfit = pos.profitLoss >= 0;
                       return (
                         <tr key={pos.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
-                          <td style={{ padding: '12px 10px', fontWeight: 800, color: textCol }}>{pos.symbol}</td>
-                          <td style={{ padding: '12px 10px', color: subTextCol }}>{pos.company}</td>
+                          <td style={{ padding: '12px 10px', fontWeight: 800, color: textCol }} title={pos.company}>{pos.symbol}</td>
                           <td style={{ padding: '12px 10px' }}>
                             <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: isDark ? '#334155' : '#F1F5F9', color: textCol, padding: '2px 6px', borderRadius: '4px' }}>
                               {pos.assetType || 'STOCK'}
                             </span>
                           </td>
                           <td style={{ padding: '12px 10px', fontWeight: 600 }}>{pos.quantity}</td>
-                          <td style={{ padding: '12px 10px' }}>₹{pos.buyPrice?.toFixed(2)}</td>
-                          <td style={{ padding: '12px 10px', fontWeight: 800, color: textCol }}>₹{pos.currentPrice?.toFixed(2)}</td>
-                          <td style={{ padding: '12px 10px' }}>₹{pos.investedAmount?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
-                          <td style={{ padding: '12px 10px' }}>₹{pos.currentValue?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                          <td style={{ padding: '12px 10px' }}>₹{formatDecimal(pos.buyPrice)}</td>
+                          <td style={{ padding: '12px 10px', fontWeight: 800, color: textCol }}>₹{formatDecimal(pos.currentPrice)}</td>
+                          <td style={{ padding: '12px 10px' }}>₹{formatDecimal(pos.investedAmount)}</td>
+                          <td style={{ padding: '12px 10px' }}>₹{formatDecimal(pos.currentValue)}</td>
                           <td style={{ padding: '12px 10px', fontWeight: 900, color: isProfit ? '#10B981' : '#EF4444' }}>
-                            {isProfit ? '+' : ''}₹{pos.profitLoss?.toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({isProfit ? '+' : ''}{pos.profitLossPct?.toFixed(1)}%)
+                            {isProfit ? '+' : ''}₹{formatDecimal(pos.profitLoss)} ({isProfit ? '+' : ''}{formatDecimal(pos.profitLossPct)}%)
                           </td>
                         </tr>
                       );

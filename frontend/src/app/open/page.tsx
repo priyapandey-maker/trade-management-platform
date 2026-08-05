@@ -6,6 +6,8 @@ import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Pencil, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { formatDecimal } from '@/lib/financial-calculations';
 
 export default function OpenPositionsPage() {
   const { user } = useAuth();
@@ -875,8 +877,7 @@ export default function OpenPositionsPage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <div style={{ fontSize: '15px', fontWeight: 900, color: textCol }}>{pos.symbol}</div>
-                      <div style={{ fontSize: '12px', color: subTextCol }}>{pos.company}</div>
+                      <div style={{ fontSize: '15px', fontWeight: 900, color: textCol }} title={pos.company}>{pos.symbol}</div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                       <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? '#DCFCE7' : '#FEE2E2', color: pos.tradeType === 'BUY' ? '#15803D' : '#991B1B', fontSize: '11px', fontWeight: 800 }}>
@@ -1074,8 +1075,7 @@ export default function OpenPositionsPage() {
                       <td style={{ padding: '10px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontWeight: 800, color: textCol, fontSize: '13.5px' }}>{pos.symbol}</span>
-                            <span style={{ fontSize: '11px', color: subTextCol }}>{pos.company}</span>
+                            <span style={{ fontWeight: 800, color: textCol, fontSize: '13.5px' }} title={pos.company}>{pos.symbol}</span>
                           </div>
                           
                           {/* Sparkline directly below the symbol */}
@@ -1104,31 +1104,31 @@ export default function OpenPositionsPage() {
 
                       <td style={{ padding: '10px', fontWeight: 600 }}>{pos.quantity}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 700 }}>₹{pos.buyPrice}</td>
+                      <td style={{ padding: '10px', fontWeight: 700 }}>₹{formatDecimal(pos.buyPrice)}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 800, color: '#16A34A' }}>₹{pos.currentPrice}</td>
+                      <td style={{ padding: '10px', fontWeight: 800, color: '#16A34A' }}>₹{formatDecimal(pos.currentPrice)}</td>
 
-                      <td style={{ padding: '10px', color: '#16A34A', fontWeight: 700 }}>{pos.targetPrice ? `₹${pos.targetPrice}` : '-'}</td>
+                      <td style={{ padding: '10px', color: '#16A34A', fontWeight: 700 }}>{pos.targetPrice ? `₹${formatDecimal(pos.targetPrice)}` : '-'}</td>
 
-                      <td style={{ padding: '10px', color: '#DC2626', fontWeight: 700 }}>{pos.stopLoss ? `₹${pos.stopLoss}` : '-'}</td>
+                      <td style={{ padding: '10px', color: '#DC2626', fontWeight: 700 }}>{pos.stopLoss ? `₹${formatDecimal(pos.stopLoss)}` : '-'}</td>
 
                       <td style={{ padding: '10px', fontWeight: 700, color: '#16A34A' }}>{targetRem.text}</td>
 
                       <td style={{ padding: '10px', fontWeight: 700, color: '#DC2626' }}>{stopRem.text}</td>
 
                       <td style={{ padding: '10px', fontWeight: 700, color: textCol }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: isDark ? '#334155' : '#F1F5F9', fontSize: '11.5px' }}>
-                          ⏱️ {pos.holdingPeriod} Days
+                        <span style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: isDark ? '#334155' : '#F1F5F9', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} /> {pos.holdingPeriod} Days
                         </span>
                       </td>
 
-                      <td style={{ padding: '10px', fontWeight: 600 }}>₹{pos.investedAmount.toLocaleString('en-IN')}</td>
+                      <td style={{ padding: '10px', fontWeight: 600 }}>₹{formatDecimal(pos.investedAmount)}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 700 }}>₹{pos.currentValue.toLocaleString('en-IN')}</td>
+                      <td style={{ padding: '10px', fontWeight: 700 }}>₹{formatDecimal(pos.currentValue)}</td>
 
                       <td style={{ padding: '10px', fontWeight: 800, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        <div>{isProfit ? '+' : ''}₹{pos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        <div style={{ fontSize: '11px' }}>({isProfit ? '+' : ''}{pos.profitLossPct.toFixed(2)}%)</div>
+                        <div>{isProfit ? '+' : ''}₹{formatDecimal(pos.profitLoss)}</div>
+                        <div style={{ fontSize: '11px' }}>({isProfit ? '+' : ''}{formatDecimal(pos.profitLossPct)}%)</div>
                       </td>
 
                       {/* Actions in exact requested order: Close Position -> Edit -> Delete */}
@@ -1140,23 +1140,23 @@ export default function OpenPositionsPage() {
                                 setClosingPosition(pos);
                                 setClosePrice(pos.currentPrice.toString());
                               }}
-                              style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#16A34A', color: '#FFFFFF', fontSize: '11.5px', fontWeight: 800, cursor: 'pointer' }}
+                              style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#16A34A', color: '#FFFFFF', fontSize: '11.5px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                             >
-                              ✅ Close
+                              <CheckCircle2 size={13} /> Close
                             </button>
                             <button
                               onClick={() => handleOpenEditDrawer(pos)}
-                              title="Edit Position"
-                              style={{ padding: '5px 10px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, fontSize: '11.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              title="Edit"
+                              style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
-                              ✏️ Edit
+                              <Pencil size={14} />
                             </button>
                             <button
                               onClick={() => setDeletingId(pos.id)}
-                              title="Delete Position"
-                              style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#FEE2E2', color: '#991B1B', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}
+                              title="Delete"
+                              style={{ padding: '6px', borderRadius: '6px', border: 'none', backgroundColor: '#FEE2E2', color: '#991B1B', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
-                              🗑️ Delete
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </td>

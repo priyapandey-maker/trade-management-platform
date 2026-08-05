@@ -2,6 +2,12 @@ import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaClient, PortfolioPosition } from '@prisma/client';
 import { NotificationType } from './notification.types';
 import { NotificationService } from './NotificationService';
+import {
+  calculateInvestment,
+  calculateCurrentValue,
+  calculateRealizedPnL,
+  calculateRealizedReturnPct
+} from '../../shared/financial-calculations';
 
 const prisma = new PrismaClient();
 
@@ -23,15 +29,10 @@ export class TradeEventEngine {
       const end = Date.now();
       const diffDays = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
 
-      const investedAmount = pos.buyPrice * pos.quantity;
-      const currentValue = currentPrice * pos.quantity;
-      let profitLoss = 0;
-      if (pos.tradeType === 'SELL') {
-        profitLoss = (pos.buyPrice - currentPrice) * pos.quantity - pos.brokerCharges;
-      } else {
-        profitLoss = (currentPrice - pos.buyPrice) * pos.quantity - pos.brokerCharges;
-      }
-      const profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      const investedAmount = calculateInvestment(pos.buyPrice, pos.quantity);
+      const currentValue = calculateCurrentValue(currentPrice, pos.quantity);
+      const profitLoss = calculateRealizedPnL(pos.buyPrice, currentPrice, pos.quantity, pos.tradeType);
+      const profitLossPct = calculateRealizedReturnPct(pos.buyPrice, currentPrice, pos.tradeType);
 
       // Close the position
       await prisma.portfolioPosition.update({
