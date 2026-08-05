@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function ClosedPositionsPage() {
   const { user } = useAuth();
@@ -28,6 +30,15 @@ export default function ClosedPositionsPage() {
   const [search, setSearch] = useState('');
   const [displaySearch, setDisplaySearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [investorFilter, setInvestorFilter] = useState('ALL');
+
+  // Missed Profit modal states
+  const [showMissedProfitModal, setShowMissedProfitModal] = useState(false);
+  const [missedSortBy, setMissedSortBy] = useState('missedProfit');
+  const [missedSortOrder, setMissedSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Sparklines cache
+  const [sparklines, setSparklines] = useState<Record<string, number[]>>({});
 
   // Lazy Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -249,6 +260,49 @@ export default function ClosedPositionsPage() {
     return () => window.removeEventListener('shree_manual_refresh', handleRefresh);
   }, [fetchClosedPositions]);
 
+  // Sparkline Batch Fetcher Effect
+  useEffect(() => {
+    if (positions.length === 0) return;
+    const symbols = Array.from(new Set(positions.map((p) => p.symbol)));
+    const loadSparklines = async () => {
+      try {
+        const res = await api.get(`/market/sparkline?symbols=${symbols.join(',')}`);
+        if (res.data?.data) {
+          setSparklines((prev) => ({ ...prev, ...res.data.data }));
+        }
+      } catch (err) {
+        console.error('Failed to load sparklines:', err);
+      }
+    };
+    loadSparklines();
+  }, [positions]);
+
+  // Sparkline Component
+  const Sparkline = ({ symbol }: { symbol: string }) => {
+    const prices = sparklines[symbol] || [];
+    if (prices.length === 0) {
+      return <div style={{ fontSize: '9px', color: subTextCol }}>Loading sparkline...</div>;
+    }
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const range = max - min === 0 ? 1 : max - min;
+    const width = 100;
+    const height = 14;
+    const points = prices.map((price, idx) => {
+      const x = (idx / (prices.length - 1)) * width;
+      const y = height - ((price - min) / range) * height;
+      return `${x},${y}`;
+    }).join(' ');
+    const isUp = prices[prices.length - 1] >= prices[0];
+    const strokeColor = isUp ? '#10B981' : '#EF4444';
+    return (
+      <svg width={width} height={height} style={{ overflow: 'visible' }}>
+        <title>{`Trend: ${isUp ? 'UP' : 'DOWN'}`}</title>
+        <polyline fill="none" stroke={strokeColor} strokeWidth="1.5" points={points} />
+      </svg>
+    );
+  };
+
   const confirmDelete = async () => {
     if (!deletingId || user?.role !== 'OWNER') return;
     try {
@@ -267,17 +321,149 @@ export default function ClosedPositionsPage() {
     });
   };
 
-  const exportCSV = () => {
-    const headers = ['Symbol,Company,BuyPrice,ExitPrice,Qty,EntryDate,ExitDate,HoldingPeriod,PnL,PnLPct,Reason'];
-    const rows = positions.map(
-      (p) => `${p.symbol},"${p.company}",${p.buyPrice.toFixed(2)},${(p.sellingPrice || p.currentPrice).toFixed(2)},${p.quantity.toFixed(2)},${p.entryDate},${p.closedAt},${p.holdingPeriod || 0},${p.profitLoss.toFixed(2)},${p.profitLossPct.toFixed(2)},${p.exitReason}`
-    );
-    const blob = new Blob([[headers, ...rows].join('\n')], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Closed_Positions_${new Date().toISOString().substring(0, 10)}.csv`;
-    a.click();
+  const exportPDF = () => {
+    const doc = new jsPDF('landscape', 'pt', 'a4');
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    
+    const drawHeader = () => {
+      doc.setFillColor(11, 15, 23);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SHREE ASSOCIATES  |  Valuation Terminal', 20, 24);
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(200, 200, 200);
+      const dateStr = new Date().toLocaleString('en-IN');
+      const userText = user?.email ? `User: ${user.email}` : 'User: Administrator';
+      const filtersText = `Filters: Investor=${investorFilter}, Exit=${statusFilter}`;
+      const headerRight = `${filtersText}   |   Date: ${dateStr}   |   ${userText}`;
+      doc.text(headerRight, pageWidth - 20 - doc.getTextWidth(headerRight), 24);
+
+      doc.setFillColor(16, 185, 129);
+      doc.rect(0, 40, pageWidth, 3, 'F');
+    };
+
+    drawHeader();
+
+    const headers = [
+      'Symbol',
+      'Company Name',
+      'Investor',
+      'Buy Price',
+      'Exit Price',
+      'Qty',
+      'Entry Date',
+      'Exit Date',
+      'Duration',
+      'Realized P&L',
+      'Return %',
+      'Potential Profit',
+      'Deviation',
+      'Exit Reason'
+    ];
+
+    const tableRows = filteredPositions.map((p) => {
+      const isProfit = p.profitLoss >= 0;
+      const deviationText = (p.missedProfit || 0) > 0 
+        ? `Missed: -₹${p.missedProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` 
+        : ((p.extraProfit || 0) > 0 
+          ? `Extra: +₹${p.extraProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` 
+          : '—');
+      return [
+        p.symbol,
+        p.company || p.symbol,
+        p.investorName || 'Shree',
+        `₹${p.buyPrice.toFixed(2)}`,
+        `₹${(p.sellingPrice || p.currentPrice).toFixed(2)}`,
+        p.quantity.toString(),
+        formatDate(p.entryDate),
+        formatDate(p.closedAt),
+        `${p.holdingPeriod || 0} days`,
+        `${isProfit ? '+' : ''}₹${p.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+        `${isProfit ? '+' : ''}${p.profitLossPct.toFixed(2)}%`,
+        p.targetPrice ? `₹${(p.potentialProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—',
+        deviationText,
+        p.exitReason
+      ];
+    });
+
+    autoTable(doc, {
+      head: [headers],
+      body: tableRows,
+      startY: 65,
+      margin: { left: 20, right: 20 },
+      styles: { fontSize: 7.5, cellPadding: 4 },
+      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      didParseCell: (data) => {
+        if (data.section === 'body') {
+          if (data.column.index === 9 || data.column.index === 10) {
+            const val = data.cell.raw as string;
+            if (val.startsWith('+')) {
+              data.cell.styles.textColor = [22, 163, 74];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (val.startsWith('₹-') || val.startsWith('-')) {
+              data.cell.styles.textColor = [220, 38, 38];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        }
+      }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY || 70;
+
+    if (finalY + 90 > pageHeight) {
+      doc.addPage();
+      drawHeader();
+    }
+
+    const startTotalY = finalY + 15;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(20, startTotalY, pageWidth - 40, 60, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(20, startTotalY, pageWidth - 40, 60, 'S');
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    
+    const totalClosed = filteredPositions.length;
+    const winsVal = filteredPositions.filter((p) => p.profitLoss > 0).length;
+    const lossesVal = filteredPositions.filter((p) => p.profitLoss <= 0).length;
+    const winRateVal = totalClosed > 0 ? (winsVal / totalClosed) * 100 : 0;
+    const avgHolding = totalClosed > 0 ? filteredPositions.reduce((sum, p) => sum + (p.holdingPeriod || 0), 0) / totalClosed : 0;
+    const totalRealized = filteredPositions.reduce((sum, p) => sum + p.profitLoss, 0);
+
+    doc.text(`Total Closed Trades: ${totalClosed}`, 30, startTotalY + 20);
+    doc.text(`Winning Trades: ${winsVal}   |   Losing Trades: ${lossesVal}`, 30, startTotalY + 36);
+    doc.text(`Win Rate: ${winRateVal.toFixed(1)}%`, 30, startTotalY + 52);
+
+    doc.text(`Average Holding Period: ${avgHolding.toFixed(1)} Days`, pageWidth / 2 + 10, startTotalY + 20);
+    doc.setTextColor(totalRealized >= 0 ? 22 : 220, totalRealized >= 0 ? 163 : 38, totalRealized >= 0 ? 74 : 38);
+    doc.text(`Total Realized Profit/Loss: ${totalRealized >= 0 ? '+' : ''}₹${totalRealized.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, pageWidth / 2 + 10, startTotalY + 36);
+
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(20, pageHeight - 30, pageWidth - 20, pageHeight - 30);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      doc.text('SHREE ASSOCIATES  •  Confidential Valuation Report  •  Internal Use Only', 20, pageHeight - 15);
+      
+      const pageText = `Page ${i} of ${totalPages}`;
+      doc.text(pageText, pageWidth - 20 - doc.getTextWidth(pageText), pageHeight - 15);
+    }
+
+    doc.save(`Shree_Associates_Closed_Positions_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   // Top 4 Summary Cards metrics
@@ -286,6 +472,7 @@ export default function ClosedPositionsPage() {
   const wins = positions.filter((p) => p.profitLoss > 0).length;
   const winRate = totalClosedTrades > 0 ? (wins / totalClosedTrades) * 100 : 0;
   const avgHoldingPeriod = totalClosedTrades > 0 ? positions.reduce((sum, p) => sum + (p.holdingPeriod || 0), 0) / totalClosedTrades : 0;
+  const totalMissedProfit = positions.reduce((sum, p) => sum + (p.missedProfit || 0), 0);
 
   const sortedByProfit = [...positions].sort((a, b) => b.profitLossPct - a.profitLossPct);
   const best1 = sortedByProfit[0] || null;
@@ -320,7 +507,8 @@ export default function ClosedPositionsPage() {
       pos.company.toLowerCase().includes(term) ||
       (pos.notes && pos.notes.toLowerCase().includes(term));
     const matchesStatus = statusFilter === 'ALL' || pos.exitReason === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesInvestor = investorFilter === 'ALL' || pos.investorName === investorFilter;
+    return matchesSearch && matchesStatus && matchesInvestor;
   });
 
   const totalPages = Math.ceil(filteredPositions.length / itemsPerPage);
@@ -342,8 +530,8 @@ export default function ClosedPositionsPage() {
           </p>
         </div>
 
-        <button onClick={exportCSV} className="btnSecondary" style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '6px' }}>
-          📥 Export CSV
+        <button onClick={exportPDF} className="btnSecondary" style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '6px' }}>
+          📥 Export PDF
         </button>
       </div>
 
@@ -353,8 +541,8 @@ export default function ClosedPositionsPage() {
         </div>
       )}
 
-      {/* TOP 4 SUMMARY CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      {/* TOP 5 SUMMARY CARDS */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Closed Trades</div>
           <div style={{ fontSize: '22px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{totalClosedTrades}</div>
@@ -381,6 +569,32 @@ export default function ClosedPositionsPage() {
               <div style={{ fontSize: '11px', color: subTextCol, marginTop: '2px' }}>Avg Holding</div>
             </div>
           </div>
+        </div>
+
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Missed Target Profit</div>
+            <div style={{ fontSize: '22px', fontWeight: 900, color: '#EA580C', marginTop: '6px' }}>
+              ₹{totalMissedProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </div>
+          </div>
+          <button
+            onClick={() => setShowMissedProfitModal(true)}
+            style={{
+              marginTop: '8px',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              border: `1px solid ${borderCol}`,
+              backgroundColor: isDark ? '#334155' : '#F1F5F9',
+              color: textCol,
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              alignSelf: 'flex-start'
+            }}
+          >
+            🔍 Analyze Missed
+          </button>
         </div>
 
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px', overflow: 'hidden', minHeight: '88px' }}>
@@ -429,6 +643,12 @@ export default function ClosedPositionsPage() {
           <option value="TARGET_HIT">🎯 Target Hit</option>
           <option value="STOP_LOSS_HIT">🛑 Stop Loss Hit</option>
           <option value="MANUAL_EXIT">Manual Exit</option>
+        </select>
+        <select value={investorFilter} onChange={(e) => setInvestorFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}>
+          <option value="ALL">All Investors</option>
+          {Array.from(new Set(positions.map((p) => p.investorName).filter(Boolean))).map((inv: any) => (
+            <option key={inv} value={inv}>{inv}</option>
+          ))}
         </select>
       </div>
 
@@ -615,8 +835,7 @@ export default function ClosedPositionsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
               <thead>
                 <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderBottom: `2px solid ${borderCol}`, color: subTextCol, textAlign: 'left' }}>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Symbol</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Company Name</th>
+                  <th style={{ padding: '12px', fontWeight: 800 }}>Symbol &amp; Trend</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Buy Price</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Exit Price</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Qty</th>
@@ -636,8 +855,19 @@ export default function ClosedPositionsPage() {
                   const isProfit = pos.profitLoss >= 0;
                   return (
                     <tr key={pos.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
-                      <td style={{ padding: '12px 10px', fontWeight: 800, color: textCol }}>{pos.symbol}</td>
-                      <td style={{ padding: '12px 10px', color: subTextCol }}>{pos.company}</td>
+                      <td style={{ padding: '12px 10px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 800, color: textCol, fontSize: '13.5px' }}>{pos.symbol}</span>
+                            <span style={{ fontSize: '11px', color: subTextCol }}>{pos.company}</span>
+                          </div>
+                          
+                          {/* Sparkline directly below symbol */}
+                          <div style={{ width: '100px', height: '14px', display: 'flex', alignItems: 'center', marginTop: '2px' }}>
+                            <Sparkline symbol={pos.symbol} />
+                          </div>
+                        </div>
+                      </td>
                       <td style={{ padding: '12px 10px' }}>₹{pos.buyPrice?.toFixed(2)}</td>
                       <td style={{ padding: '12px 10px', fontWeight: 700 }}>₹{(pos.sellingPrice || pos.currentPrice)?.toFixed(2)}</td>
                       <td style={{ padding: '12px 10px', fontWeight: 600 }}>{pos.quantity}</td>
@@ -1202,6 +1432,112 @@ export default function ClosedPositionsPage() {
           </form>
         </div>
       </div>
+      {/* Missed Profit Analysis Modal */}
+      {showMissedProfitModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ width: '800px', maxHeight: '80vh', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${borderCol}`, paddingBottom: '12px', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>📉 Missed Profit Opportunities Analysis</h3>
+              <button onClick={() => setShowMissedProfitModal(false)} style={{ border: 'none', background: 'none', fontSize: '16px', cursor: 'pointer', color: subTextCol }}>❌</button>
+            </div>
+            
+            {/* Sorting controls */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '14px', alignItems: 'center' }}>
+              <span style={{ fontSize: '13px', color: subTextCol }}>Sort by:</span>
+              <select
+                value={missedSortBy}
+                onChange={(e) => setMissedSortBy(e.target.value)}
+                style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol, fontSize: '12.5px' }}
+              >
+                <option value="missedProfit">Gains Missed (₹)</option>
+                <option value="symbol">Symbol</option>
+                <option value="investor">Investor</option>
+                <option value="sector">Sector / Asset</option>
+              </select>
+              <select
+                value={missedSortOrder}
+                onChange={(e) => setMissedSortOrder(e.target.value as any)}
+                style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol, fontSize: '12.5px' }}
+              >
+                <option value="desc">Highest First</option>
+                <option value="asc">Lowest First</option>
+              </select>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${borderCol}`, color: subTextCol }}>
+                    <th style={{ padding: '8px' }}>Symbol</th>
+                    <th style={{ padding: '8px' }}>Investor</th>
+                    <th style={{ padding: '8px' }}>Sector / Asset</th>
+                    <th style={{ padding: '8px' }}>Target Price</th>
+                    <th style={{ padding: '8px' }}>Exit Price</th>
+                    <th style={{ padding: '8px', color: '#EF4444' }}>Missed profit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const closedWithMissed = positions.filter((p) => (p.missedProfit || 0) > 0);
+                    const sortedMissed = [...closedWithMissed].sort((a, b) => {
+                      let valA: any = 0;
+                      let valB: any = 0;
+                      if (missedSortBy === 'missedProfit') {
+                        valA = a.missedProfit;
+                        valB = b.missedProfit;
+                      } else if (missedSortBy === 'symbol') {
+                        valA = a.symbol;
+                        valB = b.symbol;
+                      } else if (missedSortBy === 'investor') {
+                        valA = a.investorName || '';
+                        valB = b.investorName || '';
+                      } else if (missedSortBy === 'sector') {
+                        valA = a.assetType || '';
+                        valB = b.assetType || '';
+                      }
+                      
+                      if (typeof valA === 'string') {
+                        return missedSortOrder === 'asc' 
+                          ? valA.localeCompare(valB) 
+                          : valB.localeCompare(valA);
+                      }
+                      
+                      return missedSortOrder === 'asc' ? valA - valB : valB - valA;
+                    });
+
+                    return sortedMissed.map((p) => (
+                      <tr key={p.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
+                        <td style={{ padding: '10px 8px', fontWeight: 800 }}>{p.symbol}</td>
+                        <td style={{ padding: '10px 8px' }}>{p.investorName || 'Shree'}</td>
+                        <td style={{ padding: '10px 8px' }}>{p.assetType || 'STOCK'}</td>
+                        <td style={{ padding: '10px 8px' }}>₹{p.targetPrice?.toFixed(2) || '—'}</td>
+                        <td style={{ padding: '10px 8px' }}>₹{p.sellingPrice?.toFixed(2) || '—'}</td>
+                        <td style={{ padding: '10px 8px', fontWeight: 700, color: '#EF4444' }}>
+                          ₹{p.missedProfit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                  {positions.filter((p) => (p.missedProfit || 0) > 0).length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: subTextCol }}>
+                        No missed profits recorded! Efficiency is at 100%.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button onClick={() => setShowMissedProfitModal(false)} style={{ padding: '8px 16px', backgroundColor: '#2563EB', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                Dismiss Analysis
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { PrismaClient, PortfolioPosition } from '@prisma/client';
 import { MarketService } from '../market/market.service';
 import { NotificationService } from '../notification/NotificationService';
 import { TradeEventEngine } from '../notification/trade-event.engine';
+import Decimal from 'decimal.js';
 
 const prisma = new PrismaClient();
 
@@ -80,16 +81,20 @@ export class PortfolioService {
           const livePrice = this.findQuotePrice(pos.symbol, quoteMap);
           if (livePrice !== undefined) {
             const currentPrice = livePrice;
-            const currentValue = currentPrice * pos.quantity;
+            const currentValue = new Decimal(currentPrice).mul(pos.quantity).toNumber();
             let profitLoss = 0;
 
-            // Correct P&L formulas for BUY vs SELL
+            const bpDec = new Decimal(pos.buyPrice);
+            const cpDec = new Decimal(currentPrice);
+            const qtyDec = new Decimal(pos.quantity);
+            const bcDec = new Decimal(pos.brokerCharges);
+
             if (pos.tradeType === 'SELL') {
-              profitLoss = (pos.buyPrice - currentPrice) * pos.quantity - pos.brokerCharges;
+              profitLoss = bpDec.minus(cpDec).mul(qtyDec).minus(bcDec).toNumber();
             } else {
-              profitLoss = (currentPrice - pos.buyPrice) * pos.quantity - pos.brokerCharges;
+              profitLoss = cpDec.minus(bpDec).mul(qtyDec).minus(bcDec).toNumber();
             }
-            const profitLossPct = pos.investedAmount > 0 ? (profitLoss / pos.investedAmount) * 100 : 0;
+            const profitLossPct = pos.investedAmount > 0 ? new Decimal(profitLoss).div(pos.investedAmount).mul(100).toNumber() : 0;
 
             pos.currentPrice = currentPrice;
             pos.currentValue = currentValue;
@@ -350,10 +355,16 @@ export class PortfolioService {
       }
 
       const sellDate = data.sellDate ? new Date(data.sellDate) : (data.closedAt ? new Date(data.closedAt) : new Date());
-      const investedAmount = buyPrice * quantity;
-      const currentValue = sellingPrice * quantity; // Exit Value
-      const profitLoss = currentValue - investedAmount; // Exit Value - Investment
-      const profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      const investedAmount = new Decimal(buyPrice).mul(quantity).toNumber();
+      const currentValue = new Decimal(sellingPrice).mul(quantity).toNumber(); // Exit Value
+
+      const bpDec = new Decimal(buyPrice);
+      const spDec = new Decimal(sellingPrice);
+      const qtyDec = new Decimal(quantity);
+      const bcDec = new Decimal(brokerCharges);
+
+      const profitLoss = bpDec.minus(spDec).mul(qtyDec).minus(bcDec).toNumber();
+      const profitLossPct = investedAmount > 0 ? new Decimal(profitLoss).div(investedAmount).mul(100).toNumber() : 0;
       const holdingPeriod = Math.max(0, Math.floor((sellDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24)));
 
       const position = await prisma.portfolioPosition.create({
@@ -397,10 +408,21 @@ export class PortfolioService {
         }
       } catch (e) {}
 
-      const investedAmount = buyPrice * quantity;
-      const currentValue = currentPrice * quantity;
-      const profitLoss = (currentPrice - buyPrice) * quantity - brokerCharges;
-      const profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      const investedAmount = new Decimal(buyPrice).mul(quantity).toNumber();
+      const currentValue = new Decimal(currentPrice).mul(quantity).toNumber();
+
+      const bpDec = new Decimal(buyPrice);
+      const cpDec = new Decimal(currentPrice);
+      const qtyDec = new Decimal(quantity);
+      const bcDec = new Decimal(brokerCharges);
+
+      let profitLoss = 0;
+      if (tradeType === 'SELL') {
+        profitLoss = bpDec.minus(cpDec).mul(qtyDec).minus(bcDec).toNumber();
+      } else {
+        profitLoss = cpDec.minus(bpDec).mul(qtyDec).minus(bcDec).toNumber();
+      }
+      const profitLossPct = investedAmount > 0 ? new Decimal(profitLoss).div(investedAmount).mul(100).toNumber() : 0;
 
       const position = await prisma.portfolioPosition.create({
         data: {
@@ -460,7 +482,7 @@ export class PortfolioService {
 
     const entryDate = data.entryDate ? new Date(data.entryDate) : pos.entryDate;
 
-    const investedAmount = buyPrice * quantity;
+    const investedAmount = new Decimal(buyPrice).mul(quantity).toNumber();
     let currentValue = pos.currentValue;
     let currentPrice = pos.currentPrice;
     let profitLoss = 0;
@@ -471,18 +493,38 @@ export class PortfolioService {
       // Historical/Completed Trade
       const sp = sellingPrice !== null && sellingPrice !== undefined ? sellingPrice : currentPrice;
       currentPrice = sp;
-      currentValue = sp * quantity;
-      profitLoss = currentValue - investedAmount; // Exit Value - Investment
-      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      currentValue = new Decimal(sp).mul(quantity).toNumber();
+
+      const bpDec = new Decimal(buyPrice);
+      const spDec = new Decimal(sp);
+      const qtyDec = new Decimal(quantity);
+      const bcDec = new Decimal(brokerCharges);
+
+      if (tradeType === 'SELL') {
+        profitLoss = bpDec.minus(spDec).mul(qtyDec).minus(bcDec).toNumber();
+      } else {
+        profitLoss = spDec.minus(bpDec).mul(qtyDec).minus(bcDec).toNumber();
+      }
+      profitLossPct = investedAmount > 0 ? new Decimal(profitLoss).div(investedAmount).mul(100).toNumber() : 0;
       
       const finalClosedAt = closedAt || new Date();
       holdingPeriod = Math.max(0, Math.floor((finalClosedAt.getTime() - new Date(entryDate).getTime()) / (1000 * 60 * 60 * 24)));
     } else {
-      // Live Open Position (BUY)
+      // Live Open Position
       currentPrice = data.currentPrice !== undefined ? parseFloat(data.currentPrice) : pos.currentPrice;
-      currentValue = currentPrice * quantity;
-      profitLoss = (currentPrice - buyPrice) * quantity - brokerCharges;
-      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      currentValue = new Decimal(currentPrice).mul(quantity).toNumber();
+
+      const bpDec = new Decimal(buyPrice);
+      const cpDec = new Decimal(currentPrice);
+      const qtyDec = new Decimal(quantity);
+      const bcDec = new Decimal(brokerCharges);
+
+      if (tradeType === 'SELL') {
+        profitLoss = bpDec.minus(cpDec).mul(qtyDec).minus(bcDec).toNumber();
+      } else {
+        profitLoss = cpDec.minus(bpDec).mul(qtyDec).minus(bcDec).toNumber();
+      }
+      profitLossPct = investedAmount > 0 ? new Decimal(profitLoss).div(investedAmount).mul(100).toNumber() : 0;
     }
 
     const updateData: any = {
@@ -546,15 +588,20 @@ export class PortfolioService {
 
     const sp = sellingPriceInput !== undefined && sellingPriceInput !== null ? sellingPriceInput : pos.currentPrice;
     const bc = brokerChargesInput !== undefined && brokerChargesInput !== null ? brokerChargesInput : pos.brokerCharges;
-    const currentValue = sp * pos.quantity;
+    const currentValue = new Decimal(sp).mul(pos.quantity).toNumber();
+
+    const bpDec = new Decimal(pos.buyPrice);
+    const spDec = new Decimal(sp);
+    const qtyDec = new Decimal(pos.quantity);
+    const bcDec = new Decimal(bc);
 
     let profitLoss = 0;
     if (pos.tradeType === 'SELL') {
-      profitLoss = (pos.buyPrice - sp) * pos.quantity - bc;
+      profitLoss = bpDec.minus(spDec).mul(qtyDec).minus(bcDec).toNumber();
     } else {
-      profitLoss = (sp - pos.buyPrice) * pos.quantity - bc;
+      profitLoss = spDec.minus(bpDec).mul(qtyDec).minus(bcDec).toNumber();
     }
-    const profitLossPct = pos.investedAmount > 0 ? (profitLoss / pos.investedAmount) * 100 : 0;
+    const profitLossPct = pos.investedAmount > 0 ? new Decimal(profitLoss).div(pos.investedAmount).mul(100).toNumber() : 0;
 
     const closedAt = sellingDateInput ? new Date(sellingDateInput) : new Date();
     const start = new Date(pos.entryDate).getTime();

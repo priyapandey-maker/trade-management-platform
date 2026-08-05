@@ -39,4 +39,12 @@ export class MarketController {
     const data = await this.marketService.getCandles(symbol, interval || '1wk', range || '1Y');
     return { status: 'success', ...data, data, timestamp: new Date().toISOString() };
   }
+
+  @Get('sparkline')
+  async getSparkline(@Query('symbols') symbols: string) {
+    if (!symbols) throw new HttpException('Symbols query parameter is required', HttpStatus.BAD_REQUEST);
+    const symbolList = symbols.split(',').map((s) => s.trim().toUpperCase());
+    const sparklines = await this.marketService.getSparklines(symbolList);
+    return { status: 'success', data: sparklines };
+  }
 }

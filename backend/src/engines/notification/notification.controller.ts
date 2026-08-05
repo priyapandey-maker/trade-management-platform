@@ -130,6 +130,7 @@ export class NotificationController {
         prefTargetHit: targetUser.prefTargetHit,
         prefManualClose: targetUser.prefManualClose,
         prefDailySummary: targetUser.prefDailySummary,
+        prefPriceMovement: targetUser.prefPriceMovement ?? true,
         emailNotificationsEnabled: targetUser.emailEnabled,
         telegramNotificationsEnabled: targetUser.telegramEnabled,
         inAppNotificationsEnabled: targetUser.inAppEnabled,
@@ -160,6 +161,7 @@ export class NotificationController {
       if (preferences.prefTargetHit !== undefined) updateData.prefTargetHit = preferences.prefTargetHit;
       if (preferences.prefManualClose !== undefined) updateData.prefManualClose = preferences.prefManualClose;
       if (preferences.prefDailySummary !== undefined) updateData.prefDailySummary = preferences.prefDailySummary;
+      if (preferences.prefPriceMovement !== undefined) updateData.prefPriceMovement = preferences.prefPriceMovement;
       
       // Handle the new settings and sync older names
       if (preferences.emailEnabled !== undefined) {

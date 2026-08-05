@@ -128,4 +128,23 @@ export class TradeEventEngine {
       },
     });
   }
+
+  // Price Movement Alerts Handler
+  async handlePriceMovementAlert(pos: PortfolioPosition, pct: number, direction: string, currentPrice: number, triggerKey: string): Promise<void> {
+    const message = `Price Alert: ${pos.symbol} has moved ${pct}% ${direction} from its Buy Price of ₹${pos.buyPrice} (CMP: ₹${currentPrice}).`;
+    await this.notificationService.createNotification({
+      type: NotificationType.PRICE_MOVEMENT,
+      symbol: pos.symbol,
+      company: pos.company,
+      message,
+      triggerPrice: currentPrice,
+      triggerKey,
+      metadata: {
+        buyPrice: pos.buyPrice,
+        currentPrice,
+        movementPct: pct,
+        direction,
+      },
+    });
+  }
 }

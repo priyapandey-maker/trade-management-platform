@@ -44,6 +44,7 @@ model User {
   prefTargetHit                Boolean             @default(true)
   prefManualClose              Boolean             @default(true)
   prefDailySummary             Boolean             @default(true)
+  prefPriceMovement            Boolean?            @default(true)
   
   // Delivery channel status flags
   emailNotificationsEnabled    Boolean             @default(true)
@@ -99,6 +100,9 @@ model PortfolioPosition {
   status              String               @default("OPEN") // "OPEN" | "CLOSED" | "ARCHIVED"
   closedAt            DateTime?
   muteAlertsUntil     DateTime?
+  alert2Sent          Boolean?             @default(false)
+  alert3Sent          Boolean?             @default(false)
+  alert5Sent          Boolean?             @default(false)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 

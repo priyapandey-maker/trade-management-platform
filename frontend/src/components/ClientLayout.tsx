@@ -20,6 +20,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   useEffect(() => {
@@ -28,17 +29,21 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       setIsCollapsed(true);
     }
 
-    // Set initial size
+    // Set initial sizes
     setIsMobile(window.innerWidth < 768);
+    setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
 
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsTablet(width >= 768 && width < 1024);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const toggleCollapse = () => {
+    if (isTablet) return; // Tablet is locked to collapsed (icons-only)
     const next = !isCollapsed;
     setIsCollapsed(next);
     localStorage.setItem('shree_sidebar_collapsed', String(next));
@@ -65,12 +70,12 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     return <>{children}</>;
   }
 
-  const sidebarWidth = isMobile ? 0 : (isCollapsed ? 80 : 260);
+  const sidebarWidth = isMobile ? 0 : (isTablet || isCollapsed ? 80 : 260);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: isDark ? '#0B0F17' : '#F8FAFC', color: isDark ? '#F8FAFC' : '#0F172A' }}>
       <Sidebar 
-        isCollapsed={isCollapsed} 
+        isCollapsed={isTablet || isCollapsed} 
         toggleCollapse={toggleCollapse} 
         isMobile={isMobile}
         showMobile={showMobileSidebar}
@@ -78,7 +83,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       />
       <Header
         sidebarWidth={sidebarWidth}
-        isCollapsed={isCollapsed}
+        isCollapsed={isTablet || isCollapsed}
         toggleSidebar={toggleCollapse}
         refreshInterval={refreshInterval}
         setRefreshInterval={setRefreshInterval}
@@ -103,11 +108,24 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   );
 };
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 10000, // 10s default caching duration
+    },
+  },
+});
+
 export const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <LayoutContent>{children}</LayoutContent>
+        <QueryClientProvider client={queryClient}>
+          <LayoutContent>{children}</LayoutContent>
+        </QueryClientProvider>
       </ThemeProvider>
     </AuthProvider>
   );

@@ -1,18 +1,21 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
+import { useQuery } from '@tanstack/react-query';
 import {
   ResponsiveContainer,
   LineChart, Line,
   BarChart, Bar,
   PieChart, Pie, Cell,
   AreaChart, Area,
-  RadialBarChart, RadialBar, Legend,
-  XAxis, YAxis, CartesianGrid, Tooltip
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend
 } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -21,48 +24,36 @@ export default function DashboardPage() {
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     setIsMobile(window.innerWidth < 768);
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // React Query cached fetch
+  const { data: dashboardData, isLoading, error } = useQuery({
+    queryKey: ['dashboardData'],
+    queryFn: async () => {
+      const res = await api.get('/portfolio/dashboard');
+      return res.data;
+    },
+    refetchInterval: 30000, // 30s auto-refresh
+  });
 
-  // Switchable Dashboard Layout Option: 'OPTION_1' | 'OPTION_2' | 'OPTION_3'
-  const [layoutOption, setLayoutOption] = useState<'OPTION_1' | 'OPTION_2' | 'OPTION_3'>('OPTION_1');
-
-  // Performer Widget Index
+  // Performer Widget Rotation State
   const [performerIndex, setPerformerIndex] = useState(0);
 
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await api.get('/portfolio/dashboard');
-      setData(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch executive dashboard metrics.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 60000);
-    return () => clearInterval(interval);
-  }, [fetchDashboardData]);
-
-  const summary = data?.summary || {};
-  const performers = data?.performers || [];
-  const recentPositions = data?.recentPositions || [];
+  const summary = dashboardData?.summary || {};
+  const performers = dashboardData?.performers || [];
+  const recentPositions = dashboardData?.recentPositions || [];
+  const openPositions = dashboardData?.positions?.open || [];
 
   useEffect(() => {
     if (performers.length === 0) return;
@@ -77,511 +68,439 @@ export default function DashboardPage() {
   const textCol = isDark ? '#F8FAFC' : '#0F172A';
   const subTextCol = isDark ? '#94A3B8' : '#64748B';
 
-  const chartThemeColor = '#16A34A';
+  const chartThemeColor = '#10B981';
   const chartAltColor = '#2563EB';
-  const COLORS = ['#2563EB', '#10B981', '#64748B', '#0D9488', '#7C3AED', '#EA580C'];
+  const COLORS = ['#2563EB', '#10B981', '#7C3AED', '#EA580C', '#64748B', '#0D9488'];
 
-  const lineData = data?.charts?.line || [];
-  const barData = data?.charts?.bar || [];
-  const pieData = data?.charts?.pie || [];
-  const stackedData = data?.charts?.stacked || [];
-  const areaData = data?.charts?.area || [];
-  const radialData = data?.charts?.radial || [];
-  const heatmapData = data?.charts?.heatmap || [];
-  const histogramBins = data?.charts?.histogram || [
-    { range: '0-5d', count: 0 },
-    { range: '6-15d', count: 0 },
-    { range: '16-30d', count: 0 },
-    { range: '31d+', count: 0 },
-  ];
+  // --- CHART DATA PROCESSING ---
+  // 1. Portfolio Allocation (Pie)
+  const pieData = openPositions.map((p: any) => ({
+    name: p.symbol,
+    value: p.investedAmount || 0,
+  }));
+
+  // 2. Investor Split (Radial / Bar)
+  const radialData = (dashboardData?.investors || []).map((inv: any) => ({
+    name: inv.name,
+    Capital: inv.totalInvestment || 0,
+  }));
+
+  // 3. Sector Allocation (Donut)
+  const sectorMap: Record<string, number> = {};
+  openPositions.forEach((p: any) => {
+    const sector = p.assetType || 'STOCK';
+    sectorMap[sector] = (sectorMap[sector] || 0) + (p.investedAmount || 0);
+  });
+  const sectorData = Object.entries(sectorMap).map(([name, value]) => ({ name, value }));
+
+  // 4. Portfolio Growth over time (Area / Line)
+  const growthData = (dashboardData?.charts?.area || []);
+
+  // Top performers splits (Gainer / Loser)
+  const openHoldingsSorted = [...openPositions].sort((a, b) => b.profitLossPct - a.profitLossPct);
+  const topGainers = openHoldingsSorted.slice(0, 3);
+  const topLosers = [...openPositions].sort((a, b) => a.profitLossPct - b.profitLossPct).slice(0, 3);
+
+  const exportPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    const drawHeader = () => {
+      doc.setFillColor(11, 15, 23);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SHREE ASSOCIATES  |  Executive Dashboard Valuation Terminal', 20, 24);
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(200, 200, 200);
+      const dateStr = new Date().toLocaleString('en-IN');
+      const userText = user?.email ? `User: ${user.email}` : 'User: Administrator';
+      doc.text(`Report Date: ${dateStr}   |   ${userText}`, pageWidth - 20 - doc.getTextWidth(`Report Date: ${dateStr}   |   ${userText}`), 24);
+
+      doc.setFillColor(16, 185, 129);
+      doc.rect(0, 40, pageWidth, 3, 'F');
+    };
+
+    drawHeader();
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('EXECUTIVE PORTFOLIO SUMMARY', 20, 70);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Portfolio Value: ₹${(summary.totalPortfolioValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 20, 95);
+    doc.text(`Total Capital Invested: ₹${(summary.totalInvestment || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 20, 115);
+    doc.text(`Available Cash Balance: ₹${(summary.availableCashBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 20, 135);
+    doc.text(`Total Capital Deployed: ₹${(summary.totalCapitalDeployed || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 20, 155);
+
+    doc.text(`Unrealized Profit/Loss: ₹${(summary.unrealizedProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 350, 95);
+    doc.text(`Realized Profit/Loss: ₹${(summary.realizedProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 350, 115);
+    doc.text(`Average Trade Return: ${(summary.avgReturn || 0).toFixed(2)}%`, 350, 135);
+    doc.text(`System Win Rate: ${(summary.winRate || 0).toFixed(1)}%`, 350, 155);
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Current Active Holdings', 20, 190);
+
+    const headers = ['Symbol', 'Investor', 'Trade Type', 'Buy Price', 'Current Price', 'Quantity', 'Invested Capital', 'Current Value', 'P&L (Unrealized)'];
+    const rows = openPositions.map((p: any) => [
+      p.symbol,
+      p.investorName,
+      p.tradeType,
+      `₹${p.buyPrice.toFixed(2)}`,
+      `₹${p.currentPrice.toFixed(2)}`,
+      p.quantity.toString(),
+      `₹${p.investedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      `₹${p.currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      `₹${p.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${p.profitLossPct.toFixed(2)}%)`
+    ]);
+
+    autoTable(doc, {
+      head: [headers],
+      body: rows,
+      startY: 200,
+      margin: { left: 20, right: 20 },
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+    });
+
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(20, pageHeight - 30, pageWidth - 20, pageHeight - 30);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      doc.text('SHREE ASSOCIATES  •  Confidential Executive Report  •  Internal Use Only', 20, pageHeight - 15);
+      
+      const pageText = `Page ${i} of ${totalPages}`;
+      doc.text(pageText, pageWidth - 20 - doc.getTextWidth(pageText), pageHeight - 15);
+    }
+
+    doc.save(`Shree_Associates_CEO_Dashboard_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: '60px', textAlign: 'center', color: subTextCol, fontSize: '15px' }}>
+        Analyzing system balances...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '24px', color: '#EF4444', backgroundColor: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '8px' }}>
+        ⚠️ Failed to load dashboard: {(error as any).message || 'Server error'}
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
-      {/* Executive Header & Layout Option Switcher */}
+      {/* Title Controls Header */}
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: 900, color: textCol, margin: 0 }}>Executive Dashboard</h1>
-          <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>
-            High-level executive overview, institutional risk metrics, and presentation views.
-          </p>
+          <h1 style={{ fontSize: '24px', fontWeight: 900, color: textCol, margin: 0 }}>Executive terminal</h1>
+          <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>Institutional dealing board and platform control center</p>
         </div>
-
-        {/* 3 Layout Option Selector */}
-        <div style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', border: `1px solid ${borderCol}`, borderRadius: '10px', padding: '4px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '4px', width: isMobile ? '100%' : 'auto' }}>
-          <button
-            onClick={() => setLayoutOption('OPTION_1')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: layoutOption === 'OPTION_1' ? (isDark ? '#334155' : '#FFFFFF') : 'transparent',
-              color: layoutOption === 'OPTION_1' ? '#16A34A' : subTextCol,
-              fontWeight: layoutOption === 'OPTION_1' ? 800 : 600,
-              fontSize: '12.5px',
-              cursor: 'pointer',
-              boxShadow: layoutOption === 'OPTION_1' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-            }}
-          >
-            🏛️ Executive Summary
-          </button>
-
-          <button
-            onClick={() => setLayoutOption('OPTION_2')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: layoutOption === 'OPTION_2' ? (isDark ? '#334155' : '#FFFFFF') : 'transparent',
-              color: layoutOption === 'OPTION_2' ? '#16A34A' : subTextCol,
-              fontWeight: layoutOption === 'OPTION_2' ? 800 : 600,
-              fontSize: '12.5px',
-              cursor: 'pointer',
-              boxShadow: layoutOption === 'OPTION_2' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-            }}
-          >
-            🖥️ Trading Desk (Charts)
-          </button>
-
-          <button
-            onClick={() => setLayoutOption('OPTION_3')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: layoutOption === 'OPTION_3' ? (isDark ? '#334155' : '#FFFFFF') : 'transparent',
-              color: layoutOption === 'OPTION_3' ? '#16A34A' : subTextCol,
-              fontWeight: layoutOption === 'OPTION_3' ? 800 : 600,
-              fontSize: '12.5px',
-              cursor: 'pointer',
-              boxShadow: layoutOption === 'OPTION_3' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-            }}
-          >
-            👔 Client Presentation
-          </button>
-        </div>
+        <button onClick={exportPDF} style={{ padding: '9px 18px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          📥 Export PDF Report
+        </button>
       </div>
 
-      {error && (
-        <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
-          ⚠️ {error}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        {/* ========================================================== */}
+        {/* ROW 1: PORTFOLIO VALUE CARD (~45%) & TODAY'S P&L (55%) */}
+        {/* ========================================================== */}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '20px' }}>
+          
+          {/* Portfolio Value large card */}
+          <div style={{ flex: isMobile ? 'none' : '0 0 45%', backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Portfolio Valuation</div>
+              <div style={{ fontSize: '32px', fontWeight: 900, color: textCol, marginTop: '8px' }}>
+                ₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '16px' }}>
+              <div>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: (summary.currentPortfolioProfitLoss || 0) >= 0 ? '#10B981' : '#EF4444' }}>
+                  {(summary.currentPortfolioProfitLoss || 0) >= 0 ? '▲ +' : '▼ '}
+                  {(((summary.currentPortfolioProfitLoss || 0) / (summary.totalInvestment || 1)) * 100).toFixed(2)}%
+                </span>
+                <span style={{ fontSize: '12px', color: subTextCol, marginLeft: '8px' }}>Today's Change</span>
+              </div>
+              <div style={{ width: '120px', height: '40px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={growthData.slice(-6)}>
+                    <Area type="monotone" dataKey="Gain" stroke={chartThemeColor} fill={`${chartThemeColor}20`} strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Today's P&L splits */}
+          <div style={{ flex: 1, backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Today's Profit &amp; Loss breakdown</div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '16px' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>Realized Gains</div>
+                <div style={{ fontSize: '20px', fontWeight: 900, color: (summary.realizedProfit || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '6px' }}>
+                  ₹{(summary.realizedProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>Unrealized Balance</div>
+                <div style={{ fontSize: '20px', fontWeight: 900, color: (summary.unrealizedProfit || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '6px' }}>
+                  ₹{(summary.unrealizedProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>Available Liquid Cash</div>
+                <div style={{ fontSize: '20px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
+                  ₹{(summary.availableCashBalance || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '12px', marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: subTextCol }}>
+              <span>Capital Deployed: <strong>₹{(summary.totalCapitalDeployed || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong></span>
+              <span>Overall Win Rate: <strong>{(summary.winRate || 0).toFixed(1)}%</strong></span>
+            </div>
+          </div>
+
         </div>
-      )}
 
-      {loading && !data ? (
-        <div style={{ padding: '60px', textAlign: 'center', color: subTextCol }}>Loading executive overview...</div>
-      ) : (
-        <>
-          {/* ========================================================================= */}
-          {/* OPTION 1: EXECUTIVE SUMMARY (Bloomberg Terminal Style) */}
-          {/* ========================================================================= */}
-          {layoutOption === 'OPTION_1' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              
-              {/* Top Executive KPI Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Portfolio Valuation</div>
-                  <div style={{ fontSize: '26px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
-                    ₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#16A34A', fontWeight: 700, marginTop: '4px' }}>Active Capital Value</div>
-                </div>
-
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Unrealized Live P&amp;L</div>
-                  <div style={{ fontSize: '26px', fontWeight: 900, color: (summary.currentPortfolioProfitLoss || 0) >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
-                    {(summary.currentPortfolioProfitLoss || 0) >= 0 ? '+' : ''}₹{(summary.currentPortfolioProfitLoss || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ fontSize: '12px', color: subTextCol, marginTop: '4px' }}>Current Market Gain/Loss</div>
-                </div>
-
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Active Open Trades</div>
-                  <div style={{ fontSize: '26px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{summary.totalOpenPositions || 0}</div>
-                  <div style={{ fontSize: '12px', color: subTextCol, marginTop: '4px' }}>{summary.totalClosedPositions || 0} Closed Historical</div>
-                </div>
-
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Realized Closed P&amp;L</div>
-                  <div style={{ fontSize: '26px', fontWeight: 900, color: (summary.realizedProfit || 0) >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
-                    {(summary.realizedProfit || 0) >= 0 ? '+' : ''}₹{(summary.realizedProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ fontSize: '12px', color: subTextCol, marginTop: '4px' }}>Win Rate: {(summary.winRate || 0).toFixed(2)}%</div>
-                </div>
-              </div>
-
-              {/* Middle Section: Rotating Performer Widget & Recent Activity */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
-                
-                {/* Rotating Performer Card */}
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', overflow: 'hidden', minHeight: '180px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 800, color: textCol, margin: '0 0 16px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    📊 Portfolio Performer Rotation
-                  </h3>
-                  
-                  {performers.length > 0 && performers[performerIndex] ? (
-                    <div key={performerIndex} className="animate-fade-slide" style={{ padding: '16px', borderRadius: '8px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 800, color: performers[performerIndex].color, textTransform: 'uppercase' }}>
-                          {performers[performerIndex].label}
-                        </span>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: textCol }}>
-                          {performers[performerIndex].data.symbol}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '18px', fontWeight: 900, color: textCol, marginTop: '8px' }}>
-                        {performers[performerIndex].data.company}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                        <span style={{ fontSize: '16px', fontWeight: 900, color: performers[performerIndex].color }}>
-                          {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{performers[performerIndex].data.profitLossPct.toFixed(2)}%
-                        </span>
-                        <span style={{ fontSize: '13.5px', fontWeight: 700, color: subTextCol }}>
-                          {performers[performerIndex].data.profitLoss >= 0 ? '+' : ''}₹{performers[performerIndex].data.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ color: subTextCol, fontSize: '13.5px' }}>No positions recorded.</div>
-                  )}
-                </div>
-
-                {/* Recent Activity Table */}
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: textCol, margin: '0 0 16px 0' }}>📋 Recent Position Activity</h3>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {recentPositions.map((p: any) => (
-                      <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '8px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}`, fontSize: '13px' }}>
-                        <div>
-                          <strong style={{ color: textCol }}>{p.symbol}</strong>
-                          <span style={{ marginLeft: '8px', color: subTextCol, fontSize: '12px' }}>{p.company}</span>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 800, color: p.profitLoss >= 0 ? '#16A34A' : '#DC2626' }}>
-                            {p.profitLoss >= 0 ? '+' : ''}₹{p.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </div>
-                          <div style={{ fontSize: '11px', color: subTextCol }}>{p.holdingPeriod} Days Active</div>
-                        </div>
-                      </div>
+        {/* ========================================================== */}
+        {/* ROW 2: ALLOCATION CHARTS (3 Equal Columns) */}
+        {/* ========================================================== */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '20px' }}>
+          
+          {/* Portfolio Allocation Pie */}
+          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, margin: '0 0 10px 0', textTransform: 'uppercase' }}>Composition by Holdings</h3>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} fill="#8884d8">
+                    {pieData.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
-                  </div>
-                </div>
-
-              </div>
+                  </Pie>
+                  <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-          )}
+          </div>
 
-          {/* ========================================================================= */}
-          {/* OPTION 2: TRADING DESK (Dealing Desk Layout with Recharts) */}
-          {/* ========================================================================= */}
-          {layoutOption === 'OPTION_2' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              
-              {/* Top Desk Metrics */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Capital Deployed</div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
-                    ₹{(summary.totalCapitalDeployed || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Total Exposure Deployed</div>
+          {/* Investor Split Bar */}
+          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, margin: '0 0 10px 0', textTransform: 'uppercase' }}>Investor Allocations</h3>
+            <div style={{ flex: 1 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={radialData}>
+                  <XAxis dataKey="name" stroke={subTextCol} fontSize={10} tickLine={false} />
+                  <YAxis stroke={subTextCol} fontSize={10} width={45} tickFormatter={(val) => `₹${(val / 100000).toFixed(0)}L`} />
+                  <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
+                  <Bar dataKey="Capital" fill={chartAltColor} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Sector Allocation Donut */}
+          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, margin: '0 0 10px 0', textTransform: 'uppercase' }}>Composition by Sectors</h3>
+            <div style={{ flex: 1 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={sectorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={70} fill="#8884d8">
+                    {sectorData.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ========================================================== */}
+        {/* ROW 3: PORTFOLIO GROWTH (Line chart) */}
+        {/* ========================================================== */}
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', height: '320px', display: 'flex', flexDirection: 'column' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 800, color: textCol, margin: '0 0 16px 0', textTransform: 'uppercase' }}>Portfolio Returns Growth Trend</h3>
+          <div style={{ flex: 1 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={growthData}>
+                <defs>
+                  <linearGradient id="colorGrowth" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={chartThemeColor} stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor={chartThemeColor} stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#E2E8F0'} />
+                <XAxis dataKey="date" stroke={subTextCol} fontSize={10} tickLine={false} />
+                <YAxis stroke={subTextCol} fontSize={10} tickFormatter={(val) => `₹${(val / 100000).toFixed(1)}L`} />
+                <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
+                <Area type="monotone" dataKey="Gain" stroke={chartThemeColor} strokeWidth={2} fillOpacity={1} fill="url(#colorGrowth)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* ========================================================== */}
+        {/* ROW 4: GAINERS, LOSERS, ROTATION CARD, RECENT ACTIVITY */}
+        {/* ========================================================== */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : (isTablet ? '1fr 1fr' : 'repeat(4, 1fr)'), gap: '20px' }}>
+          
+          {/* Top Gainers */}
+          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
+            <h4 style={{ fontSize: '12.5px', fontWeight: 800, color: '#10B981', margin: '0 0 14px 0', textTransform: 'uppercase' }}>🚀 Top Gainers</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {topGainers.map((g: any) => (
+                <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                  <span style={{ fontWeight: 700, color: textCol }}>{g.symbol}</span>
+                  <span style={{ color: '#10B981', fontWeight: 800 }}>+{g.profitLossPct.toFixed(2)}%</span>
                 </div>
+              ))}
+              {topGainers.length === 0 && <span style={{ fontSize: '12px', color: subTextCol }}>No open positions</span>}
+            </div>
+          </div>
 
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Available Cash Balance</div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#16A34A', marginTop: '6px' }}>
-                    ₹{(summary.availableCashBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Unallocated Capital</div>
+          {/* Top Losers */}
+          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
+            <h4 style={{ fontSize: '12.5px', fontWeight: 800, color: '#EF4444', margin: '0 0 14px 0', textTransform: 'uppercase' }}>📉 Top Losers</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {topLosers.map((l: any) => (
+                <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                  <span style={{ fontWeight: 700, color: textCol }}>{l.symbol}</span>
+                  <span style={{ color: '#EF4444', fontWeight: 800 }}>{l.profitLossPct.toFixed(2)}%</span>
                 </div>
+              ))}
+              {topLosers.length === 0 && <span style={{ fontSize: '12px', color: subTextCol }}>No open positions</span>}
+            </div>
+          </div>
 
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Average Holding Period</div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{(summary.avgHoldingPeriod || 0).toFixed(1)} Days</div>
-                  <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Turnover Speed</div>
+          {/* Performer Rotation Widget */}
+          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            {performers.length > 0 && performers[performerIndex] ? (
+              <div key={performerIndex} style={{ animation: 'fadeIn 0.4s ease' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 800, color: performers[performerIndex].color, textTransform: 'uppercase' }}>
+                    {performers[performerIndex].label}
+                  </span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: textCol }}>{performers[performerIndex].data.symbol}</span>
                 </div>
-
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Desk Win Rate</div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#16A34A', marginTop: '6px' }}>{(summary.winRate || 0).toFixed(2)}%</div>
-                  <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Closed Success Ratio</div>
+                <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, marginTop: '4px' }}>
+                  {performers[performerIndex].data.company}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: performers[performerIndex].color }}>
+                    {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{performers[performerIndex].data.profitLossPct.toFixed(2)}%
+                  </span>
                 </div>
               </div>
+            ) : (
+              <span style={{ fontSize: '12px', color: subTextCol }}>No perform stats</span>
+            )}
+          </div>
 
-              {/* 8 Charts Grid */}
-              {mounted && (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '20px' }}>
-                  
-                  {/* 1. Line Chart: Live CMP vs Buy Price */}
-                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>📈 LINE CHART: Buy Price vs CMP</h4>
-                    {lineData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="88%">
-                        <LineChart data={lineData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
-                          <XAxis dataKey="symbol" stroke={subTextCol} fontSize={10} />
-                          <YAxis stroke={subTextCol} fontSize={10} />
-                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
-                          <Line type="monotone" dataKey="BuyPrice" stroke="#3b82f6" strokeWidth={2.5} activeDot={{ r: 8 }} />
-                          <Line type="monotone" dataKey="CMP" stroke="#10b981" strokeWidth={2.5} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No open positions</div>
-                    )}
-                  </div>
-
-                  {/* 2. Bar Chart: Realized P&L by Symbol */}
-                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>📊 BAR CHART: Realized P&amp;L</h4>
-                    {barData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="88%">
-                        <BarChart data={barData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
-                          <XAxis dataKey="symbol" stroke={subTextCol} fontSize={10} />
-                          <YAxis stroke={subTextCol} fontSize={10} />
-                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
-                          <Bar dataKey="PnL" fill={chartThemeColor}>
-                            {barData.map((entry: any, idx: number) => (
-                              <Cell key={`cell-${idx}`} fill={entry.PnL >= 0 ? '#10b981' : '#ef4444'} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No closed positions</div>
-                    )}
-                  </div>
-
-                  {/* 3. Pie Chart: Capital Allocation Share */}
-                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🍕 PIE CHART: Portfolio Composition</h4>
-                    {pieData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="88%">
-                        <PieChart>
-                          <Pie
-                            data={pieData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={50}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            {pieData.map((entry: any, idx: number) => (
-                              <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value: any) => value ? `₹${value.toLocaleString('en-IN')}` : ''} contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No open positions</div>
-                    )}
-                  </div>
-
-                  {/* 4. Stacked Bar Chart: Deployed vs Current value */}
-                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🗄️ STACKED BAR: Invested vs Current value</h4>
-                    {stackedData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="88%">
-                        <BarChart data={stackedData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
-                          <XAxis dataKey="symbol" stroke={subTextCol} fontSize={10} />
-                          <YAxis stroke={subTextCol} fontSize={10} />
-                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
-                          <Bar dataKey="Invested" stackId="a" fill="#3b82f6" />
-                          <Bar dataKey="Value" stackId="a" fill="#10b981" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No open positions</div>
-                    )}
-                  </div>
-
-                  {/* 5. Area Chart: Cumulative Realized Returns */}
-                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🏔️ AREA CHART: Cumulative Realized Gain</h4>
-                    {areaData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="88%">
-                        <AreaChart data={areaData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
-                          <XAxis dataKey="date" stroke={subTextCol} fontSize={10} />
-                          <YAxis stroke={subTextCol} fontSize={10} />
-                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
-                          <Area type="monotone" dataKey="Gain" stroke="#10b981" fill="#10b981" fillOpacity={0.15} />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No closed trades to map trend</div>
-                    )}
-                  </div>
-
-                  {/* 6. Radial Bar Chart: Investor Capital Managed */}
-                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🎯 RADIAL BAR: Investor Capital Share</h4>
-                    {radialData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="88%">
-                        <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" barSize={10} data={radialData}>
-                          <RadialBar background dataKey="uv" />
-                          <Tooltip formatter={(value: any) => value ? `₹${value.toLocaleString('en-IN')}` : ''} contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
-                        </RadialBarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No investor share recorded</div>
-                    )}
-                  </div>
-
-                  {/* 7. Heatmap Grid: Asset Risk Distribution Grid */}
-                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px', overflow: 'hidden' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🌶️ PERFORMANCE HEATMAP: Active Assets</h4>
-                    {heatmapData.length > 0 ? (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px', height: '80%', overflowY: 'auto', padding: '5px' }}>
-                        {heatmapData.map((h: any) => {
-                          const isProfit = h.pct >= 0;
-                          const bg = isProfit
-                            ? `rgba(16, 185, 129, ${Math.min(1, 0.15 + Math.abs(h.pct) / 20)})`
-                            : `rgba(239, 68, 68, ${Math.min(1, 0.15 + Math.abs(h.pct) / 20)})`;
-                          const col = isProfit ? '#10b981' : '#ef4444';
-                          return (
-                            <div
-                              key={h.symbol}
-                              style={{
-                                backgroundColor: bg,
-                                border: `1.5px solid ${col}`,
-                                borderRadius: '8px',
-                                padding: '12px 8px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                transition: 'transform 0.2s',
-                              }}
-                              title={`${h.symbol}: ${h.pct.toFixed(2)}% (₹${h.val.toLocaleString('en-IN')})`}
-                              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                            >
-                              <div style={{ fontSize: '12.5px', fontWeight: 900, color: textCol }}>{h.symbol}</div>
-                              <div style={{ fontSize: '11px', fontWeight: 800, color: textCol, marginTop: '4px' }}>
-                                {isProfit ? '+' : ''}{h.pct.toFixed(1)}%
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No open assets</div>
-                    )}
-                  </div>
-
-                  {/* 8. Histogram: Holding Period Distribution */}
-                  <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '320px' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol }}>🧱 HISTOGRAM: Closed Holding Duration Bins</h4>
-                    {histogramBins.some((b: any) => b.count > 0) ? (
-                      <ResponsiveContainer width="100%" height="88%">
-                        <BarChart data={histogramBins}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
-                          <XAxis dataKey="range" stroke={subTextCol} fontSize={10} />
-                          <YAxis stroke={subTextCol} fontSize={10} />
-                          <Tooltip contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
-                          <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80%', color: subTextCol }}>No closed positions to map frequency</div>
-                    )}
-                  </div>
-
+          {/* Recent Activity */}
+          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px' }}>
+            <h4 style={{ fontSize: '12.5px', fontWeight: 800, color: textCol, margin: '0 0 14px 0', textTransform: 'uppercase' }}>📋 Activity</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {recentPositions.slice(0, 3).map((p: any) => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                  <span style={{ fontWeight: 700, color: textCol }}>{p.symbol}</span>
+                  <span style={{ color: p.profitLoss >= 0 ? '#10B981' : '#EF4444', fontWeight: 700 }}>
+                    {p.profitLoss >= 0 ? '+' : ''}₹{p.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </span>
                 </div>
+              ))}
+              {recentPositions.length === 0 && <span style={{ fontSize: '12px', color: subTextCol }}>No recent trades</span>}
+            </div>
+          </div>
+
+        </div>
+
+        {/* ========================================================== */}
+        {/* ROW 5: OPEN HOLDINGS TABLE */}
+        {/* ========================================================== */}
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '20px', overflowX: 'auto' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 800, color: textCol, margin: '0 0 16px 0', textTransform: 'uppercase' }}>Active Portfolio Open Holdings</h3>
+          
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13.5px', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${borderCol}`, color: subTextCol }}>
+                <th style={{ padding: '10px 14px' }}>Symbol</th>
+                <th style={{ padding: '10px 14px' }}>Investor</th>
+                <th style={{ padding: '10px 14px' }}>Trade Type</th>
+                <th style={{ padding: '10px 14px' }}>Entry Buy Price</th>
+                <th style={{ padding: '10px 14px' }}>Current Price</th>
+                <th style={{ padding: '10px 14px' }}>Quantity</th>
+                <th style={{ padding: '10px 14px' }}>Invested Capital</th>
+                <th style={{ padding: '10px 14px' }}>Current Value</th>
+                <th style={{ padding: '10px 14px' }}>P&amp;L (Unrealized)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {openPositions.slice(0, 10).map((p: any) => (
+                <tr key={p.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
+                  <td style={{ padding: '12px 14px', fontWeight: 800, color: textCol }}>{p.symbol}</td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>{p.investorName}</td>
+                  <td style={{ padding: '12px 14px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 800, padding: '3px 8px', borderRadius: '4px', backgroundColor: p.tradeType === 'SELL' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: p.tradeType === 'SELL' ? '#EF4444' : '#10B981' }}>
+                      {p.tradeType}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>₹{p.buyPrice.toFixed(2)}</td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>₹{p.currentPrice.toFixed(2)}</td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>{p.quantity}</td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>₹{p.investedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>₹{p.currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td style={{ padding: '12px 14px', fontWeight: 800, color: p.profitLoss >= 0 ? '#10B981' : '#EF4444' }}>
+                    ₹{p.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2 })} ({p.profitLossPct.toFixed(2)}%)
+                  </td>
+                </tr>
+              ))}
+              {openPositions.length === 0 && (
+                <tr>
+                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: subTextCol }}>
+                    No open trades recorded.
+                  </td>
+                </tr>
               )}
+            </tbody>
+          </table>
+          
+          {openPositions.length > 10 && (
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+              <Link href="/open" style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
+                View all open positions ({openPositions.length}) →
+              </Link>
             </div>
           )}
+        </div>
 
-          {/* ========================================================================= */}
-          {/* OPTION 3: CLIENT PRESENTATION (Minimal, Elegant Executive View) */}
-          {/* ========================================================================= */}
-          {layoutOption === 'OPTION_3' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              {/* Giant Minimalist KPI Header Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '20px' }}>
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '28px', borderRadius: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Total Portfolio Value</div>
-                  <div style={{ fontSize: '38px', fontWeight: 900, color: textCol, marginTop: '10px' }}>
-                    ₹{(summary.totalPortfolioValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#16A34A', fontWeight: 700, marginTop: '6px' }}>Net Institutional Assets</div>
-                </div>
-
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '28px', borderRadius: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Unrealized Return</div>
-                  <div style={{ fontSize: '38px', fontWeight: 900, color: (summary.currentPortfolioProfitLoss || 0) >= 0 ? '#16A34A' : '#DC2626', marginTop: '10px' }}>
-                    {(summary.currentPortfolioProfitLoss || 0) >= 0 ? '+' : ''}₹{(summary.currentPortfolioProfitLoss || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ fontSize: '13px', color: subTextCol, marginTop: '6px' }}>Current Market Gain</div>
-                </div>
-
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '28px', borderRadius: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Realized Return</div>
-                  <div style={{ fontSize: '38px', fontWeight: 900, color: (summary.realizedProfit || 0) >= 0 ? '#16A34A' : '#DC2626', marginTop: '10px' }}>
-                    {(summary.realizedProfit || 0) >= 0 ? '+' : ''}₹{(summary.realizedProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ fontSize: '13px', color: subTextCol, marginTop: '6px' }}>Historical Booked Gain</div>
-                </div>
-              </div>
-
-              {/* Clean Executive Summary Cards Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '16px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: textCol, margin: '0 0 16px 0' }}>💼 Portfolio Composition</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${borderCol}` }}>
-                      <span style={{ color: subTextCol }}>Total Capital Deployed</span>
-                      <strong style={{ color: textCol }}>
-                        ₹{(summary.totalCapitalDeployed || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${borderCol}` }}>
-                      <span style={{ color: subTextCol }}>Active Open Trades</span>
-                      <strong style={{ color: textCol }}>{summary.totalOpenPositions || 0} Positions</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
-                      <span style={{ color: subTextCol }}>Closed Historical Trades</span>
-                      <strong style={{ color: textCol }}>{summary.totalClosedPositions || 0} Positions</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '16px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: textCol, margin: '0 0 16px 0' }}>📊 Performance Analytics</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${borderCol}` }}>
-                      <span style={{ color: subTextCol }}>Closed Win Rate</span>
-                      <strong style={{ color: '#16A34A' }}>{(summary.winRate || 0).toFixed(2)}%</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: `1px solid ${borderCol}` }}>
-                      <span style={{ color: subTextCol }}>Average Trade Return</span>
-                      <strong style={{ color: (summary.avgReturn || 0) >= 0 ? '#16A34A' : '#DC2626' }}>
-                        {(summary.avgReturn || 0) >= 0 ? '+' : ''}{(summary.avgReturn || 0).toFixed(2)}%
-                      </strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
-                      <span style={{ color: subTextCol }}>Average Holding Period</span>
-                      <strong style={{ color: textCol }}>{(summary.avgHoldingPeriod || 0).toFixed(1)} Days</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-        </>
-      )}
-
+      </div>
     </div>
   );
 }

@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function OpenPositionsPage() {
   const { user } = useAuth();
@@ -19,10 +21,21 @@ export default function OpenPositionsPage() {
   const [search, setSearch] = useState('');
   const [displaySearch, setDisplaySearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [investorFilter, setInvestorFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState('entryDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Sparkline cache state
+  const [sparklines, setSparklines] = useState<Record<string, number[]>>({});
+
+  // CSV Bulk Import wizard states
+  const [showImportWizard, setShowImportWizard] = useState(false);
+  const [importStep, setImportStep] = useState<'UPLOAD' | 'PREVIEW' | 'REPORT'>('UPLOAD');
+  const [csvContent, setCsvContent] = useState('');
+  const [importReport, setImportReport] = useState<any>(null);
+  const [importLoading, setImportLoading] = useState(false);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -121,6 +134,100 @@ export default function OpenPositionsPage() {
     const interval = setInterval(fetchPositions, 60000);
     return () => clearInterval(interval);
   }, [fetchPositions]);
+
+  // Sparkline Batch Fetcher Effect
+  useEffect(() => {
+    if (positions.length === 0) return;
+    const symbols = Array.from(new Set(positions.map((p) => p.symbol)));
+    const loadSparklines = async () => {
+      try {
+        const res = await api.get(`/market/sparkline?symbols=${symbols.join(',')}`);
+        if (res.data?.data) {
+          setSparklines((prev) => ({ ...prev, ...res.data.data }));
+        }
+      } catch (err) {
+        console.error('Failed to load sparklines:', err);
+      }
+    };
+    loadSparklines();
+  }, [positions]);
+
+  // Sparkline Component
+  const Sparkline = ({ symbol }: { symbol: string }) => {
+    const prices = sparklines[symbol] || [];
+    if (prices.length === 0) {
+      return <div style={{ fontSize: '9px', color: subTextCol }}>Loading sparkline...</div>;
+    }
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const range = max - min === 0 ? 1 : max - min;
+    const width = 100;
+    const height = 14;
+    const points = prices.map((price, idx) => {
+      const x = (idx / (prices.length - 1)) * width;
+      const y = height - ((price - min) / range) * height;
+      return `${x},${y}`;
+    }).join(' ');
+    const isUp = prices[prices.length - 1] >= prices[0];
+    const strokeColor = isUp ? '#10B981' : '#EF4444';
+    return (
+      <svg width={width} height={height} style={{ overflow: 'visible' }}>
+        <title>{`Trend: ${isUp ? 'UP' : 'DOWN'}`}</title>
+        <polyline fill="none" stroke={strokeColor} strokeWidth="1.5" points={points} />
+      </svg>
+    );
+  };
+
+  // CSV Import Wizard Handlers
+  const downloadTemplate = () => {
+    const headers = 'Investor,Symbol,Buy Price,Quantity,Target,Stop Loss,Buy Date,Trade Type,Notes\n';
+    const sample = 'Shree,TCS,3400.00,10,3800.00,3200.00,2026-08-01,BUY,Investment note\n';
+    const blob = new Blob([headers + sample], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'shree_associates_bulk_import_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      setCsvContent(text);
+      setImportStep('PREVIEW');
+      setImportLoading(true);
+      try {
+        const res = await api.post('/portfolio/bulk-import', { csvData: text, dryRun: true });
+        setImportReport(res.data);
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'CSV validation dry-run failed.');
+        setImportStep('UPLOAD');
+      } finally {
+        setImportLoading(false);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmImport = async () => {
+    setImportLoading(true);
+    try {
+      const res = await api.post('/portfolio/bulk-import', { csvData: csvContent, dryRun: false });
+      setImportReport(res.data);
+      setImportStep('REPORT');
+      fetchPositions();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Bulk import failed.');
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   // Open Edit Drawer
   const handleOpenEditDrawer = (pos: any) => {
@@ -400,17 +507,139 @@ export default function OpenPositionsPage() {
     return { text: `${pct.toFixed(2)}%`, pct, isWarning: pct <= 2.0 };
   };
 
-  const exportCSV = () => {
-    const headers = 'Symbol,Company,Trade Type,Quantity,Buy Price,CMP,Invested Amount,Current Value,Profit/Loss,Profit %';
-    const rows = positions.map(
-      (p) => `${p.symbol},"${p.company}",${p.tradeType},${p.quantity.toFixed(2)},${p.buyPrice.toFixed(2)},${p.currentPrice.toFixed(2)},${p.investedAmount.toFixed(2)},${p.currentValue.toFixed(2)},${p.profitLoss.toFixed(2)},${p.profitLossPct.toFixed(2)}`
-    );
-    const blob = new Blob([[headers, ...rows].join('\n')], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Open_Positions_${new Date().toISOString().substring(0, 10)}.csv`;
-    a.click();
+  const exportPDF = () => {
+    const doc = new jsPDF('landscape', 'pt', 'a4');
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    
+    const drawHeader = () => {
+      doc.setFillColor(11, 15, 23);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SHREE ASSOCIATES  |  Valuation Terminal', 20, 24);
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(200, 200, 200);
+      const dateStr = new Date().toLocaleString('en-IN');
+      const userText = user?.email ? `User: ${user.email}` : 'User: Administrator';
+      const filtersText = `Filters: Investor=${investorFilter}, Type=${typeFilter}`;
+      const headerRight = `${filtersText}   |   Date: ${dateStr}   |   ${userText}`;
+      doc.text(headerRight, pageWidth - 20 - doc.getTextWidth(headerRight), 24);
+
+      doc.setFillColor(16, 185, 129);
+      doc.rect(0, 40, pageWidth, 3, 'F');
+    };
+
+    drawHeader();
+
+    const headers = [
+      'Symbol',
+      'Company Name',
+      'Investor',
+      'Buy Price',
+      'Current Price',
+      'Qty',
+      'Invested Value',
+      'Current Value',
+      'Live P&L',
+      'Return %',
+      'Target Price',
+      'Stop Loss',
+      'Status'
+    ];
+
+    const tableRows = filteredPositions.map((p) => {
+      const isProfit = p.profitLoss >= 0;
+      return [
+        p.symbol,
+        p.company || p.symbol,
+        p.investorName || 'Shree',
+        `₹${p.buyPrice.toFixed(2)}`,
+        `₹${p.currentPrice.toFixed(2)}`,
+        p.quantity.toString(),
+        `₹${p.investedAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+        `₹${p.currentValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+        `${isProfit ? '+' : ''}₹${p.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+        `${isProfit ? '+' : ''}${p.profitLossPct.toFixed(2)}%`,
+        p.targetPrice ? `₹${p.targetPrice.toFixed(2)}` : '-',
+        p.stopLoss ? `₹${p.stopLoss.toFixed(2)}` : '-',
+        p.status
+      ];
+    });
+
+    autoTable(doc, {
+      head: [headers],
+      body: tableRows,
+      startY: 65,
+      margin: { left: 20, right: 20 },
+      styles: { fontSize: 8, cellPadding: 5 },
+      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      didParseCell: (data) => {
+        if (data.section === 'body') {
+          if (data.column.index === 8 || data.column.index === 9) {
+            const val = data.cell.raw as string;
+            if (val.startsWith('+')) {
+              data.cell.styles.textColor = [22, 163, 74];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (val.startsWith('₹-') || val.startsWith('-')) {
+              data.cell.styles.textColor = [220, 38, 38];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        }
+      }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY || 70;
+
+    if (finalY + 80 > pageHeight) {
+      doc.addPage();
+      drawHeader();
+    }
+
+    const startTotalY = finalY + 15;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(20, startTotalY, pageWidth - 40, 48, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(20, startTotalY, pageWidth - 40, 48, 'S');
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    
+    const overallPnL = filteredPositions.reduce((sum, p) => sum + p.profitLoss, 0);
+    const totalInvested = filteredPositions.reduce((sum, p) => sum + p.investedAmount, 0);
+    const currentExposure = filteredPositions.reduce((sum, p) => sum + p.currentValue, 0);
+    const overallReturn = totalInvested > 0 ? (overallPnL / totalInvested) * 100 : 0;
+
+    doc.text(`Total Investment: ₹${totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 30, startTotalY + 20);
+    doc.text(`Current Portfolio Value: ₹${currentExposure.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, 30, startTotalY + 36);
+
+    doc.setTextColor(overallPnL >= 0 ? 22 : 220, overallPnL >= 0 ? 163 : 38, overallPnL >= 0 ? 74 : 38);
+    doc.text(`Total Unrealized Profit/Loss: ${overallPnL >= 0 ? '+' : ''}₹${overallPnL.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, pageWidth / 2 + 10, startTotalY + 20);
+    doc.text(`Overall Return: ${overallPnL >= 0 ? '+' : ''}${overallReturn.toFixed(2)}%`, pageWidth / 2 + 10, startTotalY + 36);
+
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(20, pageHeight - 30, pageWidth - 20, pageHeight - 30);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      doc.text('SHREE ASSOCIATES  •  Confidential Valuation Report  •  Internal Use Only', 20, pageHeight - 15);
+      
+      const pageText = `Page ${i} of ${totalPages}`;
+      doc.text(pageText, pageWidth - 20 - doc.getTextWidth(pageText), pageHeight - 15);
+    }
+
+    doc.save(`Shree_Associates_Open_Positions_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   // KPI summaries
@@ -431,7 +660,8 @@ export default function OpenPositionsPage() {
         pos.company.toLowerCase().includes(term) ||
         (pos.notes && pos.notes.toLowerCase().includes(term));
       const matchesType = typeFilter === 'ALL' || pos.tradeType === typeFilter;
-      return matchesSearch && matchesType;
+      const matchesInvestor = investorFilter === 'ALL' || pos.investorName === investorFilter;
+      return matchesSearch && matchesType && matchesInvestor;
     })
     .sort((a, b) => {
       let valA = a[sortBy];
@@ -466,13 +696,18 @@ export default function OpenPositionsPage() {
         </div>
         
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={exportCSV} className="btnSecondary" style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '8px' }}>
-            📥 Export CSV
+          <button onClick={exportPDF} className="btnSecondary" style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '8px' }}>
+            📥 Export PDF
           </button>
           {user?.role === 'OWNER' && (
-            <button onClick={() => setShowAddModal(true)} className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '8px', backgroundColor: '#16A34A' }}>
-              ➕ Create Position
-            </button>
+            <>
+              <button onClick={() => setShowImportWizard(true)} className="btnSecondary" style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}>
+                📤 Bulk Upload
+              </button>
+              <button onClick={() => setShowAddModal(true)} className="btnPrimary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '8px', backgroundColor: '#16A34A' }}>
+                ➕ Create Position
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -571,6 +806,17 @@ export default function OpenPositionsPage() {
             <option value="profitLossPct-desc">Highest Profit %</option>
             <option value="profitLossPct-asc">Lowest Profit %</option>
             <option value="currentValue-desc">Highest Value</option>
+          </select>
+
+          <select
+            value={investorFilter}
+            onChange={(e) => setInvestorFilter(e.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+          >
+            <option value="ALL">All Investors</option>
+            {Array.from(new Set(positions.map((p) => p.investorName).filter(Boolean))).map((inv: any) => (
+              <option key={inv} value={inv}>{inv}</option>
+            ))}
           </select>
         </div>
 
@@ -787,8 +1033,7 @@ export default function OpenPositionsPage() {
               <thead>
                 <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderBottom: `2px solid ${borderCol}`, color: subTextCol, textAlign: 'left' }}>
                   {user?.role === 'OWNER' && <th style={{ padding: '12px', width: '30px', textAlign: 'center' }}>✓</th>}
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Symbol</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Company</th>
+                  <th style={{ padding: '12px', fontWeight: 800 }}>Symbol &amp; Trend</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Type</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Qty</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Buy Price</th>
@@ -826,23 +1071,30 @@ export default function OpenPositionsPage() {
                         </td>
                       )}
 
-                      <td style={{ padding: '10px', fontWeight: 800, color: textCol }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <div>{pos.symbol}</div>
+                      <td style={{ padding: '10px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 800, color: textCol, fontSize: '13.5px' }}>{pos.symbol}</span>
+                            <span style={{ fontSize: '11px', color: subTextCol }}>{pos.company}</span>
+                          </div>
+                          
+                          {/* Sparkline directly below the symbol */}
+                          <div style={{ width: '100px', height: '14px', display: 'flex', alignItems: 'center', marginTop: '2px' }}>
+                            <Sparkline symbol={pos.symbol} />
+                          </div>
+
                           {pos.atBuyPrice && (
-                            <span style={{ fontSize: '9.5px', fontWeight: 900, backgroundColor: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px', width: 'fit-content' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 950, backgroundColor: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px', width: 'fit-content' }}>
                               🎯 At Buy Price
                             </span>
                           )}
                           {!pos.atBuyPrice && pos.nearBuyPrice && (
-                            <span style={{ fontSize: '9.5px', fontWeight: 900, backgroundColor: '#FEF3C7', color: '#B45309', padding: '1px 5px', borderRadius: '4px', width: 'fit-content' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 950, backgroundColor: '#FEF3C7', color: '#B45309', padding: '1px 5px', borderRadius: '4px', width: 'fit-content' }}>
                               📍 Near Buy (±1%)
                             </span>
                           )}
                         </div>
                       </td>
-
-                      <td style={{ padding: '10px', color: subTextCol }}>{pos.company}</td>
 
                       <td style={{ padding: '10px', fontWeight: 700 }}>
                         <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? '#DCFCE7' : '#FEE2E2', color: pos.tradeType === 'BUY' ? '#15803D' : '#991B1B', fontSize: '11px', fontWeight: 800 }}>
@@ -1604,6 +1856,146 @@ export default function OpenPositionsPage() {
               <button onClick={() => setShowBulkDeleteConfirm(false)} className="btnSecondary" style={{ padding: '6px 14px', fontSize: '12px' }}>Cancel</button>
               <button onClick={confirmBulkDelete} style={{ padding: '6px 14px', backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Delete All Selected</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Bulk Import Wizard overlay */}
+      {showImportWizard && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 105 }}>
+          <div style={{ width: '800px', maxHeight: '85vh', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${borderCol}`, paddingBottom: '14px', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>📥 Enterprise Bulk Upload Wizard</h3>
+              <button onClick={() => { setShowImportWizard(false); setImportStep('UPLOAD'); setImportReport(null); }} style={{ border: 'none', background: 'none', fontSize: '16px', cursor: 'pointer', color: subTextCol }}>❌</button>
+            </div>
+
+            {importLoading ? (
+              <div style={{ padding: '60px', textAlign: 'center', color: subTextCol }}>
+                Processing batch records...
+              </div>
+            ) : (
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                
+                {/* STEP 1: UPLOAD WIDGET */}
+                {importStep === 'UPLOAD' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'center', padding: '40px 20px' }}>
+                    <div style={{ fontSize: '48px' }}>📁</div>
+                    <div>
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 800 }}>Upload CSV Trade Sheet</h4>
+                      <p style={{ margin: 0, fontSize: '13px', color: subTextCol }}>Columns required: Investor, Symbol, Buy Price, Quantity, Target, Stop Loss, Buy Date, Trade Type, Notes</p>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '10px' }}>
+                      <button onClick={downloadTemplate} style={{ padding: '10px 20px', backgroundColor: isDark ? '#334155' : '#E2E8F0', color: textCol, border: 'none', borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
+                        📥 Download CSV Template
+                      </button>
+                      
+                      <label style={{ padding: '10px 20px', backgroundColor: '#16A34A', color: '#FFFFFF', borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-block' }}>
+                        📤 Choose CSV File
+                        <input type="file" accept=".csv" onChange={handleCsvUpload} style={{ display: 'none' }} />
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 2: PREVIEW & VALIDATION */}
+                {importStep === 'PREVIEW' && importReport && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ padding: '14px', borderRadius: '8px', backgroundColor: isDark ? '#1E293B' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 800 }}>Pre-import validation report</h4>
+                      <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: subTextCol, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <li>Ready to Import: <strong style={{ color: '#10B981' }}>{importReport.summary?.importedCount || 0} rows</strong></li>
+                        <li>Skipped duplicates: <strong style={{ color: '#F59E0B' }}>{importReport.summary?.duplicateCount || 0} rows</strong></li>
+                        <li>Malformed / Invalid: <strong style={{ color: '#EF4444' }}>{importReport.summary?.invalidCount || 0} rows</strong></li>
+                      </ul>
+                    </div>
+
+                    {/* Invalid Rows Table */}
+                    {importReport.invalid?.length > 0 && (
+                      <div>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 800, color: '#EF4444' }}>⚠️ Validation failures ({importReport.invalid.length})</h4>
+                        <div style={{ maxHeight: '150px', overflowY: 'auto', border: `1px solid ${borderCol}`, borderRadius: '8px' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', borderBottom: `1px solid ${borderCol}` }}>
+                                <th style={{ padding: '8px' }}>Excel Row</th>
+                                <th style={{ padding: '8px' }}>Symbol</th>
+                                <th style={{ padding: '8px' }}>Validation Failures</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importReport.invalid.map((item: any, idx: number) => (
+                                <tr key={idx} style={{ borderBottom: `1px solid ${borderCol}` }}>
+                                  <td style={{ padding: '8px', fontWeight: 700 }}>Row {item.row}</td>
+                                  <td style={{ padding: '8px' }}>{item.symbol}</td>
+                                  <td style={{ padding: '8px', color: '#EF4444' }}>{item.errors?.join(', ')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Duplicate Rows Table */}
+                    {importReport.duplicates?.length > 0 && (
+                      <div>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 800, color: '#F59E0B' }}>⚠️ Duplicate records skipped ({importReport.duplicates.length})</h4>
+                        <div style={{ maxHeight: '150px', overflowY: 'auto', border: `1px solid ${borderCol}`, borderRadius: '8px' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', borderBottom: `1px solid ${borderCol}` }}>
+                                <th style={{ padding: '8px' }}>Excel Row</th>
+                                <th style={{ padding: '8px' }}>Symbol</th>
+                                <th style={{ padding: '8px' }}>Duplicate Reason</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importReport.duplicates.map((item: any, idx: number) => (
+                                <tr key={idx} style={{ borderBottom: `1px solid ${borderCol}` }}>
+                                  <td style={{ padding: '8px', fontWeight: 700 }}>Row {item.row}</td>
+                                  <td style={{ padding: '8px' }}>{item.symbol}</td>
+                                  <td style={{ padding: '8px', color: '#F59E0B' }}>{item.reason}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                      <button onClick={() => setImportStep('UPLOAD')} style={{ padding: '10px 20px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: 'transparent', color: textCol, fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+                        Cancel &amp; Reupload
+                      </button>
+                      <button onClick={confirmImport} disabled={importReport.summary?.importedCount === 0} style={{ padding: '10px 24px', backgroundColor: '#10B981', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: importReport.summary?.importedCount === 0 ? 0.5 : 1 }}>
+                        Confirm Import ({importReport.summary?.importedCount || 0} Trades)
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: SUMMARY REPORT */}
+                {importStep === 'REPORT' && importReport && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center', padding: '20px' }}>
+                    <div style={{ fontSize: '48px' }}></div>
+                    <div>
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 800 }}>Import Complete!</h4>
+                      <p style={{ margin: 0, fontSize: '14px', color: subTextCol }}>Successfully created <strong>{importReport.summary?.importedCount || 0}</strong> positions in database.</p>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                      <button onClick={() => { setShowImportWizard(false); setImportStep('UPLOAD'); setImportReport(null); }} style={{ padding: '10px 24px', backgroundColor: '#2563EB', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
+                        Close Wizard
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            )}
           </div>
         </div>
       )}

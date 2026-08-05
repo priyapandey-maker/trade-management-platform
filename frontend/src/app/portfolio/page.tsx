@@ -12,6 +12,8 @@ import {
   AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend
 } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function PortfolioPage() {
   const { theme } = useTheme();
@@ -127,13 +129,150 @@ export default function PortfolioPage() {
     .slice(0, 3);
   const totalCapitalAllocated = investors.reduce((sum, i) => sum + i.totalInvestment, 0);
 
+  const exportPDF = () => {
+    const doc = new jsPDF('landscape', 'pt', 'a4');
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    const drawHeader = () => {
+      doc.setFillColor(11, 15, 23);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SHREE ASSOCIATES  |  Valuation Terminal', 20, 24);
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(200, 200, 200);
+      const dateStr = new Date().toLocaleString('en-IN');
+      const userText = user?.email ? `User: ${user.email}` : 'User: Administrator';
+      doc.text(`Report Date: ${dateStr}   |   ${userText}`, pageWidth - 20 - doc.getTextWidth(`Report Date: ${dateStr}   |   ${userText}`), 24);
+
+      doc.setFillColor(16, 185, 129);
+      doc.rect(0, 40, pageWidth, 3, 'F');
+    };
+
+    drawHeader();
+
+    doc.setFillColor(248, 250, 252);
+    doc.rect(20, 65, pageWidth - 40, 95, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(20, 65, pageWidth - 40, 95, 'S');
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('EXECUTIVE VALUATION SUMMARY', 32, 85);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.text(`Total Portfolio Value: ₹${summary?.totalPortfolioValue?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 32, 110);
+    doc.text(`Total Capital Invested: ₹${summary?.totalInvestment?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 32, 128);
+    doc.text(`Available Cash Balance: ₹${summary?.availableCashBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 32, 146);
+
+    const overallPnL = (summary?.totalPortfolioValue || 0) - (summary?.totalInvestment || 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Net Unrealized P&L: ₹${summary?.unrealizedProfit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, pageWidth / 2 + 10, 110);
+    doc.text(`Realized Profit/Loss: ₹${summary?.realizedProfit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, pageWidth / 2 + 10, 128);
+    const estROI = summary?.totalInvestment > 0 ? (overallPnL / summary.totalInvestment) * 100 : 0;
+    doc.text(`Estimated Net ROI %: ${overallPnL >= 0 ? '+' : ''}${estROI.toFixed(2)}%`, pageWidth / 2 + 10, 146);
+
+    doc.setFillColor(248, 250, 252);
+    doc.rect(20, 175, pageWidth - 40, 80, 'F');
+    doc.rect(20, 175, pageWidth - 40, 80, 'S');
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(10.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PERFORMANCE INSIGHTS & STATS', 32, 195);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.text(`Best Performing Exit: ${summary?.bestPerformingTrade ? `${summary.bestPerformingTrade.symbol} (+${summary.bestPerformingTrade.profitLossPct.toFixed(1)}%)` : '—'}`, 32, 220);
+    doc.text(`Worst Performing Exit: ${summary?.worstPerformingTrade ? `${summary.worstPerformingTrade.symbol} (${summary.worstPerformingTrade.profitLossPct.toFixed(1)}%)` : '—'}`, 32, 238);
+
+    doc.text(`Open Position Win Rate: ${summary?.winRate?.toFixed(1)}%`, pageWidth / 2 + 10, 220);
+    doc.text(`Average Return Rate: ${summary?.avgReturn?.toFixed(2)}%`, pageWidth / 2 + 10, 238);
+
+    const assetHeaders = ['Asset Class / Sector', 'Invested Capital', 'Percentage Share'];
+    const assetRows = sectorData.map((s: any) => [
+      s.name,
+      `₹${s.value.toLocaleString('en-IN')}`,
+      `${((s.value / (summary?.totalInvestment || 1)) * 100).toFixed(1)}%`
+    ]);
+
+    autoTable(doc, {
+      head: [assetHeaders],
+      body: assetRows,
+      startY: 270,
+      margin: { left: 20, right: 20 },
+      styles: { fontSize: 8.5, cellPadding: 5 },
+      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+    });
+
+    const investorStartY = (doc as any).lastAutoTable.finalY + 20;
+    
+    // Add page if investor class hits boundary
+    const nextY = investorStartY + 60;
+    if (nextY > pageHeight - 30) {
+      doc.addPage();
+      drawHeader();
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Investor Shares & Allocations', 20, investorStartY === 70 ? 70 : investorStartY);
+
+    const invHeaders = ['Investor Name', 'Capital Deployed', 'Current Value', 'ROI %', 'Win Rate'];
+    const invRows = investors.map((inv: any) => [
+      inv.name,
+      `₹${inv.totalInvestment.toLocaleString('en-IN')}`,
+      `₹${inv.currentValue.toLocaleString('en-IN')}`,
+      `${inv.roi >= 0 ? '+' : ''}${inv.roi.toFixed(2)}%`,
+      `${inv.winRate.toFixed(1)}%`
+    ]);
+
+    autoTable(doc, {
+      head: [invHeaders],
+      body: invRows,
+      startY: investorStartY === 70 ? 80 : investorStartY + 10,
+      margin: { left: 20, right: 20 },
+      styles: { fontSize: 8.5, cellPadding: 5 },
+      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+    });
+
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(20, pageHeight - 30, pageWidth - 20, pageHeight - 30);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      doc.text('SHREE ASSOCIATES  •  Confidential Portfolio Valuation  •  Internal Use Only', 20, pageHeight - 15);
+      
+      const pageText = `Page ${i} of ${totalPages}`;
+      doc.text(pageText, pageWidth - 20 - doc.getTextWidth(pageText), pageHeight - 15);
+    }
+
+    doc.save(`Shree_Associates_Portfolio_Valuations_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
       {/* HEADER TITLE */}
-      <div style={{ marginBottom: '28px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: 900, color: textCol, margin: 0 }}>Executive Valuation Terminal</h1>
-        <p style={{ fontSize: '13.5px', color: subTextCol, margin: 0 }}>CEO Portfolio Overview, Asset Composition &amp; Performance Control Panel</p>
+      <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h1 style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: 900, color: textCol, margin: 0 }}>Executive Valuation Terminal</h1>
+          <p style={{ fontSize: '13.5px', color: subTextCol, margin: 0 }}>CEO Portfolio Overview, Asset Composition &amp; Performance Control Panel</p>
+        </div>
+        <button onClick={exportPDF} style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          📥 Export PDF
+        </button>
       </div>
 
       {error && (

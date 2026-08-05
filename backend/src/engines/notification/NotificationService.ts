@@ -62,6 +62,9 @@ export class NotificationService {
         case 'DAILY_SUMMARY':
           typeEnabled = user.prefDailySummary;
           break;
+        case 'PRICE_MOVEMENT':
+          typeEnabled = user.prefPriceMovement ?? true;
+          break;
       }
 
       if (!typeEnabled) continue;

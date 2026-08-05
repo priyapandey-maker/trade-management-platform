@@ -5,6 +5,8 @@ import Link from 'next/link';
 import api from '@/lib/axios';
 import { AddPositionModal, EditWatchlistModal } from '@/components/modals/GlobalActionModals';
 import { AnalyzeStockModal } from '@/components/AnalyzeStockModal';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export const ResearchWatchlistWorkspace = () => {
   const [ideas, setIdeas] = useState<any[]>([]);
@@ -318,7 +320,7 @@ export const ResearchWatchlistWorkspace = () => {
     }
   };
 
-  const handleExportCSV = () => {
+  const handleExportPDF = () => {
     const itemsToExport = selectedIds.length > 0
       ? sortedIdeas.filter((i) => selectedIds.includes(i.id))
       : sortedIdeas;
@@ -328,54 +330,108 @@ export const ResearchWatchlistWorkspace = () => {
       return;
     }
 
+    const doc = new jsPDF('landscape', 'pt', 'a4');
+    const pageWidth = doc.internal.pageSize.width;
+
+    const drawHeader = () => {
+      doc.setFillColor(11, 15, 23);
+      doc.rect(0, 0, pageWidth, 24, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SHREE ASSOCIATES  |  Professional Trade Management Platform', 14, 15);
+      
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(16);
+      doc.text('Trading Ideas & Watchlist Report', 14, 42);
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      const dateStr = new Date().toLocaleString('en-IN');
+      doc.text(`Report Date: ${dateStr}   |   Total Ideas: ${itemsToExport.length}`, 14, 54);
+
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, 58, pageWidth - 14, 58);
+    };
+
+    drawHeader();
+
     const headers = [
       'Symbol',
-      'Company',
+      'Company Name',
       'Asset Type',
       'Exchange',
-      'Live CMP',
+      'CMP',
       'Buy Price',
       'Target Price',
       'Stop Loss',
-      'Distance to Buy (%)',
-      'Distance to Target (%)',
-      'Expected Upside (%)',
+      'Upside %',
       'Shree Score',
-      'Confidence (%)',
+      'Confidence %',
       'Status',
-      'Recommendation',
-      'In Portfolio P&L',
-      'Notes',
+      'Recommendation'
     ];
 
-    const rows = itemsToExport.map((i) => [
-      `"${i.symbol}"`,
-      `"${(i.company || '').replace(/"/g, '""')}"`,
-      `"${i.assetType}"`,
-      `"${i.exchange}"`,
-      i.cmp.toFixed(2),
-      i.buy.toFixed(2),
-      i.target.toFixed(2),
-      i.stop.toFixed(2),
-      i.distanceToBuyPct.toFixed(2),
-      i.distanceToTargetPct.toFixed(2),
-      i.expectedUpsidePct.toFixed(2),
-      `${i.score}/6`,
-      `${i.confidence}%`,
-      `"${i.status}"`,
-      `"${i.recommendation.label}"`,
-      i.portfolioPnl !== null ? `"${i.portfolioPnl >= 0 ? '+' : ''}${i.portfolioPnl.toFixed(2)} (${i.portfolioPnlPct?.toFixed(1)}%)"` : '"Not in Portfolio"',
-      `"${(i.notes || '').replace(/"/g, '""')}"`,
-    ]);
+    const tableRows = itemsToExport.map((i) => {
+      return [
+        i.symbol,
+        i.company || i.symbol,
+        i.assetType,
+        i.exchange,
+        `₹${i.cmp.toFixed(2)}`,
+        `₹${i.buy.toFixed(2)}`,
+        `₹${i.target.toFixed(2)}`,
+        `₹${i.stop.toFixed(2)}`,
+        `${i.expectedUpsidePct.toFixed(1)}%`,
+        `${i.score}/6`,
+        `${i.confidence}%`,
+        i.status,
+        i.recommendation.label
+      ];
+    });
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Shree_Associates_Watchlist_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    autoTable(doc, {
+      head: [headers],
+      body: tableRows,
+      startY: 70,
+      margin: { left: 14, right: 14 },
+      styles: { fontSize: 8, cellPadding: 6 },
+      headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      didParseCell: (data) => {
+        if (data.section === 'body') {
+          if (data.column.index === 12) {
+            const val = data.cell.raw as string;
+            if (val.includes('STRONG BUY') || val.includes('BUY')) {
+              data.cell.styles.textColor = [22, 163, 74];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (val.includes('SELL') || val.includes('AVOID')) {
+              data.cell.styles.textColor = [220, 38, 38];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        }
+      }
+    });
+
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, doc.internal.pageSize.height - 20, pageWidth - 14, doc.internal.pageSize.height - 20);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      doc.text('SHREE ASSOCIATES  •  Confidential  •  Internal Use Only', 14, doc.internal.pageSize.height - 10);
+      
+      const pageText = `Page ${i} of ${totalPages}`;
+      doc.text(pageText, pageWidth - 14 - doc.getTextWidth(pageText), doc.internal.pageSize.height - 10);
+    }
+
+    doc.save(`Shree_Associates_Watchlist_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   const renderStars = (score: number) => {
@@ -571,10 +627,10 @@ export const ResearchWatchlistWorkspace = () => {
               <span>💼</span> Move to Portfolio
             </button>
             <button
-              onClick={handleExportCSV}
+              onClick={handleExportPDF}
               style={{ padding: '8px 14px', borderRadius: '8px', backgroundColor: '#475569', color: '#FFFFFF', border: '1px solid #64748B', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <span>📥</span> Export CSV
+              <span>📥</span> Export PDF
             </button>
             <button
               onClick={handleBulkDelete}

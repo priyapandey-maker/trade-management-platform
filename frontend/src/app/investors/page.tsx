@@ -26,8 +26,12 @@ export default function InvestorsPage() {
   const isDark = theme === 'dark';
 
   const [investors, setInvestors] = useState<InvestorStats[]>([]);
+  const [positions, setPositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Expanded investor card state
+  const [expandedInvestor, setExpandedInvestor] = useState<string | null>(null);
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
@@ -45,6 +49,7 @@ export default function InvestorsPage() {
       setError(null);
       const res = await api.get('/portfolio');
       setInvestors(res.data.investors || []);
+      setPositions(res.data.positions?.all || []);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch investors data.');
     } finally {
@@ -69,10 +74,10 @@ export default function InvestorsPage() {
   const paletteColors = [
     '#2563EB', // Navy/Blue
     '#10B981', // Emerald
-    '#64748B', // Slate
-    '#0D9488', // Teal
     '#7C3AED', // Violet
     '#EA580C', // Orange
+    '#64748B', // Slate
+    '#0D9488', // Teal
   ];
 
   return (
@@ -88,8 +93,7 @@ export default function InvestorsPage() {
         </div>
         <button
           onClick={fetchInvestorsData}
-          className="btnSecondary"
-          style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
+          style={{ padding: '8px 14px', fontSize: '12.5px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, fontWeight: 700, cursor: 'pointer' }}
         >
           🔄 Refresh
         </button>
@@ -144,7 +148,6 @@ export default function InvestorsPage() {
 
         {totalCapitalManaged > 0 ? (
           <>
-            {/* Segmented bar */}
             <div style={{ display: 'flex', height: '24px', borderRadius: '8px', overflow: 'hidden', backgroundColor: isDark ? '#1E293B' : '#E2E8F0', marginBottom: '16px' }}>
               {investors.map((inv, idx) => {
                 const pct = (inv.totalInvestment / totalCapitalManaged) * 100;
@@ -165,7 +168,6 @@ export default function InvestorsPage() {
               })}
             </div>
 
-            {/* Allocation Details Grid */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
               {investors.map((inv, idx) => {
                 const pct = (inv.totalInvestment / totalCapitalManaged) * 100;
@@ -207,32 +209,50 @@ export default function InvestorsPage() {
             const col = paletteColors[idx % paletteColors.length];
             const isProfit = inv.netProfit >= 0;
 
+            // Compute investor specific portfolio statistics
+            const investorPositions = positions.filter((p) => (p.investorName || 'Shree') === inv.name);
+            const investorOpenPositions = investorPositions.filter((p) => p.status === 'OPEN');
+            const investorClosedPositions = investorPositions.filter((p) => p.status === 'CLOSED');
+            
+            // 1. Largest Holding
+            const largestHolding = [...investorOpenPositions].sort((a, b) => b.currentValue - a.currentValue)[0] || null;
+            
+            // 2. Average holding period
+            const closedWithDuration = investorClosedPositions.filter((p) => p.holdingPeriod !== null);
+            const avgHoldingDays = closedWithDuration.length > 0 
+              ? closedWithDuration.reduce((acc, p) => acc + p.holdingPeriod, 0) / closedWithDuration.length
+              : 0;
+
+            // 3. Sector composition mapping
+            const sectorAllocation: Record<string, number> = {};
+            investorOpenPositions.forEach((p) => {
+              const sec = p.assetType || 'STOCK';
+              sectorAllocation[sec] = (sectorAllocation[sec] || 0) + p.investedAmount;
+            });
+
+            const isExpanded = expandedInvestor === inv.name;
+
             return (
               <div
                 key={inv.name}
+                onClick={() => setExpandedInvestor(isExpanded ? null : inv.name)}
                 style={{
                   backgroundColor: cardBg,
                   border: `1px solid ${borderCol}`,
                   borderRadius: '16px',
                   padding: '24px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  boxShadow: isExpanded ? '0 10px 25px -5px rgba(0,0,0,0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                  transition: 'all 0.2s ease',
                   cursor: 'pointer',
                   borderTop: `4px solid ${col}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05)';
                 }}
               >
                 {/* Header row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                   <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 900, color: textCol, margin: 0 }}>{inv.name}</h3>
+                    <h3 style={{ fontSize: '18px', fontWeight: 900, color: textCol, margin: 0 }}>
+                      {inv.name} {isExpanded ? '▼' : '►'}
+                    </h3>
                     <span style={{ fontSize: '11.5px', color: subTextCol, fontWeight: 700 }}>
                       Portfolio Share: {share.toFixed(1)}%
                     </span>
@@ -283,6 +303,74 @@ export default function InvestorsPage() {
                   <span>Closed Trades: <strong>{inv.closedTrades}</strong></span>
                   <span>Total Trades: <strong>{inv.totalTrades}</strong></span>
                 </div>
+
+                {/* EXPANDED MINI-PORTFOLIO VIEW */}
+                {isExpanded && (
+                  <div 
+                    onClick={(e) => e.stopPropagation()} 
+                    style={{ marginTop: '20px', borderTop: `1px solid ${borderCol}`, paddingTop: '16px', cursor: 'default' }}
+                  >
+                    <h4 style={{ fontSize: '13px', fontWeight: 800, color: textCol, margin: '0 0 12px 0', textTransform: 'uppercase' }}>
+                      💼 Investor Portfolio breakdown
+                    </h4>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div>
+                        <span style={{ fontSize: '11px', color: subTextCol, display: 'block', textTransform: 'uppercase' }}>Largest Active Position</span>
+                        <span style={{ fontSize: '13.5px', fontWeight: 700, color: textCol }}>
+                          {largestHolding ? `${largestHolding.symbol} (₹${largestHolding.currentValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })})` : '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '11px', color: subTextCol, display: 'block', textTransform: 'uppercase' }}>Avg Holding Duration</span>
+                        <span style={{ fontSize: '13.5px', fontWeight: 700, color: textCol }}>
+                          {avgHoldingDays > 0 ? `${avgHoldingDays.toFixed(1)} Days` : '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h5 style={{ fontSize: '11px', fontWeight: 850, color: subTextCol, margin: '14px 0 8px 0', textTransform: 'uppercase' }}>Sector Distribution</h5>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                      {Object.entries(sectorAllocation).map(([sec, val]: any) => (
+                        <div key={sec} style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', border: `1px solid ${borderCol}`, padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px', color: textCol }}>
+                          {sec}: <strong>{((val / (inv.totalInvestment || 1)) * 100).toFixed(1)}%</strong>
+                        </div>
+                      ))}
+                      {Object.keys(sectorAllocation).length === 0 && <div style={{ fontSize: '12px', color: subTextCol }}>No open assets</div>}
+                    </div>
+
+                    <h5 style={{ fontSize: '11px', fontWeight: 850, color: subTextCol, margin: '14px 0 8px 0', textTransform: 'uppercase' }}>Active Holdings Grid</h5>
+                    <div style={{ maxHeight: '180px', overflowY: 'auto', border: `1px solid ${borderCol}`, borderRadius: '8px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderBottom: `1px solid ${borderCol}`, color: subTextCol }}>
+                            <th style={{ padding: '6px 10px' }}>Symbol</th>
+                            <th style={{ padding: '6px 10px' }}>Qty</th>
+                            <th style={{ padding: '6px 10px' }}>Invested</th>
+                            <th style={{ padding: '6px 10px' }}>P&amp;L</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {investorOpenPositions.map((p: any) => (
+                            <tr key={p.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
+                              <td style={{ padding: '8px 10px', fontWeight: 800, color: textCol }}>{p.symbol}</td>
+                              <td style={{ padding: '8px 10px', color: textCol }}>{p.quantity}</td>
+                              <td style={{ padding: '8px 10px', color: textCol }}>₹{p.investedAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                              <td style={{ padding: '8px 10px', fontWeight: 700, color: p.profitLoss >= 0 ? '#10B981' : '#EF4444' }}>
+                                {p.profitLoss >= 0 ? '+' : ''}{p.profitLossPct.toFixed(1)}%
+                              </td>
+                            </tr>
+                          ))}
+                          {investorOpenPositions.length === 0 && (
+                            <tr>
+                              <td colSpan={4} style={{ padding: '12px', textAlign: 'center', color: subTextCol }}>No active positions</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

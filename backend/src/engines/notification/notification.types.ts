@@ -5,6 +5,7 @@ export enum NotificationType {
   STOP_LOSS = 'STOP_LOSS',
   TRADE_CLOSED = 'TRADE_CLOSED',
   DAILY_SUMMARY = 'DAILY_SUMMARY',
+  PRICE_MOVEMENT = 'PRICE_MOVEMENT',
   TEST = 'TEST',
 }
 

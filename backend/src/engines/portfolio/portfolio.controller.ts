@@ -1,11 +1,15 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, HttpException, HttpStatus, UseGuards, Req, ForbiddenException } from '@nestjs/common';
 import { PortfolioService } from './portfolio.service';
+import { TradeImportService } from './trade-import.service';
 import { AuthGuard } from '../auth/auth.controller';
 
 @Controller('portfolio')
 @UseGuards(AuthGuard)
 export class PortfolioController {
-  constructor(private readonly portfolioService: PortfolioService) {}
+  constructor(
+    private readonly portfolioService: PortfolioService,
+    private readonly tradeImportService: TradeImportService,
+  ) {}
 
    @Get()
   async getPortfolio() {
@@ -80,5 +84,29 @@ export class PortfolioController {
       throw new HttpException('Array of positions is required.', HttpStatus.BAD_REQUEST);
     }
     return this.portfolioService.bulkUpdate(body.positions);
+  }
+
+  @Post('bulk-import')
+  async bulkImport(@Req() req: any, @Body() body: any) {
+    if (req.user.role !== 'OWNER') {
+      throw new ForbiddenException('Only platform owners can perform bulk imports.');
+    }
+    if (!body.csvData) {
+      throw new HttpException('csvData string is required.', HttpStatus.BAD_REQUEST);
+    }
+    try {
+      const rawRows = this.tradeImportService.parseCsv(body.csvData);
+      const { valid, invalid } = this.tradeImportService.validateRows(rawRows);
+      const { ready, duplicates } = await this.tradeImportService.detectDuplicates(valid);
+      
+      let importedRecords = [];
+      if (body.dryRun !== true) {
+        importedRecords = await this.tradeImportService.importTrades(ready);
+      }
+      
+      return this.tradeImportService.generateReport(importedRecords, duplicates, invalid);
+    } catch (err: any) {
+      throw new HttpException(err.message || 'Bulk import failed.', HttpStatus.BAD_REQUEST);
+    }
   }
 }

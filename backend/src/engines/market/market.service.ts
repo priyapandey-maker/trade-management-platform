@@ -325,6 +325,28 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async getSparklines(symbols: string[]): Promise<Record<string, number[]>> {
+    const results: Record<string, number[]> = {};
+    
+    await Promise.all(
+      symbols.map(async (symbol) => {
+        try {
+          const res = await this.getCandles(symbol, '1d', '1mo');
+          if (res && res.candles) {
+            results[symbol] = res.candles.slice(-10).map((c: any) => c.close);
+          } else {
+            results[symbol] = [];
+          }
+        } catch (e: any) {
+          this.logger.debug(`Failed to fetch sparkline for ${symbol}: ${e.message}`);
+          results[symbol] = [];
+        }
+      })
+    );
+
+    return results;
+  }
+
   private async handleTick(tick: TickData) {
     const tickJson = JSON.stringify(tick);
     await this.redisService.hset('market:latest_ticks', tick.symbol, tickJson);

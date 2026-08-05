@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
@@ -470,7 +471,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                       {user?.role === 'OWNER' && (
                         <>
                           <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>👥 Manage Clients</button>
-                          <button onClick={handleOpenSettings} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>⚙️ Settings</button>
+                          <Link href="/settings" onClick={() => setShowProfileMenu(false)} style={{ display: 'block', textDecoration: 'none', width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: '12.5px', fontWeight: 600, color: textCol, boxSizing: 'border-box' }}>⚙️ Settings</Link>
                         </>
                       )}
 
@@ -653,7 +654,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   {user?.role === 'OWNER' && (
                     <>
                       <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>👥 Manage Clients</button>
-                      <button onClick={handleOpenSettings} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}>⚙️ Notification Settings</button>
+                      <Link href="/settings" onClick={() => setShowProfileMenu(false)} style={{ display: 'block', textDecoration: 'none', width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: '12.5px', fontWeight: 600, color: textCol, boxSizing: 'border-box' }}>⚙️ Settings</Link>
                     </>
                   )}
 

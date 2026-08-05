@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -23,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
 }) => {
   const pathname = usePathname();
   const { theme } = useTheme();
+  const { logout } = useAuth();
   const isDark = theme === 'dark';
 
   const navItems = [
@@ -31,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     { name: 'Portfolio', href: '/portfolio', icon: '👛' },
     { name: 'Dashboard', href: '/dashboard', icon: '🎛️' },
     { name: 'Investors', href: '/investors', icon: '👥' },
+    { name: 'Settings', href: '/settings', icon: '⚙️' },
   ];
 
   const bgCol = isDark ? '#0F172A' : '#FFFFFF';
@@ -134,6 +137,33 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               );
             })}
           </nav>
+          <div style={{ padding: '16px 12px', borderTop: `1px solid ${borderCol}` }}>
+            <button
+              onClick={() => {
+                onClose?.();
+                logout();
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                gap: '14px',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                fontSize: '13.5px',
+                fontWeight: 600,
+                color: '#EF4444',
+                backgroundColor: 'transparent',
+                border: 'none',
+                width: '100%',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>🚪</span>
+              <span>Logout</span>
+            </button>
+          </div>
         </aside>
       </>
     );
@@ -220,18 +250,31 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         })}
       </nav>
 
-      {/* Footer Status */}
-      {!isCollapsed && (
-        <div style={{ padding: '16px 20px', borderTop: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0B0F17' : '#F8FAFC' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: textCol, fontWeight: 700 }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block', boxShadow: '0 0 8px #16A34A' }} />
-            <span>Twelve Data Primary Engine</span>
-          </div>
-          <div style={{ fontSize: '12px', color: subTextCol, marginTop: '3px', fontWeight: 600 }}>
-            SHREE ASSOCIATES
-          </div>
-        </div>
-      )}
+      {/* Footer Status & Logout */}
+      <div style={{ padding: '16px 12px', borderTop: `1px solid ${borderCol}`, marginTop: 'auto' }}>
+        <button
+          onClick={logout}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            gap: '14px',
+            padding: '12px 16px',
+            borderRadius: '10px',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            color: '#EF4444',
+            backgroundColor: 'transparent',
+            border: 'none',
+            width: '100%',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>🚪</span>
+          {!isCollapsed && <span>Logout</span>}
+        </button>
+      </div>
     </aside>
   );
 });

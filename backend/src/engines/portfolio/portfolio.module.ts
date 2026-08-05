@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { PortfolioService } from './portfolio.service';
+import { TradeImportService } from './trade-import.service';
 import { PortfolioController } from './portfolio.controller';
 import { MarketModule } from '../market/market.module';
 import { NotificationModule } from '../notification/notification.module';
@@ -9,8 +10,8 @@ import { NotificationModule } from '../notification/notification.module';
     MarketModule,
     forwardRef(() => NotificationModule),
   ],
-  providers: [PortfolioService],
+  providers: [PortfolioService, TradeImportService],
   controllers: [PortfolioController],
-  exports: [PortfolioService],
+  exports: [PortfolioService, TradeImportService],
 })
 export class PortfolioModule {}
