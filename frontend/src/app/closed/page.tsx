@@ -7,7 +7,7 @@ import api from '@/lib/axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Pencil, Trash2, Clock } from 'lucide-react';
-import { formatDecimal } from '@/lib/financial-calculations';
+import { formatDecimal, calculateInvestment, calculateCurrentValue, calculateLivePnL, calculateReturnPct, calculateRealizedPnL, calculateRealizedReturnPct } from '@/lib/financial-calculations';
 
 export default function ClosedPositionsPage() {
   const { user } = useAuth();
@@ -165,25 +165,13 @@ export default function ClosedPositionsPage() {
 
     // Recalculate local row values optimistically
     const entryDate = editForm.entryDate ? new Date(editForm.entryDate).toISOString() : editingPosition.entryDate;
-    const investedAmount = bp * qty;
+    const investedAmount = calculateInvestment(bp, qty);
 
-    let currentValue = editingPosition.currentPrice * qty;
-    let profitLoss = 0;
-    let profitLossPct = 0;
-    let finalClosedAt = editingPosition.closedAt;
-    let holdingPeriod = editingPosition.holdingPeriod;
-
-    if (isSellWorkflow) {
-      currentValue = sp * qty;
-      profitLoss = currentValue - investedAmount;
-      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
-      finalClosedAt = editForm.closedAt ? new Date(editForm.closedAt).toISOString() : new Date().toISOString();
-      holdingPeriod = Math.max(0, Math.floor((new Date(finalClosedAt).getTime() - new Date(entryDate).getTime()) / (1000 * 60 * 60 * 24)));
-    } else {
-      currentValue = editingPosition.currentPrice * qty;
-      profitLoss = (editingPosition.currentPrice - bp) * qty - editingPosition.brokerCharges;
-      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
-    }
+    const finalClosedAt = editForm.closedAt ? new Date(editForm.closedAt).toISOString() : (editingPosition.closedAt || new Date().toISOString());
+    const holdingPeriod = Math.max(0, Math.floor((new Date(finalClosedAt).getTime() - new Date(entryDate).getTime()) / (1000 * 60 * 60 * 24)));
+    const currentValue = calculateCurrentValue(sp, qty, editForm.tradeType, bp);
+    const profitLoss = calculateRealizedPnL(bp, sp, qty, editForm.tradeType);
+    const profitLossPct = calculateRealizedReturnPct(bp, sp, editForm.tradeType);
 
     const updatedPos = {
       ...editingPosition,
@@ -387,7 +375,7 @@ export default function ClosedPositionsPage() {
         formatDate(p.closedAt),
         `${p.holdingPeriod || 0} days`,
         `${isProfit ? '+' : ''}₹${p.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
-        `${isProfit ? '+' : ''}${p.profitLossPct.toFixed(2)}%`,
+        `${isProfit ? '+' : ''}${formatDecimal(p.profitLossPct)}%`,
         p.targetPrice ? `₹${(p.potentialProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '—',
         deviationText,
         p.exitReason
@@ -615,7 +603,7 @@ export default function ClosedPositionsPage() {
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                 <span style={{ fontSize: '13px', fontWeight: 900, color: performers[performerIndex].color }}>
-                  {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{performers[performerIndex].data.profitLossPct.toFixed(2)}%
+                  {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{formatDecimal(performers[performerIndex].data.profitLossPct)}%
                 </span>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: subTextCol }}>
                   ({performers[performerIndex].data.profitLoss >= 0 ? '+' : ''}₹{performers[performerIndex].data.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
@@ -754,7 +742,7 @@ export default function ClosedPositionsPage() {
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '11px', color: subTextCol }}>Return %:</span>
                       <div style={{ fontSize: '14px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        {isProfit ? '+' : ''}{pos.profitLossPct?.toFixed(2)}%
+                        {isProfit ? '+' : ''}{formatDecimal(pos.profitLossPct)}%
                       </div>
                     </div>
                   </div>

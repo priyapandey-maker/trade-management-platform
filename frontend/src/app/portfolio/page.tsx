@@ -179,7 +179,7 @@ export default function PortfolioPage() {
     doc.text(`Net Unrealized P&L: ₹${summary?.unrealizedProfit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, pageWidth / 2 + 10, 110);
     doc.text(`Realized Profit/Loss: ₹${summary?.realizedProfit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, pageWidth / 2 + 10, 128);
     const estROI = summary?.totalInvestment > 0 ? (overallPnL / summary.totalInvestment) * 100 : 0;
-    doc.text(`Estimated Net ROI %: ${overallPnL >= 0 ? '+' : ''}${estROI.toFixed(2)}%`, pageWidth / 2 + 10, 146);
+    doc.text(`Estimated Net ROI %: ${overallPnL >= 0 ? '+' : ''}${formatDecimal(estROI)}%`, pageWidth / 2 + 10, 146);
 
     doc.setFillColor(248, 250, 252);
     doc.rect(20, 175, pageWidth - 40, 80, 'F');
@@ -192,17 +192,17 @@ export default function PortfolioPage() {
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
-    doc.text(`Best Performing Exit: ${summary?.bestPerformingTrade ? `${summary.bestPerformingTrade.symbol} (+${summary.bestPerformingTrade.profitLossPct.toFixed(1)}%)` : '—'}`, 32, 220);
-    doc.text(`Worst Performing Exit: ${summary?.worstPerformingTrade ? `${summary.worstPerformingTrade.symbol} (${summary.worstPerformingTrade.profitLossPct.toFixed(1)}%)` : '—'}`, 32, 238);
+    doc.text(`Best Performing Exit: ${summary?.bestPerformingTrade ? `${summary.bestPerformingTrade.symbol} (+${formatDecimal(summary.bestPerformingTrade.profitLossPct)}%)` : '—'}`, 32, 220);
+    doc.text(`Worst Performing Exit: ${summary?.worstPerformingTrade ? `${summary.worstPerformingTrade.symbol} (${formatDecimal(summary.worstPerformingTrade.profitLossPct)}%)` : '—'}`, 32, 238);
 
-    doc.text(`Open Position Win Rate: ${summary?.winRate?.toFixed(1)}%`, pageWidth / 2 + 10, 220);
-    doc.text(`Average Return Rate: ${summary?.avgReturn?.toFixed(2)}%`, pageWidth / 2 + 10, 238);
+    doc.text(`Open Position Win Rate: ${formatDecimal(summary?.winRate)}%`, pageWidth / 2 + 10, 220);
+    doc.text(`Average Return Rate: ${formatDecimal(summary?.avgReturn)}%`, pageWidth / 2 + 10, 238);
 
     const assetHeaders = ['Asset Class / Sector', 'Invested Capital', 'Percentage Share'];
     const assetRows = sectorData.map((s: any) => [
       s.name,
       `₹${s.value.toLocaleString('en-IN')}`,
-      `${((s.value / (summary?.totalInvestment || 1)) * 100).toFixed(1)}%`
+      `${formatDecimal((s.value / (summary?.totalInvestment || 1)) * 100)}%`
     ]);
 
     autoTable(doc, {
@@ -232,8 +232,8 @@ export default function PortfolioPage() {
       inv.name,
       `₹${inv.totalInvestment.toLocaleString('en-IN')}`,
       `₹${inv.currentValue.toLocaleString('en-IN')}`,
-      `${inv.roi >= 0 ? '+' : ''}${inv.roi.toFixed(2)}%`,
-      `${inv.winRate.toFixed(1)}%`
+      `${inv.roi >= 0 ? '+' : ''}${formatDecimal(inv.roi)}%`,
+      `${formatDecimal(inv.winRate)}%`
     ]);
 
     autoTable(doc, {

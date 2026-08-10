@@ -246,7 +246,7 @@ export class TradeImportService {
       const d = item.data;
 
       const investedAmount = calculateInvestment(d.buyPrice, d.quantity);
-      const currentValue = calculateCurrentValue(d.buyPrice, d.quantity); 
+      const currentValue = calculateCurrentValue(d.buyPrice, d.quantity, d.tradeType, d.buyPrice); 
       const profitLoss = calculateLivePnL(d.buyPrice, d.buyPrice, d.quantity, d.tradeType);
       const profitLossPct = calculateReturnPct(d.buyPrice, d.buyPrice, d.tradeType);
 

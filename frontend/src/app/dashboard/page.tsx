@@ -144,8 +144,8 @@ export default function DashboardPage() {
 
     doc.text(`Unrealized Profit/Loss: ₹${(summary.unrealizedProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 350, 95);
     doc.text(`Realized Profit/Loss: ₹${(summary.realizedProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 350, 115);
-    doc.text(`Average Trade Return: ${(summary.avgReturn || 0).toFixed(2)}%`, 350, 135);
-    doc.text(`System Win Rate: ${(summary.winRate || 0).toFixed(1)}%`, 350, 155);
+    doc.text(`Average Trade Return: ${formatDecimal(summary.avgReturn)}%`, 350, 135);
+    doc.text(`System Win Rate: ${formatDecimal(summary.winRate)}%`, 350, 155);
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -156,12 +156,12 @@ export default function DashboardPage() {
       p.symbol,
       p.investorName,
       p.tradeType,
-      `₹${p.buyPrice.toFixed(2)}`,
-      `₹${p.currentPrice.toFixed(2)}`,
+      `₹${formatDecimal(p.buyPrice)}`,
+      `₹${formatDecimal(p.currentPrice)}`,
       p.quantity.toString(),
-      `₹${p.investedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      `₹${p.currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-      `₹${p.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (${p.profitLossPct.toFixed(2)}%)`
+      `₹${formatDecimal(p.investedAmount)}`,
+      `₹${formatDecimal(p.currentValue)}`,
+      `₹${formatDecimal(p.profitLoss)} (${formatDecimal(p.profitLossPct)}%)`
     ]);
 
     autoTable(doc, {
@@ -472,13 +472,13 @@ export default function DashboardPage() {
                       {p.tradeType}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>₹{p.buyPrice.toFixed(2)}</td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>₹{p.currentPrice.toFixed(2)}</td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>₹{formatDecimal(p.buyPrice)}</td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>₹{formatDecimal(p.currentPrice)}</td>
                   <td style={{ padding: '12px 14px', color: textCol }}>{p.quantity}</td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>₹{p.investedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>₹{p.currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>₹{formatDecimal(p.investedAmount)}</td>
+                  <td style={{ padding: '12px 14px', color: textCol }}>₹{formatDecimal(p.currentValue)}</td>
                   <td style={{ padding: '12px 14px', fontWeight: 800, color: p.profitLoss >= 0 ? '#10B981' : '#EF4444' }}>
-                    ₹{p.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2 })} ({p.profitLossPct.toFixed(2)}%)
+                    ₹{formatDecimal(p.profitLoss)} ({formatDecimal(p.profitLossPct)}%)
                   </td>
                 </tr>
               ))}

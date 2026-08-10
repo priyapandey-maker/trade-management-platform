@@ -7,7 +7,7 @@ import api from '@/lib/axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Pencil, Trash2, CheckCircle2, Clock } from 'lucide-react';
-import { formatDecimal } from '@/lib/financial-calculations';
+import { formatDecimal, calculateInvestment, calculateCurrentValue, calculateLivePnL, calculateReturnPct, calculateRealizedPnL, calculateRealizedReturnPct } from '@/lib/financial-calculations';
 
 export default function OpenPositionsPage() {
   const { user } = useAuth();
@@ -311,24 +311,24 @@ export default function OpenPositionsPage() {
 
     // Recalculate local row values optimistically
     const entryDate = editForm.entryDate ? new Date(editForm.entryDate).toISOString() : editingPosition.entryDate;
-    const investedAmount = bp * qty;
+    const investedAmount = calculateInvestment(bp, qty);
 
-    let currentValue = editingPosition.currentPrice * qty;
+    let currentValue = 0;
     let profitLoss = 0;
     let profitLossPct = 0;
     let finalClosedAt = editingPosition.closedAt;
     let holdingPeriod = editingPosition.holdingPeriod;
 
     if (isSellWorkflow) {
-      currentValue = sp * qty;
-      profitLoss = currentValue - investedAmount;
-      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      currentValue = calculateCurrentValue(sp, qty, editForm.tradeType, bp);
+      profitLoss = calculateRealizedPnL(bp, sp, qty, editForm.tradeType);
+      profitLossPct = calculateRealizedReturnPct(bp, sp, editForm.tradeType);
       finalClosedAt = editForm.closedAt ? new Date(editForm.closedAt).toISOString() : new Date().toISOString();
       holdingPeriod = Math.max(0, Math.floor((new Date(finalClosedAt).getTime() - new Date(entryDate).getTime()) / (1000 * 60 * 60 * 24)));
     } else {
-      currentValue = editingPosition.currentPrice * qty;
-      profitLoss = (editingPosition.currentPrice - bp) * qty - editingPosition.brokerCharges;
-      profitLossPct = investedAmount > 0 ? (profitLoss / investedAmount) * 100 : 0;
+      currentValue = calculateCurrentValue(editingPosition.currentPrice, qty, editForm.tradeType, bp);
+      profitLoss = calculateLivePnL(bp, editingPosition.currentPrice, qty, editForm.tradeType);
+      profitLossPct = calculateReturnPct(bp, editingPosition.currentPrice, editForm.tradeType);
     }
 
     const updatedPos = {
@@ -566,7 +566,7 @@ export default function OpenPositionsPage() {
         `₹${p.investedAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
         `₹${p.currentValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
         `${isProfit ? '+' : ''}₹${p.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
-        `${isProfit ? '+' : ''}${p.profitLossPct.toFixed(2)}%`,
+        `${isProfit ? '+' : ''}${formatDecimal(p.profitLossPct)}%`,
         p.targetPrice ? `₹${p.targetPrice.toFixed(2)}` : '-',
         p.stopLoss ? `₹${p.stopLoss.toFixed(2)}` : '-',
         p.status
@@ -751,7 +751,7 @@ export default function OpenPositionsPage() {
             <>
               <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, marginTop: '4px' }}>{highestPos.company} ({highestPos.symbol})</div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                <span style={{ fontSize: '15px', fontWeight: 900, color: '#16A34A' }}>+{highestPos.profitLossPct.toFixed(2)}%</span>
+                <span style={{ fontSize: '15px', fontWeight: 900, color: '#16A34A' }}>+{formatDecimal(highestPos.profitLossPct)}%</span>
                 <span style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>(+₹{highestPos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
               </div>
             </>
@@ -770,7 +770,7 @@ export default function OpenPositionsPage() {
               <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, marginTop: '4px' }}>{secondHighestPos.company} ({secondHighestPos.symbol})</div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                 <span style={{ fontSize: '15px', fontWeight: 900, color: secondHighestPos.profitLossPct >= 0 ? '#16A34A' : '#DC2626' }}>
-                  {secondHighestPos.profitLossPct >= 0 ? '+' : ''}{secondHighestPos.profitLossPct.toFixed(2)}%
+                  {secondHighestPos.profitLossPct >= 0 ? '+' : ''}{formatDecimal(secondHighestPos.profitLossPct)}%
                 </span>
                 <span style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>
                   ({secondHighestPos.profitLoss >= 0 ? '+' : ''}₹{secondHighestPos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
@@ -951,7 +951,7 @@ export default function OpenPositionsPage() {
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '11px', color: subTextCol }}>Live P&amp;L:</span>
                       <div style={{ fontSize: '14px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        {isProfit ? '+' : ''}₹{pos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isProfit ? '+' : ''}{pos.profitLossPct.toFixed(2)}%)
+                        {isProfit ? '+' : ''}₹{formatDecimal(pos.profitLoss)} ({isProfit ? '+' : ''}{formatDecimal(pos.profitLossPct)}%)
                       </div>
                     </div>
                   </div>

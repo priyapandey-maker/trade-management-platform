@@ -30,7 +30,7 @@ export class TradeEventEngine {
       const diffDays = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
 
       const investedAmount = calculateInvestment(pos.buyPrice, pos.quantity);
-      const currentValue = calculateCurrentValue(currentPrice, pos.quantity);
+      const currentValue = calculateCurrentValue(currentPrice, pos.quantity, pos.tradeType, pos.buyPrice);
       const profitLoss = calculateRealizedPnL(pos.buyPrice, currentPrice, pos.quantity, pos.tradeType);
       const profitLossPct = calculateRealizedReturnPct(pos.buyPrice, currentPrice, pos.tradeType);
 

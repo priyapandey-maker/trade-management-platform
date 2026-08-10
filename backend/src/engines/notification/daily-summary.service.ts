@@ -2,6 +2,13 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { PrismaClient } from '@prisma/client';
 import { NotificationType } from './notification.types';
 import { NotificationService } from './NotificationService';
+import {
+  calculateInvestment,
+  calculateCurrentValue,
+  calculateLivePnL,
+  calculateReturnPct,
+  calculateRealizedPnL
+} from '../../shared/financial-calculations';
 
 const prisma = new PrismaClient();
 
@@ -51,43 +58,79 @@ export class DailySummaryService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('Generating Daily Portfolio Summary...');
 
     // Fetch active open positions
-    const openPositions = await prisma.portfolioPosition.findMany({
+    const openPositionsRaw = await prisma.portfolioPosition.findMany({
       where: { status: 'OPEN' },
     });
 
     // Fetch closed positions
-    const closedPositions = await prisma.portfolioPosition.findMany({
+    const closedPositionsRaw = await prisma.portfolioPosition.findMany({
       where: { status: 'CLOSED' },
     });
 
-    const totalOpen = openPositions.length;
-    const totalClosed = closedPositions.length;
+    const totalOpen = openPositionsRaw.length;
+    const totalClosed = closedPositionsRaw.length;
 
-    // Calculate open portfolio metrics
-    const totalInvested = openPositions.reduce((sum, p) => sum + p.investedAmount, 0);
-    const currentValue = openPositions.reduce((sum, p) => sum + p.currentValue, 0);
-    const unrealizedPnL = openPositions.reduce((sum, p) => sum + p.profitLoss, 0);
+    // Recalculate open positions
+    let totalInvested = 0;
+    let currentValue = 0;
+    let unrealizedPnL = 0;
+    const openPositionsRecalc = openPositionsRaw.map((p) => {
+      const bp = p.buyPrice;
+      const qty = p.quantity;
+      const cp = p.currentPrice;
+      const tradeType = p.tradeType;
+
+      const inv = calculateInvestment(bp, qty);
+      const val = calculateCurrentValue(cp, qty, tradeType, bp);
+      const pnl = calculateLivePnL(bp, cp, qty, tradeType);
+      const pct = calculateReturnPct(bp, cp, tradeType);
+
+      totalInvested += inv;
+      currentValue += val;
+      unrealizedPnL += pnl;
+
+      return {
+        ...p,
+        investedAmount: inv,
+        currentValue: val,
+        profitLoss: pnl,
+        profitLossPct: pct,
+      };
+    });
+
     const unrealizedPnLPct = totalInvested > 0 ? (unrealizedPnL / totalInvested) * 100 : 0;
 
-    // Find best and worst performer
+    // Find best and worst performer (based on recalculated values)
     let bestPerformer = 'N/A';
     let worstPerformer = 'N/A';
-    if (openPositions.length > 0) {
-      const sorted = [...openPositions].sort((a, b) => b.profitLossPct - a.profitLossPct);
+    if (openPositionsRecalc.length > 0) {
+      const sorted = [...openPositionsRecalc].sort((a, b) => b.profitLossPct - a.profitLossPct);
       bestPerformer = `${sorted[0].symbol} (${sorted[0].profitLossPct >= 0 ? '+' : ''}${sorted[0].profitLossPct.toFixed(2)}%)`;
       worstPerformer = `${sorted[sorted.length - 1].symbol} (${sorted[sorted.length - 1].profitLossPct >= 0 ? '+' : ''}${sorted[sorted.length - 1].profitLossPct.toFixed(2)}%)`;
     }
 
-    // Calculate closed stats and win rate
-    const wins = closedPositions.filter((p) => (p.profitLoss || 0) > 0).length;
-    const winRate = totalClosed > 0 ? (wins / totalClosed) * 100 : 0;
-
-    // P&L today: realized P&L of positions closed today + unrealized P&L of open positions
+    // Recalculate closed positions
+    let wins = 0;
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const closedToday = closedPositions.filter(p => p.closedAt && new Date(p.closedAt) >= startOfToday);
-    const realizedPnLToday = closedToday.reduce((sum, p) => sum + (p.profitLoss || 0), 0);
+    let realizedPnLToday = 0;
+    for (const p of closedPositionsRaw) {
+      const bp = p.buyPrice;
+      const qty = p.quantity;
+      const tradeType = p.tradeType;
+      const sp = p.sellingPrice ?? p.currentPrice ?? bp;
+
+      const pnl = calculateRealizedPnL(bp, sp, qty, tradeType);
+      if (pnl > 0) {
+        wins += 1;
+      }
+
+      if (p.closedAt && new Date(p.closedAt) >= startOfToday) {
+        realizedPnLToday += pnl;
+      }
+    }
+    const winRate = totalClosed > 0 ? (wins / totalClosed) * 100 : 0;
     const todaysPnL = realizedPnLToday + unrealizedPnL;
 
     const message = `Today's Portfolio Status:
