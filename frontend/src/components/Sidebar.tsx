@@ -77,28 +77,17 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          {/* Brand Header */}
+          {/* Mobile Drawer Aside */}
           <div
             style={{
-              padding: '24px 20px',
+              padding: '16px 20px',
               borderBottom: `1px solid ${borderCol}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              height: '70px',
-              boxSizing: 'border-box',
             }}
           >
-            <Link href="/open" onClick={onClose} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '36px', height: '36px', position: 'relative' }}>
-                  <Image src="/logo-monogram.svg" alt="SA" width={36} height={36} priority />
-                </div>
-                <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, letterSpacing: '0.04em' }}>
-                  SHREE ASSOCIATES
-                </div>
-              </div>
-            </Link>
+            <span style={{ fontWeight: 800, color: textCol, fontSize: '14px' }}>Menu</span>
             <button onClick={onClose} aria-label="Close menu" style={{ border: 'none', background: 'none', cursor: 'pointer', color: subTextCol, padding: '4px' }}>
               <X size={20} />
             </button>
@@ -171,9 +160,9 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     <aside
       style={{
         width: isCollapsed ? '80px' : '260px',
-        height: '100vh',
+        height: 'calc(100vh - 70px)',
         position: 'fixed',
-        top: 0,
+        top: '70px',
         left: 0,
         backgroundColor: bgCol,
         borderRight: `1px solid ${borderCol}`,
@@ -184,36 +173,6 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
-      {/* Brand Header: Logo Emblem + SHREE ASSOCIATES (No Tagline) */}
-      <div
-        style={{
-          padding: isCollapsed ? '20px 12px' : '24px 20px',
-          borderBottom: `1px solid ${borderCol}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: isCollapsed ? 'center' : 'flex-start',
-          height: '70px',
-          boxSizing: 'border-box',
-        }}
-      >
-        <Link href="/open" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {isCollapsed ? (
-            <div style={{ width: '38px', height: '38px', position: 'relative' }}>
-              <Image src="/logo-monogram.svg" alt="SA" width={38} height={38} priority />
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '36px', height: '36px', position: 'relative' }}>
-                <Image src="/logo-monogram.svg" alt="SA" width={36} height={36} priority />
-              </div>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, letterSpacing: '0.04em' }}>
-                SHREE ASSOCIATES
-              </div>
-            </div>
-          )}
-        </Link>
-      </div>
-
       {/* Navigation Group with Enterprise Financial Icons */}
       <nav style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
         {navItems.map((item) => {

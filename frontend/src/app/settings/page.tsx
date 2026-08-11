@@ -227,8 +227,8 @@ export default function SettingsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
           {/* MARKET DATA PREFERENCES */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-             <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>📈 Market Data Stream</h3>
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
+             <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Market Data Stream</h3>
              <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Configure real-time market data connections and refresh cycles.</p>
              
              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '16px', borderBottom: `1px solid ${borderCol}` }}>
@@ -254,8 +254,8 @@ export default function SettingsPage() {
                    <option value={60}>Auto: 60 seconds</option>
                    <option value={300}>Auto: 5 minutes</option>
                  </select>
-                 <button onClick={handleInstantRefresh} style={{ padding: '8px 16px', backgroundColor: '#3B82F6', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                   ⚡ Force Refresh
+                 <button onClick={handleInstantRefresh} className="btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                   Force Refresh
                  </button>
                </div>
              </div>
@@ -265,8 +265,8 @@ export default function SettingsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
               {/* Alert Switches Section */}
-              <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>🔔 Alert Engine Switches</h3>
+              <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Alert Engine Switches</h3>
                 <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Select which market event categories should generate alert dispatches.</p>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -308,8 +308,8 @@ export default function SettingsPage() {
               </div>
 
               {/* Delivery Channels Section */}
-              <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>🔌 Active Delivery Networks</h3>
+              <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Active Delivery Networks</h3>
                 <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Define which messaging channels are used for broadcasting alerts.</p>
                 
                 <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
@@ -331,8 +331,8 @@ export default function SettingsPage() {
               </div>
 
               {/* Network Credentials Configuration */}
-              <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>🔑 Channel Configuration</h3>
+              <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Channel Configuration</h3>
                 <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Specify contact endpoints for automated system alerts.</p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -349,8 +349,8 @@ export default function SettingsPage() {
 
               {/* Action Save Button */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="submit" disabled={saving} style={{ padding: '12px 28px', backgroundColor: '#10B981', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? 'Saving preferences...' : '💾 Save Settings'}
+                <button type="submit" disabled={saving} className="btn-primary" style={{ padding: '12px 28px', borderRadius: '8px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+                  {saving ? 'Saving preferences...' : 'Save Settings'}
                 </button>
               </div>
 
@@ -358,15 +358,15 @@ export default function SettingsPage() {
           </form>
 
           {/* IN-APP NOTIFICATIONS INBOX */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 800 }}>📥 In-App Notifications Inbox</h3>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 800 }}>In-App Notifications Inbox</h3>
                 <p style={{ margin: 0, fontSize: '13px', color: subTextCol }}>View all system notifications and trading alerts directly from the dashboard.</p>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={handleMarkAllRead} style={{ background: 'none', border: 'none', color: '#16A34A', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>✓ Mark All Read</button>
-                <button onClick={handleClearAll} style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>🗑️ Clear All</button>
+                <button onClick={handleMarkAllRead} className="btn-secondary" style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Mark All Read</button>
+                <button onClick={handleClearAll} className="btn-danger" style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Clear All</button>
               </div>
             </div>
 
@@ -438,14 +438,14 @@ export default function SettingsPage() {
           </div>
 
           {/* Legacy Bot Recipients configuration */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>🤖 Telegram Bot Recipients (Legacy)</h3>
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Telegram Bot Recipients (Legacy)</h3>
             <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Manage dedicated individual subscriber chat nodes connected to the bot.</p>
             
             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
               <input type="text" placeholder="Telegram Chat ID (e.g. 9827318)" value={newChatId} onChange={(e) => setNewChatId(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13.5px', flex: 2, backgroundColor: inputBg, color: textCol }} />
               <input type="text" placeholder="Subscriber Name (e.g. Anuj)" value={newChatName} onChange={(e) => setNewChatName(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13.5px', flex: 2, backgroundColor: inputBg, color: textCol }} />
-              <button type="button" onClick={handleAddTelegramRecipient} style={{ padding: '10px 20px', backgroundColor: '#2563EB', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', flex: 1, minWidth: '100px' }}>Add node</button>
+              <button type="button" onClick={handleAddTelegramRecipient} className="btn-primary" style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', flex: 1, minWidth: '100px' }}>Add node</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -458,7 +458,7 @@ export default function SettingsPage() {
                       <span style={{ fontSize: '14px', fontWeight: 700 }}>{r.name || 'Unnamed Recipient'}</span>
                       <span style={{ fontSize: '12.5px', color: subTextCol, marginLeft: '12px' }}>ID: {r.chatId}</span>
                     </div>
-                    <button onClick={() => handleDeleteTelegramRecipient(r.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '14px', color: '#EF4444' }}>🗑️ Delete</button>
+                    <button onClick={() => handleDeleteTelegramRecipient(r.id)} className="btn-danger" style={{ padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 700 }}>Delete</button>
                   </div>
                 ))
               )}

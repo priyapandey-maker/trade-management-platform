@@ -217,7 +217,7 @@ export default function DashboardPage() {
           <h1 style={{ fontSize: '24px', fontWeight: 900, color: textCol, margin: 0 }}>Executive terminal</h1>
           <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>Institutional dealing board and platform control center</p>
         </div>
-        <button onClick={exportPDF} style={{ padding: '9px 18px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button onClick={exportPDF} className="btn-secondary" style={{ padding: '9px 18px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <FileText size={16} /> Export PDF Report
         </button>
       </div>
@@ -230,7 +230,7 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '20px' }}>
           
           {/* Portfolio Value large card */}
-          <div style={{ flex: isMobile ? 'none' : '0 0 45%', backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+          <div className="premium-card" style={{ flex: isMobile ? 'none' : '0 0 45%', backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
             <div>
               <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Portfolio Valuation</div>
               <div style={{ fontSize: '32px', fontWeight: 900, color: textCol, marginTop: '8px' }}>
@@ -256,7 +256,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Today's P&L splits */}
-          <div style={{ flex: 1, backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+          <div className="premium-card" style={{ flex: 1, backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
             <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Today's Profit &amp; Loss breakdown</div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '16px' }}>
@@ -294,7 +294,7 @@ export default function DashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '20px' }}>
           
           {/* Portfolio Allocation Pie */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, margin: '0 0 10px 0', textTransform: 'uppercase' }}>Composition by Holdings</h3>
             <div style={{ flex: 1, position: 'relative' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -311,7 +311,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Investor Split Bar */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, margin: '0 0 10px 0', textTransform: 'uppercase' }}>Investor Allocations</h3>
             <div style={{ flex: 1 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -326,7 +326,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Sector Allocation Donut */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, margin: '0 0 10px 0', textTransform: 'uppercase' }}>Composition by Sectors</h3>
             <div style={{ flex: 1 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -347,7 +347,7 @@ export default function DashboardPage() {
         {/* ========================================================== */}
         {/* ROW 3: PORTFOLIO GROWTH (Line chart) */}
         {/* ========================================================== */}
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', height: '320px', display: 'flex', flexDirection: 'column' }}>
+        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', height: '320px', display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ fontSize: '14px', fontWeight: 800, color: textCol, margin: '0 0 16px 0', textTransform: 'uppercase' }}>Portfolio Returns Growth Trend</h3>
           <div style={{ flex: 1 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -374,7 +374,7 @@ export default function DashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
           
           {/* Performer Rotation Widget */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             {performers.length > 0 && performers[performerIndex] ? (
               <div key={performerIndex} style={{ animation: 'fadeIn 0.4s ease' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -421,10 +421,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Activity */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <h4 style={{ fontSize: '12.5px', fontWeight: 800, color: textCol, margin: '0 0 14px 0', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                📋 Recent Activity
+                Recent Activity
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {recentPositions.slice(0, 3).map((p: any) => (
@@ -445,7 +445,7 @@ export default function DashboardPage() {
         {/* ========================================================== */}
         {/* ROW 5: OPEN HOLDINGS TABLE */}
         {/* ========================================================== */}
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '20px', overflowX: 'auto' }}>
+        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '20px', overflowX: 'auto' }}>
           <h3 style={{ fontSize: '14px', fontWeight: 800, color: textCol, margin: '0 0 16px 0', textTransform: 'uppercase' }}>Active Portfolio Open Holdings</h3>
           
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13.5px', textAlign: 'left' }}>
@@ -464,7 +464,7 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {openPositions.slice(0, 10).map((p: any) => (
-                <tr key={p.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
+                <tr key={p.id} className="hover-row" style={{ borderBottom: `1px solid ${borderCol}` }}>
                   <td style={{ padding: '12px 14px', fontWeight: 800, color: textCol }} title={p.company}>{p.symbol}</td>
                   <td style={{ padding: '12px 14px', color: textCol }}>{p.investorName}</td>
                   <td style={{ padding: '12px 14px' }}>
@@ -472,12 +472,12 @@ export default function DashboardPage() {
                       {p.tradeType}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>₹{formatDecimal(p.buyPrice)}</td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>₹{formatDecimal(p.currentPrice)}</td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>{p.quantity}</td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>₹{formatDecimal(p.investedAmount)}</td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>₹{formatDecimal(p.currentValue)}</td>
-                  <td style={{ padding: '12px 14px', fontWeight: 800, color: p.profitLoss >= 0 ? '#10B981' : '#EF4444' }}>
+                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(p.buyPrice)}</td>
+                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(p.currentPrice)}</td>
+                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>{p.quantity}</td>
+                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(p.investedAmount)}</td>
+                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(p.currentValue)}</td>
+                  <td style={{ padding: '12px 14px', fontWeight: 800, color: p.profitLoss >= 0 ? '#10B981' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
                     ₹{formatDecimal(p.profitLoss)} ({formatDecimal(p.profitLossPct)}%)
                   </td>
                 </tr>

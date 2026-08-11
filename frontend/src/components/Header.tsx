@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
 import { Menu, Search, User, X, LogOut, Users, Settings } from 'lucide-react';
+import Image from 'next/image';
 
 interface HeaderProps {
   sidebarWidth: number;
@@ -91,10 +92,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     }
   };
 
-  const bgCol = '#FFFFFF';
-  const borderCol = '#E2E8F0';
-  const textCol = '#0F172A';
-  const subTextCol = '#64748B';
+  const bgCol = '#2563EB'; // Deep Blue Top Bar
+  const borderCol = 'transparent';
+  const textCol = '#FFFFFF';
+  const subTextCol = '#EFF6FF'; // Very light blue for secondary icons/text
 
   return (
     <>
@@ -104,7 +105,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             height: '70px',
             position: 'fixed',
             top: 0,
-            left: `${sidebarWidth}px`,
+            left: 0,
             right: 0,
             backgroundColor: bgCol,
             borderBottom: `1px solid ${borderCol}`,
@@ -112,8 +113,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0 16px',
-            zIndex: 30,
-            transition: 'left 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+            zIndex: 110,
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
@@ -170,7 +170,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: subTextCol,
+                    color: textCol,
                     fontSize: '22px',
                     padding: '6px',
                     display: 'flex',
@@ -179,6 +179,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 >
                   <Menu size={22} />
                 </button>
+                <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                  <Image src="/logo-monogram.svg" alt="SA" width={28} height={28} style={{ filter: 'brightness(0) invert(1)' }} priority />
+                </Link>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -204,16 +207,16 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     <User size={18} />
                   </button>
                   {showProfileMenu && (
-                    <div style={{ position: 'absolute', top: '42px', right: 0, width: '210px', backgroundColor: '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px 0' }}>
-                      <div style={{ padding: '8px 16px', borderBottom: `1px solid ${borderCol}`, fontSize: '11.5px', color: subTextCol }}>
+                    <div style={{ position: 'absolute', top: '42px', right: 0, width: '210px', backgroundColor: '#FFFFFF', border: `1px solid #E2E8F0`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px 0' }}>
+                      <div style={{ padding: '8px 16px', borderBottom: `1px solid #E2E8F0`, fontSize: '11.5px', color: '#64748B' }}>
                         Logged in as <br />
-                        <strong style={{ color: textCol, fontSize: '12.5px' }}>{user?.email}</strong>
+                        <strong style={{ color: '#0F172A', fontSize: '12.5px' }}>{user?.email}</strong>
                       </div>
 
                       {user?.role === 'OWNER' && (
                         <>
-                          <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}><Users size={14} /> Manage Clients</button>
-                          <Link href="/settings" onClick={() => setShowProfileMenu(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: '12.5px', fontWeight: 600, color: textCol, boxSizing: 'border-box' }}><Settings size={14} /> Settings</Link>
+                          <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: '#0F172A' }}><Users size={14} /> Manage Clients</button>
+                          <Link href="/settings" onClick={() => setShowProfileMenu(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: '12.5px', fontWeight: 600, color: '#0F172A', boxSizing: 'border-box' }}><Settings size={14} /> Settings</Link>
                         </>
                       )}
 
@@ -231,35 +234,46 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             height: '70px',
             position: 'fixed',
             top: 0,
-            left: `${sidebarWidth}px`,
+            left: 0,
             right: 0,
             backgroundColor: bgCol,
-            borderBottom: `1px solid ${borderCol}`,
+            borderBottom: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0 28px',
-            zIndex: 30,
-            transition: 'left 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+            zIndex: 110,
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
           {/* LEFT SECTION */}
-          <div style={{ display: 'flex', alignItems: 'center', width: '120px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', width: '280px', gap: '20px' }}>
+            <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '32px', height: '32px', position: 'relative' }}>
+                <Image src="/logo-monogram.svg" alt="SA" width={32} height={32} style={{ filter: 'brightness(0) invert(1)' }} priority />
+              </div>
+              <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, letterSpacing: '0.05em' }}>
+                SHREE ASSOCIATES
+              </div>
+            </Link>
+            
             <button
               onClick={toggleSidebar}
               title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
               style={{
-                background: 'none',
-                border: 'none',
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.15)',
                 cursor: 'pointer',
-                color: subTextCol,
+                color: textCol,
                 fontSize: '20px',
                 padding: '6px 8px',
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
+                transition: 'background 0.2s'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
             >
               <Menu size={20} />
             </button>
@@ -268,25 +282,27 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           {/* MIDDLE SECTION: Centered Search Bar */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
             <div style={{ position: 'relative', width: '280px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '6px 12px' }}>
-                <Search size={14} style={{ color: subTextCol, marginRight: '8px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '6px 12px', transition: 'background 0.2s' }}
+                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'}
+                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}>
+                <Search size={14} style={{ color: '#FFFFFF', marginRight: '8px' }} />
                 <input
                   type="text"
                   placeholder="Search Symbol..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onFocus={() => searchTerm.trim() && setShowSearchResults(true)}
-                  style={{ width: '100%', border: 'none', background: 'transparent', color: textCol, fontSize: '12.5px', outline: 'none' }}
+                  style={{ width: '100%', border: 'none', background: 'transparent', color: '#FFFFFF', fontSize: '12.5px', outline: 'none' }}
                 />
               </div>
 
               {showSearchResults && searchResults.length > 0 && (
-                <div style={{ position: 'absolute', top: '42px', left: 0, right: 0, backgroundColor: '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', maxHeight: '300px', overflowY: 'auto', zIndex: 50, padding: '4px' }}>
+                <div style={{ position: 'absolute', top: '42px', left: 0, right: 0, backgroundColor: '#FFFFFF', border: `1px solid #E2E8F0`, borderRadius: '8px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', maxHeight: '300px', overflowY: 'auto', zIndex: 50, padding: '4px' }}>
                   {searchResults.map((res) => (
-                    <div key={res.id} onClick={() => { setShowSearchResults(false); setSearchTerm(''); window.location.href = res.status === 'CLOSED' ? '/closed' : '/open'; }} style={{ padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: textCol }}>
+                    <div key={res.id} onClick={() => { setShowSearchResults(false); setSearchTerm(''); window.location.href = res.status === 'CLOSED' ? '/closed' : '/open'; }} className="hover-row" style={{ padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: '#0F172A' }}>
                       <div>
                         <span style={{ fontWeight: 800 }}>{res.symbol}</span>
-                        <span style={{ marginLeft: '8px', color: subTextCol, fontSize: '11.5px' }}>{res.company}</span>
+                        <span style={{ marginLeft: '8px', color: '#64748B', fontSize: '11.5px' }}>{res.company}</span>
                       </div>
                     </div>
                   ))}
