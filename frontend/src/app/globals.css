@@ -58,3 +58,13 @@ a {
 .animate-fade-slide {
   animation: fadeSlide 4s infinite ease-in-out;
 }
+
+.premium-card {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out, background-color 0.2s ease-out;
+}
+
+.premium-card:hover {
+  transform: translateY(-2.5px);
+  border-color: rgba(37, 99, 235, 0.4) !important;
+  box-shadow: 0 12px 30px -8px rgba(37, 99, 235, 0.15);
+}
