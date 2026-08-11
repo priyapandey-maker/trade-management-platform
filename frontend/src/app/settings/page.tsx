@@ -1,14 +1,12 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useTheme } from '@/context/ThemeContext';
+
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
 
 export default function SettingsPage() {
-  const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
-  const isDark = theme === 'dark';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,11 +40,11 @@ export default function SettingsPage() {
   const [refreshInterval, setRefreshInterval] = useState(60);
 
   // Styling Tokens
-  const cardBg = isDark ? '#1E293B' : '#FFFFFF';
-  const borderCol = isDark ? '#334155' : '#E2E8F0';
-  const textCol = isDark ? '#F8FAFC' : '#0F172A';
-  const subTextCol = isDark ? '#94A3B8' : '#64748B';
-  const inputBg = isDark ? '#0F172A' : '#F8FAFC';
+  const cardBg = '#FFFFFF';
+  const borderCol = '#E2E8F0';
+  const textCol = '#0F172A';
+  const subTextCol = '#64748B';
+  const inputBg = '#F8FAFC';
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -227,21 +225,6 @@ export default function SettingsPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-          
-          {/* UI PREFERENCES */}
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-             <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>🎨 Interface Preferences</h3>
-             <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Configure visual appearance and UI layout.</p>
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-               <div>
-                 <div style={{ fontSize: '14px', fontWeight: 700, color: textCol }}>Theme Mode</div>
-                 <div style={{ fontSize: '12.5px', color: subTextCol }}>Toggle between Light and Dark interface modes</div>
-               </div>
-               <button onClick={toggleTheme} style={{ padding: '8px 16px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#CBD5E1'}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol, fontSize: '14px', cursor: 'pointer', fontWeight: 700 }}>
-                 {isDark ? '☀️ Switch to Light' : '🌙 Switch to Dark'}
-               </button>
-             </div>
-          </div>
 
           {/* MARKET DATA PREFERENCES */}
           <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
@@ -253,7 +236,7 @@ export default function SettingsPage() {
                  <div style={{ fontSize: '14px', fontWeight: 700, color: textCol }}>Connection Status</div>
                  <div style={{ fontSize: '12.5px', color: subTextCol }}>Current status of the NSE market data feed</div>
                </div>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, padding: '6px 12px', backgroundColor: isDark ? '#064E3B' : '#DCFCE7', borderRadius: '20px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, padding: '6px 12px', backgroundColor: '#DCFCE7', borderRadius: '20px' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block', boxShadow: '0 0 6px #16A34A' }} />
                   <span style={{ color: '#16A34A', fontSize: '12px' }}>NSE LIVE</span>
                </div>
@@ -406,7 +389,7 @@ export default function SettingsPage() {
                       border: 'none',
                       fontSize: '12px',
                       fontWeight: notifFilter === filter ? 700 : 500,
-                      backgroundColor: notifFilter === filter ? (isDark ? '#334155' : '#E2E8F0') : 'transparent',
+                      backgroundColor: notifFilter === filter ? '#E2E8F0' : 'transparent',
                       color: textCol,
                       cursor: 'pointer',
                     }}
@@ -432,8 +415,8 @@ export default function SettingsPage() {
                       style={{
                         padding: '16px',
                         borderRadius: '8px',
-                        backgroundColor: isUnread ? (isDark ? '#1E293B' : '#F0FDF4') : inputBg,
-                        border: `1px solid ${isUnread ? (isDark ? '#334155' : '#DCFCE7') : borderCol}`,
+                        backgroundColor: isUnread ? '#F0FDF4' : inputBg,
+                        border: `1px solid ${isUnread ? '#DCFCE7' : borderCol}`,
                         cursor: 'pointer',
                         position: 'relative',
                       }}
@@ -470,7 +453,7 @@ export default function SettingsPage() {
                 <p style={{ margin: 0, fontSize: '13px', color: subTextCol }}>No custom bot nodes registered yet.</p>
               ) : (
                 telegramRecipients.map((r) => (
-                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', border: `1px solid ${borderCol}`, borderRadius: '8px', backgroundColor: isDark ? '#131D31' : '#F8FAFC' }}>
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', border: `1px solid ${borderCol}`, borderRadius: '8px', backgroundColor: '#F8FAFC' }}>
                     <div>
                       <span style={{ fontSize: '14px', fontWeight: 700 }}>{r.name || 'Unnamed Recipient'}</span>
                       <span style={{ fontSize: '12.5px', color: subTextCol, marginLeft: '12px' }}>ID: {r.chatId}</span>

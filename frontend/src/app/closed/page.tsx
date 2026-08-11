@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
+
 import api from '@/lib/axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -11,8 +11,8 @@ import { formatDecimal, calculateInvestment, calculateCurrentValue, calculateLiv
 
 export default function ClosedPositionsPage() {
   const { user } = useAuth();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  
+  
 
   const [positions, setPositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -504,10 +504,10 @@ export default function ClosedPositionsPage() {
   const totalPages = Math.ceil(filteredPositions.length / itemsPerPage);
   const paginatedPositions = filteredPositions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const cardBg = isDark ? '#1E293B' : '#FFFFFF';
-  const borderCol = isDark ? '#334155' : '#E2E8F0';
-  const textCol = isDark ? '#F8FAFC' : '#0F172A';
-  const subTextCol = isDark ? '#94A3B8' : '#64748B';
+  const cardBg = '#FFFFFF';
+  const borderCol = '#E2E8F0';
+  const textCol = '#0F172A';
+  const subTextCol = '#64748B';
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -575,7 +575,7 @@ export default function ClosedPositionsPage() {
               padding: '4px 8px',
               borderRadius: '6px',
               border: `1px solid ${borderCol}`,
-              backgroundColor: isDark ? '#334155' : '#F1F5F9',
+              backgroundColor: '#F1F5F9',
               color: textCol,
               fontSize: '11px',
               fontWeight: 700,
@@ -626,15 +626,15 @@ export default function ClosedPositionsPage() {
           placeholder="🔍 Search closed symbol..."
           value={displaySearch}
           onChange={(e) => setDisplaySearch(e.target.value)}
-          style={{ width: isMobile ? '100%' : '260px', padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}
+          style={{ width: isMobile ? '100%' : '260px', padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: '#F8FAFC', color: textCol, fontSize: '13px' }}
         />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: '#F8FAFC', color: textCol, fontSize: '13px' }}>
           <option value="ALL">All Exit Reasons</option>
           <option value="TARGET_HIT">🎯 Target Hit</option>
           <option value="STOP_LOSS_HIT">🛑 Stop Loss Hit</option>
           <option value="MANUAL_EXIT">Manual Exit</option>
         </select>
-        <select value={investorFilter} onChange={(e) => setInvestorFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', color: textCol, fontSize: '13px' }}>
+        <select value={investorFilter} onChange={(e) => setInvestorFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: '#F8FAFC', color: textCol, fontSize: '13px' }}>
           <option value="ALL">All Investors</option>
           {Array.from(new Set(positions.map((p) => p.investorName).filter(Boolean))).map((inv: any) => (
             <option key={inv} value={inv}>{inv}</option>
@@ -647,10 +647,10 @@ export default function ClosedPositionsPage() {
         {loading ? (
           <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <div key={n} style={{ height: '48px', borderRadius: '8px', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', opacity: 0.6, display: 'flex', alignItems: 'center', padding: '0 16px', justifyContent: 'space-between' }}>
-                <div style={{ width: '120px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
-                <div style={{ width: '80px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
-                <div style={{ width: '100px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
+              <div key={n} style={{ height: '48px', borderRadius: '8px', backgroundColor: '#F1F5F9', opacity: 0.6, display: 'flex', alignItems: 'center', padding: '0 16px', justifyContent: 'space-between' }}>
+                <div style={{ width: '120px', height: '14px', borderRadius: '4px', backgroundColor: '#E2E8F0' }} />
+                <div style={{ width: '80px', height: '14px', borderRadius: '4px', backgroundColor: '#E2E8F0' }} />
+                <div style={{ width: '100px', height: '14px', borderRadius: '4px', backgroundColor: '#E2E8F0' }} />
               </div>
             ))}
           </div>
@@ -748,7 +748,7 @@ export default function ClosedPositionsPage() {
                   </div>
 
                   {pos.targetPrice && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', padding: '10px', borderRadius: '8px', fontSize: '12px', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC', padding: '10px', borderRadius: '8px', fontSize: '12px', marginTop: '4px' }}>
                       <div>
                         <span style={{ color: subTextCol }}>Potential: </span>
                         <strong style={{ color: textCol }}>₹{(pos.potentialProfit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
@@ -780,7 +780,7 @@ export default function ClosedPositionsPage() {
                             height: '44px',
                             borderRadius: '8px',
                             border: `1px solid ${borderCol}`,
-                            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                            backgroundColor: '#FFFFFF',
                             color: textCol,
                             fontSize: '13px',
                             fontWeight: 600,
@@ -823,7 +823,7 @@ export default function ClosedPositionsPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
               <thead>
-                <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderBottom: `2px solid ${borderCol}`, color: subTextCol, textAlign: 'left' }}>
+                <tr style={{ backgroundColor: '#F8FAFC', borderBottom: `2px solid ${borderCol}`, color: subTextCol, textAlign: 'left' }}>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Symbol &amp; Trend</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Buy Price</th>
                   <th style={{ padding: '12px', fontWeight: 800 }}>Exit Price</th>
@@ -864,7 +864,7 @@ export default function ClosedPositionsPage() {
                       
                       {/* TRADE DURATION BADGE */}
                       <td style={{ padding: '12px 10px' }}>
-                        <span style={{ padding: '4px 8px', borderRadius: '6px', backgroundColor: isDark ? '#334155' : '#F1F5F9', color: textCol, fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ padding: '4px 8px', borderRadius: '6px', backgroundColor: '#F1F5F9', color: textCol, fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <Clock size={12} /> {pos.holdingPeriod || 0} Days
                         </span>
                       </td>
@@ -912,7 +912,7 @@ export default function ClosedPositionsPage() {
                             <button
                               onClick={() => handleOpenEditDrawer(pos)}
                               title="Edit"
-                              style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: '#FFFFFF', color: textCol, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               <Pencil size={14} />
                             </button>
@@ -1037,7 +1037,7 @@ export default function ClosedPositionsPage() {
             )}
 
             {/* Read-Only Stats Preview (Req 3) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', borderRadius: '12px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', borderRadius: '12px', backgroundColor: '#F8FAFC', border: `1px solid ${borderCol}` }}>
               <div>
                 <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>
                   {editForm.tradeType === 'SELL' ? 'Exit Price (Sell Price)' : 'Current Price (CMP)'}
@@ -1122,7 +1122,7 @@ export default function ClosedPositionsPage() {
                 type="text"
                 value={editForm.company}
                 onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
               />
             </div>
 
@@ -1132,7 +1132,7 @@ export default function ClosedPositionsPage() {
                 type="text"
                 value={editForm.symbol}
                 onChange={(e) => setEditForm({ ...editForm, symbol: e.target.value.toUpperCase() })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
               />
               {validationErrors.symbol && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.symbol}</span>}
             </div>
@@ -1142,7 +1142,7 @@ export default function ClosedPositionsPage() {
               <select
                 value={editForm.tradeType}
                 onChange={(e) => setEditForm({ ...editForm, tradeType: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
               >
                 <option value="BUY">BUY</option>
                 <option value="SELL">SELL</option>
@@ -1159,12 +1159,12 @@ export default function ClosedPositionsPage() {
                     value={customEditInvestor}
                     onChange={(e) => setCustomEditInvestor(e.target.value)}
                     required
-                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }}
                   />
                   <button
                     type="button"
                     onClick={() => setIsEditingNewInvestor(false)}
-                    style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12px' }}
+                    style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12px' }}
                   >
                     Choose Existing
                   </button>
@@ -1179,7 +1179,7 @@ export default function ClosedPositionsPage() {
                       setEditForm({ ...editForm, investorName: e.target.value });
                     }
                   }}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                 >
                   {Array.from(new Set(['Shree', 'Priya', 'Rahul', 'Amit', ...positions.map(p => p.investorName).filter(Boolean)])).map(inv => (
                     <option key={inv} value={inv}>{inv}</option>
@@ -1199,7 +1199,7 @@ export default function ClosedPositionsPage() {
                       step="any"
                       value={editForm.buyPrice}
                       onChange={(e) => setEditForm({ ...editForm, buyPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.buyPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.buyPrice}</span>}
                   </div>
@@ -1210,7 +1210,7 @@ export default function ClosedPositionsPage() {
                       step="any"
                       value={editForm.sellingPrice}
                       onChange={(e) => setEditForm({ ...editForm, sellingPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.sellingPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.sellingPrice}</span>}
                   </div>
@@ -1224,7 +1224,7 @@ export default function ClosedPositionsPage() {
                       step="any"
                       value={editForm.quantity}
                       onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.quantity && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.quantity}</span>}
                   </div>
@@ -1233,7 +1233,7 @@ export default function ClosedPositionsPage() {
                     <select
                       value={editForm.exitReason}
                       onChange={(e) => setEditForm({ ...editForm, exitReason: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     >
                       <option value="TARGET_HIT">Target Hit</option>
                       <option value="MANUAL_EXIT">Manual Exit</option>
@@ -1252,7 +1252,7 @@ export default function ClosedPositionsPage() {
                       type="date"
                       value={editForm.entryDate}
                       onChange={(e) => setEditForm({ ...editForm, entryDate: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                   <div>
@@ -1261,7 +1261,7 @@ export default function ClosedPositionsPage() {
                       type="date"
                       value={editForm.closedAt}
                       onChange={(e) => setEditForm({ ...editForm, closedAt: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                 </div>
@@ -1274,7 +1274,7 @@ export default function ClosedPositionsPage() {
                       step="any"
                       value={editForm.targetPrice}
                       onChange={(e) => setEditForm({ ...editForm, targetPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                   <div>
@@ -1284,7 +1284,7 @@ export default function ClosedPositionsPage() {
                       step="any"
                       value={editForm.stopLoss}
                       onChange={(e) => setEditForm({ ...editForm, stopLoss: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                 </div>
@@ -1299,7 +1299,7 @@ export default function ClosedPositionsPage() {
                       step="any"
                       value={editForm.buyPrice}
                       onChange={(e) => setEditForm({ ...editForm, buyPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.buyPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.buyPrice}</span>}
                   </div>
@@ -1310,7 +1310,7 @@ export default function ClosedPositionsPage() {
                       step="any"
                       value={editForm.quantity}
                       onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.quantity && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.quantity}</span>}
                   </div>
@@ -1324,7 +1324,7 @@ export default function ClosedPositionsPage() {
                       step="any"
                       value={editForm.targetPrice}
                       onChange={(e) => setEditForm({ ...editForm, targetPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.targetPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.targetPrice}</span>}
                   </div>
@@ -1335,7 +1335,7 @@ export default function ClosedPositionsPage() {
                       step="any"
                       value={editForm.stopLoss}
                       onChange={(e) => setEditForm({ ...editForm, stopLoss: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.stopLoss && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.stopLoss}</span>}
                   </div>
@@ -1347,7 +1347,7 @@ export default function ClosedPositionsPage() {
                     type="date"
                     value={editForm.entryDate}
                     onChange={(e) => setEditForm({ ...editForm, entryDate: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                   />
                 </div>
 
@@ -1359,7 +1359,7 @@ export default function ClosedPositionsPage() {
                       step="0.1"
                       value={editForm.nearBuyProximityPct}
                       onChange={(e) => setEditForm({ ...editForm, nearBuyProximityPct: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.nearBuyProximityPct && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.nearBuyProximityPct}</span>}
                   </div>
@@ -1369,7 +1369,7 @@ export default function ClosedPositionsPage() {
                       type="date"
                       value={editForm.muteAlertsUntil}
                       onChange={(e) => setEditForm({ ...editForm, muteAlertsUntil: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                 </div>
@@ -1381,7 +1381,7 @@ export default function ClosedPositionsPage() {
               <textarea
                 value={editForm.notes}
                 onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', height: '80px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', height: '80px', backgroundColor: '#FFFFFF', color: textCol }}
               />
             </div>
 
@@ -1426,7 +1426,7 @@ export default function ClosedPositionsPage() {
               <select
                 value={missedSortBy}
                 onChange={(e) => setMissedSortBy(e.target.value)}
-                style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol, fontSize: '12.5px' }}
+                style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: '#FFFFFF', color: textCol, fontSize: '12.5px' }}
               >
                 <option value="missedProfit">Gains Missed (₹)</option>
                 <option value="symbol">Symbol</option>
@@ -1436,7 +1436,7 @@ export default function ClosedPositionsPage() {
               <select
                 value={missedSortOrder}
                 onChange={(e) => setMissedSortOrder(e.target.value as any)}
-                style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol, fontSize: '12.5px' }}
+                style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: '#FFFFFF', color: textCol, fontSize: '12.5px' }}
               >
                 <option value="desc">Highest First</option>
                 <option value="asc">Lowest First</option>

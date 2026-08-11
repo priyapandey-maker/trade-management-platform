@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
+
 import api from '@/lib/axios';
 import { User, TrendingUp, TrendingDown, Clock, FileText } from 'lucide-react';
 import { formatDecimal } from '@/lib/financial-calculations';
@@ -24,8 +24,8 @@ interface InvestorStats {
 
 export default function InvestorsPage() {
   const { user } = useAuth();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  
+  
 
   const [investors, setInvestors] = useState<InvestorStats[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
@@ -68,10 +68,10 @@ export default function InvestorsPage() {
   const totalNetProfit = investors.reduce((sum, inv) => sum + inv.netProfit, 0);
   const overallROI = totalCapitalManaged > 0 ? (totalNetProfit / totalCapitalManaged) * 100 : 0;
 
-  const cardBg = isDark ? '#1E293B' : '#FFFFFF';
-  const borderCol = isDark ? '#334155' : '#E2E8F0';
-  const textCol = isDark ? '#F8FAFC' : '#0F172A';
-  const subTextCol = isDark ? '#94A3B8' : '#64748B';
+  const cardBg = '#FFFFFF';
+  const borderCol = '#E2E8F0';
+  const textCol = '#0F172A';
+  const subTextCol = '#64748B';
 
   const paletteColors = [
     '#2563EB', // Navy/Blue
@@ -149,7 +149,7 @@ export default function InvestorsPage() {
 
         {totalCapitalManaged > 0 ? (
           <>
-            <div style={{ display: 'flex', height: '24px', borderRadius: '8px', overflow: 'hidden', backgroundColor: isDark ? '#1E293B' : '#E2E8F0', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', height: '24px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#E2E8F0', marginBottom: '16px' }}>
               {investors.map((inv, idx) => {
                 const pct = (inv.totalInvestment / totalCapitalManaged) * 100;
                 if (pct <= 0) return null;
@@ -333,7 +333,7 @@ export default function InvestorsPage() {
                     <h5 style={{ fontSize: '11px', fontWeight: 850, color: subTextCol, margin: '14px 0 8px 0', textTransform: 'uppercase' }}>Sector Distribution</h5>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
                       {Object.entries(sectorAllocation).map(([sec, val]: any) => (
-                        <div key={sec} style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', border: `1px solid ${borderCol}`, padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px', color: textCol }}>
+                        <div key={sec} style={{ backgroundColor: '#F1F5F9', border: `1px solid ${borderCol}`, padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px', color: textCol }}>
                           {sec}: <strong>{formatDecimal((val / (inv.totalInvestment || 1)) * 100)}%</strong>
                         </div>
                       ))}
@@ -344,7 +344,7 @@ export default function InvestorsPage() {
                     <div style={{ maxHeight: '180px', overflowY: 'auto', border: `1px solid ${borderCol}`, borderRadius: '8px' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
                         <thead>
-                          <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderBottom: `1px solid ${borderCol}`, color: subTextCol }}>
+                          <tr style={{ backgroundColor: '#F8FAFC', borderBottom: `1px solid ${borderCol}`, color: subTextCol }}>
                             <th style={{ padding: '6px 10px' }}>Symbol</th>
                             <th style={{ padding: '6px 10px' }}>Qty</th>
                             <th style={{ padding: '6px 10px' }}>Invested</th>

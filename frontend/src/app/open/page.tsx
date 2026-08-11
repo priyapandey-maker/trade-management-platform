@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
+
 import api from '@/lib/axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -11,8 +11,8 @@ import { formatDecimal, calculateInvestment, calculateCurrentValue, calculateLiv
 
 export default function OpenPositionsPage() {
   const { user } = useAuth();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  
+  
 
   const [positions, setPositions] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -695,10 +695,10 @@ export default function OpenPositionsPage() {
   const totalPages = Math.ceil(filteredPositions.length / itemsPerPage);
   const paginatedPositions = filteredPositions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const cardBg = isDark ? '#1E293B' : '#FFFFFF';
-  const borderCol = isDark ? '#334155' : '#E2E8F0';
-  const textCol = isDark ? '#F8FAFC' : '#0F172A';
-  const subTextCol = isDark ? '#94A3B8' : '#64748B';
+  const cardBg = '#FFFFFF';
+  const borderCol = '#E2E8F0';
+  const textCol = '#0F172A';
+  const subTextCol = '#64748B';
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -770,7 +770,7 @@ export default function OpenPositionsPage() {
               Performance Leaders
             </span>
             {currentLeader && (
-              <span style={{ fontSize: '10px', fontWeight: 800, color: currentLeader.type === 'BEST PERFORMER' ? '#16A34A' : '#DC2626', backgroundColor: currentLeader.type === 'BEST PERFORMER' ? (isDark ? '#064E3B' : '#DCFCE7') : (isDark ? '#7F1D1D' : '#FEE2E2'), padding: '2px 6px', borderRadius: '4px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 800, color: currentLeader.type === 'BEST PERFORMER' ? '#16A34A' : '#DC2626', backgroundColor: currentLeader.type === 'BEST PERFORMER' ? ('#DCFCE7') : ('#FEE2E2'), padding: '2px 6px', borderRadius: '4px' }}>
                 #{currentLeader.rank} {currentLeader.type}
               </span>
             )}
@@ -808,7 +808,7 @@ export default function OpenPositionsPage() {
               placeholder="Search symbol, notes..."
               value={displaySearch}
               onChange={(e) => setDisplaySearch(e.target.value)}
-              style={{ padding: '8px 12px', paddingLeft: '32px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', width: '100%', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+              style={{ padding: '8px 12px', paddingLeft: '32px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', width: '100%', backgroundColor: '#FFFFFF', color: textCol }}
             />
             <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: subTextCol }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -822,7 +822,7 @@ export default function OpenPositionsPage() {
               setSortBy(by);
               setSortOrder(order as any);
             }}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }}
           >
             <option value="entryDate-desc">Newest First</option>
             <option value="entryDate-asc">Oldest First</option>
@@ -834,7 +834,7 @@ export default function OpenPositionsPage() {
           <select
             value={investorFilter}
             onChange={(e) => setInvestorFilter(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }}
           >
             <option value="ALL">All Investors</option>
             {Array.from(new Set(positions.map((p) => p.investorName).filter(Boolean))).map((inv: any) => (
@@ -855,10 +855,10 @@ export default function OpenPositionsPage() {
         {loading && positions.length === 0 ? (
           <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <div key={n} style={{ height: '48px', borderRadius: '8px', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', opacity: 0.6, display: 'flex', alignItems: 'center', padding: '0 16px', justifyContent: 'space-between' }}>
-                <div style={{ width: '120px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
-                <div style={{ width: '80px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
-                <div style={{ width: '100px', height: '14px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
+              <div key={n} style={{ height: '48px', borderRadius: '8px', backgroundColor: '#F1F5F9', opacity: 0.6, display: 'flex', alignItems: 'center', padding: '0 16px', justifyContent: 'space-between' }}>
+                <div style={{ width: '120px', height: '14px', borderRadius: '4px', backgroundColor: '#E2E8F0' }} />
+                <div style={{ width: '80px', height: '14px', borderRadius: '4px', backgroundColor: '#E2E8F0' }} />
+                <div style={{ width: '100px', height: '14px', borderRadius: '4px', backgroundColor: '#E2E8F0' }} />
               </div>
             ))}
           </div>
@@ -888,7 +888,7 @@ export default function OpenPositionsPage() {
                 <div
                   key={pos.id}
                   style={{
-                    backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                    backgroundColor: '#FFFFFF',
                     border: `1px solid ${borderCol}`,
                     borderRadius: '12px',
                     padding: '16px',
@@ -932,7 +932,7 @@ export default function OpenPositionsPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '13px', marginTop: '4px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '13px', marginTop: '4px', backgroundColor: '#F8FAFC', padding: '12px', borderRadius: '8px' }}>
                     <div>
                       <span style={{ color: subTextCol, display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Target</span>
                       <strong style={{ color: textCol }}>{pos.targetPrice ? `₹${formatDecimal(pos.targetPrice)}` : <span style={{ color: subTextCol }}>N/A</span>}</strong>
@@ -983,7 +983,7 @@ export default function OpenPositionsPage() {
                           height: '40px',
                           borderRadius: '8px',
                           border: `1px solid ${borderCol}`,
-                          backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                          backgroundColor: '#FFFFFF',
                           color: textCol,
                           fontSize: '13px',
                           fontWeight: 600,
@@ -1025,7 +1025,7 @@ export default function OpenPositionsPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderBottom: `2px solid ${borderCol}`, color: subTextCol, textAlign: 'left' }}>
+                <tr style={{ backgroundColor: '#F8FAFC', borderBottom: `2px solid ${borderCol}`, color: subTextCol, textAlign: 'left' }}>
                   {user?.role === 'OWNER' && <th style={{ padding: '14px', width: '30px', textAlign: 'center' }}>✓</th>}
                   <th style={{ padding: '14px', fontWeight: 800 }}>Symbol &amp; Trend</th>
                   <th style={{ padding: '14px', fontWeight: 800 }}>Type</th>
@@ -1075,7 +1075,7 @@ export default function OpenPositionsPage() {
                       </td>
 
                       <td style={{ padding: '12px', fontWeight: 700 }}>
-                        <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? (isDark ? '#064E3B' : '#DCFCE7') : (isDark ? '#7F1D1D' : '#FEE2E2'), color: pos.tradeType === 'BUY' ? (isDark ? '#34D399' : '#15803D') : (isDark ? '#FCA5A5' : '#991B1B'), fontSize: '11px', fontWeight: 800 }}>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? ('#DCFCE7') : ('#FEE2E2'), color: pos.tradeType === 'BUY' ? ('#15803D') : ('#991B1B'), fontSize: '11px', fontWeight: 800 }}>
                           {pos.tradeType}
                         </span>
                       </td>
@@ -1125,7 +1125,7 @@ export default function OpenPositionsPage() {
                             <button
                               onClick={() => handleOpenEditDrawer(pos)}
                               title="Edit"
-                              style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              style={{ padding: '6px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: '#FFFFFF', color: textCol, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               <Pencil size={14} />
                             </button>
@@ -1234,7 +1234,7 @@ export default function OpenPositionsPage() {
             )}
 
             {/* Read-Only Stats Preview (Req 3) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', borderRadius: '12px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', borderRadius: '12px', backgroundColor: '#F8FAFC', border: `1px solid ${borderCol}` }}>
               <div>
                 <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>
                   {editForm.tradeType === 'SELL' ? 'Exit Price (Sell Price)' : 'Current Price (CMP)'}
@@ -1319,7 +1319,7 @@ export default function OpenPositionsPage() {
                 type="text"
                 value={editForm.company}
                 onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
               />
             </div>
 
@@ -1329,7 +1329,7 @@ export default function OpenPositionsPage() {
                 type="text"
                 value={editForm.symbol}
                 onChange={(e) => setEditForm({ ...editForm, symbol: e.target.value.toUpperCase() })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
               />
               {validationErrors.symbol && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.symbol}</span>}
             </div>
@@ -1339,7 +1339,7 @@ export default function OpenPositionsPage() {
               <select
                 value={editForm.tradeType}
                 onChange={(e) => setEditForm({ ...editForm, tradeType: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
               >
                 <option value="BUY">BUY</option>
                 <option value="SELL">SELL</option>
@@ -1356,12 +1356,12 @@ export default function OpenPositionsPage() {
                     value={customEditInvestor}
                     onChange={(e) => setCustomEditInvestor(e.target.value)}
                     required
-                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }}
                   />
                   <button
                     type="button"
                     onClick={() => setIsEditingNewInvestor(false)}
-                    style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12px' }}
+                    style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12px' }}
                   >
                     Choose Existing
                   </button>
@@ -1376,7 +1376,7 @@ export default function OpenPositionsPage() {
                       setEditForm({ ...editForm, investorName: e.target.value });
                     }
                   }}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                 >
                   {Array.from(new Set(['Shree', 'Priya', 'Rahul', 'Amit', ...positions.map(p => p.investorName).filter(Boolean)])).map(inv => (
                     <option key={inv} value={inv}>{inv}</option>
@@ -1396,7 +1396,7 @@ export default function OpenPositionsPage() {
                       step="any"
                       value={editForm.buyPrice}
                       onChange={(e) => setEditForm({ ...editForm, buyPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.buyPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.buyPrice}</span>}
                   </div>
@@ -1407,7 +1407,7 @@ export default function OpenPositionsPage() {
                       step="any"
                       value={editForm.sellingPrice}
                       onChange={(e) => setEditForm({ ...editForm, sellingPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.sellingPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.sellingPrice}</span>}
                   </div>
@@ -1421,7 +1421,7 @@ export default function OpenPositionsPage() {
                       step="any"
                       value={editForm.quantity}
                       onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.quantity && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.quantity}</span>}
                   </div>
@@ -1430,7 +1430,7 @@ export default function OpenPositionsPage() {
                     <select
                       value={editForm.exitReason}
                       onChange={(e) => setEditForm({ ...editForm, exitReason: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     >
                       <option value="TARGET_HIT">Target Hit</option>
                       <option value="MANUAL_EXIT">Manual Exit</option>
@@ -1449,7 +1449,7 @@ export default function OpenPositionsPage() {
                       type="date"
                       value={editForm.entryDate}
                       onChange={(e) => setEditForm({ ...editForm, entryDate: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                   <div>
@@ -1458,7 +1458,7 @@ export default function OpenPositionsPage() {
                       type="date"
                       value={editForm.closedAt}
                       onChange={(e) => setEditForm({ ...editForm, closedAt: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                 </div>
@@ -1471,7 +1471,7 @@ export default function OpenPositionsPage() {
                       step="any"
                       value={editForm.targetPrice}
                       onChange={(e) => setEditForm({ ...editForm, targetPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                   <div>
@@ -1481,7 +1481,7 @@ export default function OpenPositionsPage() {
                       step="any"
                       value={editForm.stopLoss}
                       onChange={(e) => setEditForm({ ...editForm, stopLoss: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                 </div>
@@ -1496,7 +1496,7 @@ export default function OpenPositionsPage() {
                       step="any"
                       value={editForm.buyPrice}
                       onChange={(e) => setEditForm({ ...editForm, buyPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.buyPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.buyPrice}</span>}
                   </div>
@@ -1507,7 +1507,7 @@ export default function OpenPositionsPage() {
                       step="any"
                       value={editForm.quantity}
                       onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.quantity && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.quantity}</span>}
                   </div>
@@ -1521,7 +1521,7 @@ export default function OpenPositionsPage() {
                       step="any"
                       value={editForm.targetPrice}
                       onChange={(e) => setEditForm({ ...editForm, targetPrice: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.targetPrice && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.targetPrice}</span>}
                   </div>
@@ -1532,7 +1532,7 @@ export default function OpenPositionsPage() {
                       step="any"
                       value={editForm.stopLoss}
                       onChange={(e) => setEditForm({ ...editForm, stopLoss: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.stopLoss && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.stopLoss}</span>}
                   </div>
@@ -1544,7 +1544,7 @@ export default function OpenPositionsPage() {
                     type="date"
                     value={editForm.entryDate}
                     onChange={(e) => setEditForm({ ...editForm, entryDate: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                   />
                 </div>
 
@@ -1556,7 +1556,7 @@ export default function OpenPositionsPage() {
                       step="0.1"
                       value={editForm.nearBuyProximityPct}
                       onChange={(e) => setEditForm({ ...editForm, nearBuyProximityPct: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     {validationErrors.nearBuyProximityPct && <span style={{ color: '#DC2626', fontSize: '11.5px', marginTop: '4px', display: 'block', fontWeight: 600 }}>⚠️ {validationErrors.nearBuyProximityPct}</span>}
                   </div>
@@ -1566,7 +1566,7 @@ export default function OpenPositionsPage() {
                       type="date"
                       value={editForm.muteAlertsUntil}
                       onChange={(e) => setEditForm({ ...editForm, muteAlertsUntil: e.target.value })}
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                   </div>
                 </div>
@@ -1578,7 +1578,7 @@ export default function OpenPositionsPage() {
               <textarea
                 value={editForm.notes}
                 onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', height: '80px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', height: '80px', backgroundColor: '#FFFFFF', color: textCol }}
               />
             </div>
 
@@ -1620,17 +1620,17 @@ export default function OpenPositionsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Symbol *</label>
-                  <input type="text" placeholder="e.g. RELIANCE.NS" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value.toUpperCase())} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                  <input type="text" placeholder="e.g. RELIANCE.NS" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value.toUpperCase())} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                 </div>
                 <div>
                   <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Company Name</label>
-                  <input type="text" placeholder="e.g. Reliance Ind." value={newCompany} onChange={(e) => setNewCompany(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                  <input type="text" placeholder="e.g. Reliance Ind." value={newCompany} onChange={(e) => setNewCompany(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                 </div>
               </div>
 
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Type</label>
-                <select value={newType} onChange={(e) => setNewType(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
+                <select value={newType} onChange={(e) => setNewType(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }}>
                   <option value="BUY">BUY</option>
                   <option value="SELL">SELL</option>
                 </select>
@@ -1646,12 +1646,12 @@ export default function OpenPositionsPage() {
                       value={customNewInvestor}
                       onChange={(e) => setCustomNewInvestor(e.target.value)}
                       required
-                      style={{ flex: 1, padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                      style={{ flex: 1, padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }}
                     />
                     <button
                       type="button"
                       onClick={() => setIsCreatingNewInvestor(false)}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: isDark ? '#1E293B' : '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12px' }}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12px' }}
                     >
                       Choose Existing
                     </button>
@@ -1666,7 +1666,7 @@ export default function OpenPositionsPage() {
                         setNewInvestorName(e.target.value);
                       }
                     }}
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '4px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '4px', backgroundColor: '#FFFFFF', color: textCol }}
                   >
                     {Array.from(new Set(['Shree', 'Priya', 'Rahul', 'Amit', ...positions.map(p => p.investorName).filter(Boolean)])).map(inv => (
                       <option key={inv} value={inv}>{inv}</option>
@@ -1681,22 +1681,22 @@ export default function OpenPositionsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Price *</label>
-                      <input type="number" step="any" placeholder="₹" value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="number" step="any" placeholder="₹" value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Sell Price *</label>
-                      <input type="number" step="any" placeholder="₹" value={newSellPrice} onChange={(e) => setNewSellPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="number" step="any" placeholder="₹" value={newSellPrice} onChange={(e) => setNewSellPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Quantity *</label>
-                      <input type="number" step="any" placeholder="Qty" value={newQty} onChange={(e) => setNewQty(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="number" step="any" placeholder="Qty" value={newQty} onChange={(e) => setNewQty(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Exit Reason</label>
-                      <select value={newExitReason} onChange={(e) => setNewExitReason(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
+                      <select value={newExitReason} onChange={(e) => setNewExitReason(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }}>
                         <option value="TARGET_HIT">Target Hit</option>
                         <option value="MANUAL_EXIT">Manual Exit</option>
                         <option value="STOP_LOSS_HIT">Stop Loss Hit</option>
@@ -1710,22 +1710,22 @@ export default function OpenPositionsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Date *</label>
-                      <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Sell Date *</label>
-                      <input type="date" value={newSellDate} onChange={(e) => setNewSellDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="date" value={newSellDate} onChange={(e) => setNewSellDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Target Price (Optional)</label>
-                      <input type="number" step="any" placeholder="Target ₹" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="number" step="any" placeholder="Target ₹" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Stop Loss (Optional)</label>
-                      <input type="number" step="any" placeholder="Stop Loss ₹" value={newStop} onChange={(e) => setNewStop(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="number" step="any" placeholder="Stop Loss ₹" value={newStop} onChange={(e) => setNewStop(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                   </div>
                 </>
@@ -1734,35 +1734,35 @@ export default function OpenPositionsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Price *</label>
-                      <input type="number" step="any" placeholder="₹" value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="number" step="any" placeholder="₹" value={newBuyPrice} onChange={(e) => setNewBuyPrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Quantity *</label>
-                      <input type="number" step="any" placeholder="Qty" value={newQty} onChange={(e) => setNewQty(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="number" step="any" placeholder="Qty" value={newQty} onChange={(e) => setNewQty(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Target Price</label>
-                      <input type="number" step="any" placeholder="Target ₹" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="number" step="any" placeholder="Target ₹" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                     <div>
                       <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Stop Loss</label>
-                      <input type="number" step="any" placeholder="Stop Loss ₹" value={newStop} onChange={(e) => setNewStop(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                      <input type="number" step="any" placeholder="Stop Loss ₹" value={newStop} onChange={(e) => setNewStop(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                     </div>
                   </div>
 
                   <div>
                     <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Buy Date *</label>
-                    <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                    <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
                   </div>
                 </>
               )}
 
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Notes</label>
-                <textarea placeholder="Trade notes..." value={newNotes} onChange={(e) => setNewNotes(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', height: '60px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                <textarea placeholder="Trade notes..." value={newNotes} onChange={(e) => setNewNotes(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', height: '60px', backgroundColor: '#FFFFFF', color: textCol }} />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
@@ -1784,12 +1784,12 @@ export default function OpenPositionsPage() {
             <form onSubmit={handleCloseSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Selling Price (Exit CMP) *</label>
-                <input type="number" step="any" value={closePrice} onChange={(e) => setClosePrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                <input type="number" step="any" value={closePrice} onChange={(e) => setClosePrice(e.target.value)} required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
               </div>
 
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Exit Reason</label>
-                <select value={closeReason} onChange={(e) => setCloseReason(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}>
+                <select value={closeReason} onChange={(e) => setCloseReason(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }}>
                   <option value="MANUAL_EXIT">Manual Exit</option>
                   <option value="TARGET_HIT">Target Hit</option>
                   <option value="STOP_LOSS_HIT">Stop Loss Hit</option>
@@ -1798,7 +1798,7 @@ export default function OpenPositionsPage() {
 
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Closing Notes</label>
-                <textarea value={closeNotes} onChange={(e) => setCloseNotes(e.target.value)} placeholder="Reason for exit..." style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', height: '60px', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }} />
+                <textarea value={closeNotes} onChange={(e) => setCloseNotes(e.target.value)} placeholder="Reason for exit..." style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', height: '60px', backgroundColor: '#FFFFFF', color: textCol }} />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
@@ -1866,7 +1866,7 @@ export default function OpenPositionsPage() {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '10px' }}>
-                      <button onClick={downloadTemplate} style={{ padding: '10px 20px', backgroundColor: isDark ? '#334155' : '#E2E8F0', color: textCol, border: 'none', borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
+                      <button onClick={downloadTemplate} style={{ padding: '10px 20px', backgroundColor: '#E2E8F0', color: textCol, border: 'none', borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
                         📥 Download CSV Template
                       </button>
                       
@@ -1881,7 +1881,7 @@ export default function OpenPositionsPage() {
                 {/* STEP 2: PREVIEW & VALIDATION */}
                 {importStep === 'PREVIEW' && importReport && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ padding: '14px', borderRadius: '8px', backgroundColor: isDark ? '#1E293B' : '#F8FAFC', border: `1px solid ${borderCol}` }}>
+                    <div style={{ padding: '14px', borderRadius: '8px', backgroundColor: '#F8FAFC', border: `1px solid ${borderCol}` }}>
                       <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 800 }}>Pre-import validation report</h4>
                       <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: subTextCol, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <li>Ready to Import: <strong style={{ color: '#10B981' }}>{importReport.summary?.importedCount || 0} rows</strong></li>
@@ -1897,7 +1897,7 @@ export default function OpenPositionsPage() {
                         <div style={{ maxHeight: '150px', overflowY: 'auto', border: `1px solid ${borderCol}`, borderRadius: '8px' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
                             <thead>
-                              <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', borderBottom: `1px solid ${borderCol}` }}>
+                              <tr style={{ backgroundColor: '#F1F5F9', borderBottom: `1px solid ${borderCol}` }}>
                                 <th style={{ padding: '8px' }}>Excel Row</th>
                                 <th style={{ padding: '8px' }}>Symbol</th>
                                 <th style={{ padding: '8px' }}>Validation Failures</th>
@@ -1924,7 +1924,7 @@ export default function OpenPositionsPage() {
                         <div style={{ maxHeight: '150px', overflowY: 'auto', border: `1px solid ${borderCol}`, borderRadius: '8px' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
                             <thead>
-                              <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F1F5F9', borderBottom: `1px solid ${borderCol}` }}>
+                              <tr style={{ backgroundColor: '#F1F5F9', borderBottom: `1px solid ${borderCol}` }}>
                                 <th style={{ padding: '8px' }}>Excel Row</th>
                                 <th style={{ padding: '8px' }}>Symbol</th>
                                 <th style={{ padding: '8px' }}>Duplicate Reason</th>

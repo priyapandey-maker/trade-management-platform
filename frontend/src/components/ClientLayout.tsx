@@ -4,14 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 import { usePathname } from 'next/navigation';
 
 const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
   const { token, loading } = useAuth();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  
 
   // Collapsible Sidebar state with localStorage persistence
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -67,7 +66,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#0B0F17' : '#F8FAFC', color: isDark ? '#F8FAFC' : '#0F172A', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC', color: '#0F172A', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '36px', marginBottom: '12px' }}>▲</div>
           <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '0.05em' }}>Connecting to Shree Associates Terminal...</div>
@@ -84,7 +83,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const sidebarWidth = isMobile ? 0 : (isTablet || isCollapsed ? 80 : 260);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: isDark ? '#0B0F17' : '#F8FAFC', color: isDark ? '#F8FAFC' : '#0F172A' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', color: '#0F172A' }}>
       <Sidebar 
         isCollapsed={isTablet || isCollapsed} 
         toggleCollapse={toggleCollapse} 

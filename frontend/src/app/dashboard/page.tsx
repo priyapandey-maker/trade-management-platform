@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
+
 import api from '@/lib/axios';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -21,8 +21,8 @@ import { formatDecimal } from '@/lib/financial-calculations';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  
+  
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
@@ -65,10 +65,10 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [performers.length]);
 
-  const cardBg = isDark ? '#1E293B' : '#FFFFFF';
-  const borderCol = isDark ? '#334155' : '#E2E8F0';
-  const textCol = isDark ? '#F8FAFC' : '#0F172A';
-  const subTextCol = isDark ? '#94A3B8' : '#64748B';
+  const cardBg = '#FFFFFF';
+  const borderCol = '#E2E8F0';
+  const textCol = '#0F172A';
+  const subTextCol = '#64748B';
 
   const chartThemeColor = '#10B981';
   const chartAltColor = '#2563EB';
@@ -358,7 +358,7 @@ export default function DashboardPage() {
                     <stop offset="95%" stopColor={chartThemeColor} stopOpacity={0.0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#E2E8F0'} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={'#E2E8F0'} />
                 <XAxis dataKey="date" stroke={subTextCol} fontSize={10} tickLine={false} />
                 <YAxis stroke={subTextCol} fontSize={10} tickFormatter={(val) => `₹${(val / 100000).toFixed(1)}L`} />
                 <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />

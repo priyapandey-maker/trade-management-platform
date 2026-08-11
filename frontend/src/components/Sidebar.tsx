@@ -4,8 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { Briefcase, CheckCircle, PieChart, LayoutDashboard, Users, Settings, X, LogOut } from 'lucide-react';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -23,23 +23,21 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
   onClose,
 }) => {
   const pathname = usePathname();
-  const { theme } = useTheme();
   const { logout } = useAuth();
-  const isDark = theme === 'dark';
 
   const navItems = [
-    { name: 'Open Positions', href: '/open', icon: '💼' },
-    { name: 'Closed Positions', href: '/closed', icon: '✅' },
-    { name: 'Portfolio', href: '/portfolio', icon: '👛' },
-    { name: 'Dashboard', href: '/dashboard', icon: '🎛️' },
-    { name: 'Investors', href: '/investors', icon: '👥' },
-    { name: 'Settings', href: '/settings', icon: '⚙️' },
+    { name: 'Open Positions', href: '/open', icon: <Briefcase size={18} /> },
+    { name: 'Closed Positions', href: '/closed', icon: <CheckCircle size={18} /> },
+    { name: 'Portfolio', href: '/portfolio', icon: <PieChart size={18} /> },
+    { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
+    { name: 'Investors', href: '/investors', icon: <Users size={18} /> },
+    { name: 'Settings', href: '/settings', icon: <Settings size={18} /> },
   ];
 
-  const bgCol = isDark ? '#0F172A' : '#FFFFFF';
-  const borderCol = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const textCol = isDark ? '#F8FAFC' : '#0F172A';
-  const subTextCol = isDark ? '#94A3B8' : '#64748B';
+  const bgCol = '#FFFFFF';
+  const borderCol = '#E2E8F0';
+  const textCol = '#0F172A';
+  const subTextCol = '#64748B';
 
   if (isMobile) {
     return (
@@ -101,8 +99,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                 </div>
               </div>
             </Link>
-            <button onClick={onClose} aria-label="Close menu" style={{ border: 'none', background: 'none', fontSize: '16px', cursor: 'pointer', color: subTextCol, padding: '4px' }}>
-              ❌
+            <button onClick={onClose} aria-label="Close menu" style={{ border: 'none', background: 'none', cursor: 'pointer', color: subTextCol, padding: '4px' }}>
+              <X size={20} />
             </button>
           </div>
 
@@ -124,14 +122,14 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                     borderRadius: '10px',
                     fontSize: '13.5px',
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive ? '#16A34A' : subTextCol,
-                    backgroundColor: isActive ? (isDark ? 'rgba(22, 163, 74, 0.15)' : '#F0FDF4') : 'transparent',
-                    border: isActive ? (isDark ? '1px solid rgba(22, 163, 74, 0.3)' : '1px solid #DCFCE7') : '1px solid transparent',
+                    color: isActive ? '#2563EB' : subTextCol,
+                    backgroundColor: isActive ? '#EFF6FF' : 'transparent',
+                    border: '1px solid transparent',
                     transition: 'all 0.15s ease',
                     textDecoration: 'none',
                   }}
                 >
-                  <span style={{ fontSize: '18px' }}>{item.icon}</span>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
                   <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
                 </Link>
               );
@@ -160,7 +158,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                 transition: 'all 0.15s ease',
               }}
             >
-              <span style={{ fontSize: '18px' }}>🚪</span>
+              <LogOut size={18} />
               <span>Logout</span>
             </button>
           </div>
@@ -234,14 +232,14 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                 borderRadius: '10px',
                 fontSize: '13.5px',
                 fontWeight: isActive ? 700 : 500,
-                color: isActive ? '#16A34A' : subTextCol,
-                backgroundColor: isActive ? (isDark ? 'rgba(22, 163, 74, 0.15)' : '#F0FDF4') : 'transparent',
-                border: isActive ? (isDark ? '1px solid rgba(22, 163, 74, 0.3)' : '1px solid #DCFCE7') : '1px solid transparent',
+                color: isActive ? '#2563EB' : subTextCol,
+                backgroundColor: isActive ? '#EFF6FF' : 'transparent',
+                border: '1px solid transparent',
                 transition: 'all 0.15s ease',
                 textDecoration: 'none',
               }}
             >
-              <span style={{ fontSize: '18px' }}>{item.icon}</span>
+              <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
               {!isCollapsed && (
                 <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
               )}
@@ -271,7 +269,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             transition: 'all 0.15s ease',
           }}
         >
-          <span style={{ fontSize: '18px' }}>🚪</span>
+          <LogOut size={18} />
           {!isCollapsed && <span>Logout</span>}
         </button>
       </div>

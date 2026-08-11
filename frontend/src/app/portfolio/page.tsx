@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useTheme } from '@/context/ThemeContext';
+
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
 import {
@@ -18,9 +18,9 @@ import { Clock, FileText } from 'lucide-react';
 import { formatDecimal } from '@/lib/financial-calculations';
 
 export default function PortfolioPage() {
-  const { theme } = useTheme();
+  
   const { user } = useAuth();
-  const isDark = theme === 'dark';
+  
 
   const [summary, setSummary] = useState<any>(null);
   const [positions, setPositions] = useState<any[]>([]);
@@ -69,10 +69,10 @@ export default function PortfolioPage() {
   const highestProfitPos = [...openPositions].sort((a, b) => (b.profitLoss || 0) - (a.profitLoss || 0))[0];
   const highestLossPos = [...openPositions].sort((a, b) => (a.profitLoss || 0) - (b.profitLoss || 0))[0];
 
-  const cardBg = isDark ? '#1E293B' : '#FFFFFF';
-  const borderCol = isDark ? '#334155' : '#E2E8F0';
-  const textCol = isDark ? '#F8FAFC' : '#0F172A';
-  const subTextCol = isDark ? '#94A3B8' : '#64748B';
+  const cardBg = '#FFFFFF';
+  const borderCol = '#E2E8F0';
+  const textCol = '#0F172A';
+  const subTextCol = '#64748B';
 
   const chartThemeColor = '#10B981';
   const chartAltColor = '#2563EB';
@@ -286,9 +286,9 @@ export default function PortfolioPage() {
       {loading ? (
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} style={{ height: '70px', borderRadius: '12px', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', opacity: 0.6, display: 'flex', alignItems: 'center', padding: '0 20px', justifyContent: 'space-between' }}>
-              <div style={{ width: '150px', height: '16px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
-              <div style={{ width: '100px', height: '16px', borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#E2E8F0' }} />
+            <div key={n} style={{ height: '70px', borderRadius: '12px', backgroundColor: '#F1F5F9', opacity: 0.6, display: 'flex', alignItems: 'center', padding: '0 20px', justifyContent: 'space-between' }}>
+              <div style={{ width: '150px', height: '16px', borderRadius: '4px', backgroundColor: '#E2E8F0' }} />
+              <div style={{ width: '100px', height: '16px', borderRadius: '4px', backgroundColor: '#E2E8F0' }} />
             </div>
           ))}
         </div>
@@ -301,7 +301,7 @@ export default function PortfolioPage() {
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '20px' }}>
             
             {/* LARGE HERO: Portfolio Value */}
-            <div style={{ flex: 1.5, backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `2px solid ${borderCol}`, padding: '28px', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+            <div style={{ flex: 1.5, backgroundColor: '#F8FAFC', border: `2px solid ${borderCol}`, padding: '28px', borderRadius: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
               <div>
                 <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Portfolio Value</span>
                 <h2 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: 900, color: textCol, margin: '8px 0 0 0' }}>
@@ -363,36 +363,36 @@ export default function PortfolioPage() {
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 
-                <div style={{ padding: '12px 14px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                <div style={{ padding: '12px 14px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                   <div style={{ fontSize: '10.5px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Open Positions</div>
                   <div style={{ fontSize: '18px', fontWeight: 900, color: '#2563EB', marginTop: '4px' }}>{summary?.totalOpenPositions || 0}</div>
                 </div>
 
-                <div style={{ padding: '12px 14px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                <div style={{ padding: '12px 14px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                   <div style={{ fontSize: '10.5px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Closed Positions</div>
                   <div style={{ fontSize: '18px', fontWeight: 900, color: textCol, marginTop: '4px' }}>{summary?.totalClosedPositions || 0}</div>
                 </div>
 
-                <div style={{ padding: '12px 14px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                <div style={{ padding: '12px 14px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                   <div style={{ fontSize: '10.5px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Win Rate</div>
                   <div style={{ fontSize: '18px', fontWeight: 900, color: '#10B981', marginTop: '4px' }}>{summary?.winRate?.toFixed(1) || '0.0'}%</div>
                 </div>
 
-                <div style={{ padding: '12px 14px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                <div style={{ padding: '12px 14px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                   <div style={{ fontSize: '10.5px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Average Return</div>
                   <div style={{ fontSize: '18px', fontWeight: 900, color: (summary?.avgReturn || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '4px' }}>
                     {(summary?.avgReturn || 0) >= 0 ? '+' : ''}{summary?.avgReturn?.toFixed(2) || '0.00'}%
                   </div>
                 </div>
 
-                <div style={{ padding: '12px 14px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                <div style={{ padding: '12px 14px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                   <div style={{ fontSize: '10.5px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Realized Profit</div>
                   <div style={{ fontSize: '16px', fontWeight: 900, color: (summary?.realizedProfit || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '4px' }}>
                     ₹{summary?.realizedProfit?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                   </div>
                 </div>
 
-                <div style={{ padding: '12px 14px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                <div style={{ padding: '12px 14px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                   <div style={{ fontSize: '10.5px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Unrealized Profit</div>
                   <div style={{ fontSize: '16px', fontWeight: 900, color: (summary?.unrealizedProfit || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '4px' }}>
                     ₹{summary?.unrealizedProfit?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
@@ -408,7 +408,7 @@ export default function PortfolioPage() {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
                   <div>
                     <span style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>💼 LARGEST HOLDING</span>
                     <div style={{ fontSize: '14px', fontWeight: 800, color: textCol, marginTop: '2px' }}>{largestPosition ? `${largestPosition.company} (${largestPosition.symbol})` : '—'}</div>
@@ -418,7 +418,7 @@ export default function PortfolioPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
                   <div>
                     <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 700 }}>🏆 HIGHEST PROFIT POSITION</span>
                     <div style={{ fontSize: '14px', fontWeight: 800, color: textCol, marginTop: '2px' }}>{highestProfitPos ? `${highestProfitPos.company} (${highestProfitPos.symbol})` : '—'}</div>
@@ -428,7 +428,7 @@ export default function PortfolioPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
                   <div>
                     <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: 700 }}>⚠️ HIGHEST LOSS POSITION</span>
                     <div style={{ fontSize: '14px', fontWeight: 800, color: textCol, marginTop: '2px' }}>{highestLossPos ? `${highestLossPos.company} (${highestLossPos.symbol})` : '—'}</div>
@@ -439,14 +439,14 @@ export default function PortfolioPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div style={{ padding: '10px 14px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
+                  <div style={{ padding: '10px 14px', backgroundColor: '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
                     <span style={{ fontSize: '10.5px', color: '#10B981', fontWeight: 700 }}>🚀 BEST HISTORICAL EXIT</span>
                     <div style={{ fontSize: '13px', fontWeight: 800, color: textCol, marginTop: '3px' }}>
                       {summary?.bestPerformingTrade ? `${summary.bestPerformingTrade.symbol} (+${summary.bestPerformingTrade.profitLossPct.toFixed(1)}%)` : '—'}
                     </div>
                   </div>
 
-                  <div style={{ padding: '10px 14px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
+                  <div style={{ padding: '10px 14px', backgroundColor: '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}` }}>
                     <span style={{ fontSize: '10.5px', color: '#EF4444', fontWeight: 700 }}>📉 WORST HISTORICAL EXIT</span>
                     <div style={{ fontSize: '13px', fontWeight: 800, color: textCol, marginTop: '3px' }}>
                       {summary?.worstPerformingTrade ? `${summary.worstPerformingTrade.symbol} (${summary.worstPerformingTrade.profitLossPct.toFixed(1)}%)` : '—'}
@@ -477,7 +477,7 @@ export default function PortfolioPage() {
                         <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={'#E2E8F0'} />
                     <XAxis dataKey="date" stroke={subTextCol} fontSize={10} />
                     <YAxis stroke={subTextCol} fontSize={10} />
                     <Tooltip formatter={(v: any) => v !== undefined && v !== null ? `₹${v.toLocaleString('en-IN')}` : ''} contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
@@ -498,7 +498,7 @@ export default function PortfolioPage() {
                 {monthlyData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="85%">
                     <BarChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={'#E2E8F0'} />
                       <XAxis dataKey="month" stroke={subTextCol} fontSize={10} />
                       <YAxis stroke={subTextCol} fontSize={10} />
                       <Tooltip formatter={(v: any) => v !== undefined && v !== null ? `₹${v.toLocaleString('en-IN')}` : ''} contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
@@ -520,7 +520,7 @@ export default function PortfolioPage() {
                 {stackedData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="85%">
                     <BarChart data={stackedData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={'#E2E8F0'} />
                       <XAxis dataKey="symbol" stroke={subTextCol} fontSize={10} />
                       <YAxis stroke={subTextCol} fontSize={10} />
                       <Tooltip formatter={(v: any) => v !== undefined && v !== null ? `₹${v.toLocaleString('en-IN')}` : ''} contentStyle={{ backgroundColor: cardBg, borderColor: borderCol, color: textCol }} />
@@ -622,7 +622,7 @@ export default function PortfolioPage() {
                 <span style={{ fontSize: '11.5px', color: subTextCol, fontWeight: 700 }}>🏆 TOP CONSTITUENTS CONTRIBUTIONS</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                   {topContributors.map((inv, idx) => (
-                    <div key={inv.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '20px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', border: `1px solid ${borderCol}`, fontSize: '12px' }}>
+                    <div key={inv.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '20px', backgroundColor: '#F8FAFC', border: `1px solid ${borderCol}`, fontSize: '12px' }}>
                       <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: COLORS[idx % COLORS.length] }} />
                       <strong style={{ color: textCol }}>{inv.name}</strong>
                       <span style={{ color: subTextCol }}>(₹{inv.totalInvestment?.toLocaleString('en-IN', { maximumFractionDigits: 0 })} | {((inv.totalInvestment / (totalCapitalAllocated || 1)) * 100).toFixed(1)}%)</span>
@@ -706,7 +706,7 @@ export default function PortfolioPage() {
                         <tr key={pos.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
                           <td style={{ padding: '12px 10px', fontWeight: 800, color: textCol }} title={pos.company}>{pos.symbol}</td>
                           <td style={{ padding: '12px 10px' }}>
-                            <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: isDark ? '#334155' : '#F1F5F9', color: textCol, padding: '2px 6px', borderRadius: '4px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: '#F1F5F9', color: textCol, padding: '2px 6px', borderRadius: '4px' }}>
                               {pos.assetType || 'STOCK'}
                             </span>
                           </td>
