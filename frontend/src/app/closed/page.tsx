@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Pencil, Trash2, Clock } from 'lucide-react';
+import { Pencil, Trash2, Clock, TrendingUp, TrendingDown, History } from 'lucide-react';
 import { formatDecimal, calculateInvestment, calculateCurrentValue, calculateLivePnL, calculateReturnPct, calculateRealizedPnL, calculateRealizedReturnPct } from '@/lib/financial-calculations';
 
 export default function ClosedPositionsPage() {
@@ -474,12 +474,12 @@ export default function ClosedPositionsPage() {
   const worst3 = sortedByProfit.length > 2 ? sortedByProfit[sortedByProfit.length - 3] : null;
 
   const performers = [
-    { label: '🏆 #1 Best Performer', data: best1, color: '#16A34A' },
-    { label: '🥈 #2 Best Performer', data: best2, color: '#16A34A' },
-    { label: '🥉 #3 Best Performer', data: best3, color: '#16A34A' },
-    { label: '📉 #1 Worst Performer', data: worst1, color: '#DC2626' },
-    { label: '📉 #2 Worst Performer', data: worst2, color: '#DC2626' },
-    { label: '📉 #3 Worst Performer', data: worst3, color: '#DC2626' },
+    { label: '#1 BEST', data: best1, type: 'BEST' },
+    { label: '#2 BEST', data: best2, type: 'BEST' },
+    { label: '#3 BEST', data: best3, type: 'BEST' },
+    { label: '#1 WORST', data: worst1, type: 'WORST' },
+    { label: '#2 WORST', data: worst2, type: 'WORST' },
+    { label: '#3 WORST', data: worst3, type: 'WORST' },
   ].filter((p) => p.data !== null);
 
   useEffect(() => {
@@ -516,7 +516,7 @@ export default function ClosedPositionsPage() {
         <div>
           <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: 900, color: textCol, margin: 0 }}>Closed Positions History</h1>
           <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>
-            Completed trade records, trade duration badges, realized profit/loss, and exit rationales.
+            Historical trade performance
           </p>
         </div>
 
@@ -533,13 +533,13 @@ export default function ClosedPositionsPage() {
 
       {/* TOP 5 SUMMARY CARDS */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
+        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Closed Trades</div>
           <div style={{ fontSize: '22px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{totalClosedTrades}</div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Completed History</div>
         </div>
 
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
+        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Realized P&amp;L</div>
           <div style={{ fontSize: '22px', fontWeight: 900, color: realizedPnL >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
             {realizedPnL >= 0 ? '+' : ''}₹{realizedPnL.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -547,7 +547,7 @@ export default function ClosedPositionsPage() {
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Locked Net Return</div>
         </div>
 
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
+        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', marginBottom: '8px' }}>Trade Efficiency</div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ flex: 1, borderRight: `1px solid ${borderCol}`, paddingRight: '12px' }}>
@@ -561,7 +561,7 @@ export default function ClosedPositionsPage() {
           </div>
         </div>
 
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Missed Target Profit</div>
             <div style={{ fontSize: '22px', fontWeight: 900, color: '#EA580C', marginTop: '6px' }}>
@@ -587,34 +587,27 @@ export default function ClosedPositionsPage() {
           </button>
         </div>
 
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px', overflow: 'hidden', minHeight: '88px' }}>
+        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '18px', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {performers.length > 0 && performers[performerIndex] ? (
             <div key={performerIndex} className="animate-fade-slide">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: performers[performerIndex].color, textTransform: 'uppercase' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {performers[performerIndex].type === 'BEST' ? <TrendingUp size={14} color="#16A34A" /> : <TrendingDown size={14} color="#DC2626" />}
                   {performers[performerIndex].label}
                 </span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: textCol }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: textCol }}>
                   {performers[performerIndex].data.symbol}
                 </span>
               </div>
-              <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {performers[performerIndex].data.company}
+              <div style={{ fontSize: '18px', fontWeight: 900, color: performers[performerIndex].type === 'BEST' ? '#16A34A' : '#DC2626' }}>
+                {performers[performerIndex].data.profitLoss >= 0 ? '+' : ''}₹{performers[performerIndex].data.profitLoss.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
               </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 900, color: performers[performerIndex].color }}>
-                  {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{formatDecimal(performers[performerIndex].data.profitLossPct)}%
-                </span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: subTextCol }}>
-                  ({performers[performerIndex].data.profitLoss >= 0 ? '+' : ''}₹{performers[performerIndex].data.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                </span>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: performers[performerIndex].type === 'BEST' ? '#16A34A' : '#DC2626', marginTop: '4px' }}>
+                {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{formatDecimal(performers[performerIndex].data.profitLossPct)}%
               </div>
             </div>
           ) : (
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Top Performers</div>
-              <div style={{ fontSize: '13px', color: subTextCol, marginTop: '10px' }}>No trades recorded.</div>
-            </div>
+            <div style={{ fontSize: '13px', color: subTextCol, fontStyle: 'italic', display: 'flex', alignItems: 'center', height: '100%', justifyContent: 'center' }}>No enough trades</div>
           )}
         </div>
       </div>
@@ -656,7 +649,11 @@ export default function ClosedPositionsPage() {
           </div>
         ) : filteredPositions.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center' }}>
-            <div style={{ fontSize: '42px', marginBottom: '12px' }}>📚</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+                <History size={32} />
+              </div>
+            </div>
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: textCol, margin: 0 }}>No Closed Positions Recorded</h3>
             <p style={{ fontSize: '13px', color: subTextCol, marginTop: '4px' }}>
               Closed positions will automatically record trade duration badges and net realized profit/loss.
@@ -692,11 +689,11 @@ export default function ClosedPositionsPage() {
                           fontWeight: 800,
                           padding: '3px 8px',
                           borderRadius: '4px',
-                          backgroundColor: pos.exitReason === 'TARGET_HIT' ? '#DCFCE7' : pos.exitReason === 'STOP_LOSS_HIT' ? '#FEE2E2' : '#FEF3C7',
-                          color: pos.exitReason === 'TARGET_HIT' ? '#15803D' : pos.exitReason === 'STOP_LOSS_HIT' ? '#991B1B' : '#92400E',
+                          backgroundColor: pos.exitReason === 'TARGET_HIT' ? '#DCFCE7' : pos.exitReason === 'STOP_LOSS_HIT' ? '#FEE2E2' : '#F1F5F9',
+                          color: pos.exitReason === 'TARGET_HIT' ? '#15803D' : pos.exitReason === 'STOP_LOSS_HIT' ? '#991B1B' : '#64748B',
                         }}
                       >
-                        {pos.exitReason === 'TARGET_HIT' ? '🎯 Target Hit' : pos.exitReason === 'STOP_LOSS_HIT' ? '🛑 SL Hit' : 'Manual Exit'}
+                        {pos.exitReason === 'TARGET_HIT' ? 'Target Hit' : pos.exitReason === 'STOP_LOSS_HIT' ? 'SL Hit' : 'Manual Exit'}
                       </span>
                     </div>
                   </div>
@@ -791,7 +788,7 @@ export default function ClosedPositionsPage() {
                             gap: '4px',
                           }}
                         >
-                          ✏️ Edit Record
+                          <Pencil size={14} /> Edit Record
                         </button>
                         <button
                           onClick={() => setDeletingId(pos.id)}
@@ -807,10 +804,10 @@ export default function ClosedPositionsPage() {
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
+                            gap: '6px',
                           }}
                         >
-                          🗑️ Delete Record
+                          <Trash2 size={14} /> Delete
                         </button>
                       </div>
                     </>
@@ -843,11 +840,11 @@ export default function ClosedPositionsPage() {
                 {paginatedPositions.map((pos) => {
                   const isProfit = pos.profitLoss >= 0;
                   return (
-                    <tr key={pos.id} style={{ borderBottom: `1px solid ${borderCol}` }}>
+                    <tr key={pos.id} className="hover-row" style={{ borderBottom: `1px solid ${borderCol}` }}>
                       <td style={{ padding: '12px 10px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontWeight: 800, color: textCol, fontSize: '13.5px' }} title={pos.company}>{pos.symbol}</span>
+                            <span style={{ fontWeight: 800, color: textCol, fontSize: '13.5px' }}>{pos.symbol}</span>
                           </div>
                           
                           {/* Sparkline directly below symbol */}
@@ -856,11 +853,11 @@ export default function ClosedPositionsPage() {
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 10px' }}>₹{formatDecimal(pos.buyPrice)}</td>
-                      <td style={{ padding: '12px 10px', fontWeight: 700 }}>₹{formatDecimal(pos.sellingPrice || pos.currentPrice)}</td>
+                      <td style={{ padding: '12px 10px', fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(pos.buyPrice)}</td>
+                      <td style={{ padding: '12px 10px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(pos.sellingPrice || pos.currentPrice)}</td>
                       <td style={{ padding: '12px 10px', fontWeight: 600 }}>{pos.quantity}</td>
-                      <td style={{ padding: '12px 10px' }}>{formatDate(pos.entryDate)}</td>
-                      <td style={{ padding: '12px 10px' }}>{formatDate(pos.closedAt)}</td>
+                      <td style={{ padding: '12px 10px', fontVariantNumeric: 'tabular-nums' }}>{formatDate(pos.entryDate)}</td>
+                      <td style={{ padding: '12px 10px', fontVariantNumeric: 'tabular-nums' }}>{formatDate(pos.closedAt)}</td>
                       
                       {/* TRADE DURATION BADGE */}
                       <td style={{ padding: '12px 10px' }}>
@@ -869,16 +866,16 @@ export default function ClosedPositionsPage() {
                         </span>
                       </td>
 
-                      <td style={{ padding: '12px 10px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
+                      <td style={{ padding: '12px 10px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626', fontVariantNumeric: 'tabular-nums' }}>
                         {isProfit ? '+' : ''}₹{formatDecimal(pos.profitLoss)}
                       </td>
-                      <td style={{ padding: '12px 10px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
+                      <td style={{ padding: '12px 10px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626', fontVariantNumeric: 'tabular-nums' }}>
                         {isProfit ? '+' : ''}{formatDecimal(pos.profitLossPct)}%
                       </td>
-                      <td style={{ padding: '12px 10px', fontWeight: 700, color: textCol }}>
+                      <td style={{ padding: '12px 10px', fontWeight: 700, color: textCol, fontVariantNumeric: 'tabular-nums' }}>
                         {pos.targetPrice ? `₹${formatDecimal(pos.potentialProfit)}` : '—'}
                       </td>
-                      <td style={{ padding: '12px 10px' }}>
+                      <td style={{ padding: '12px 10px', fontVariantNumeric: 'tabular-nums' }}>
                         {(pos.missedProfit || 0) > 0 && (
                           <span style={{ fontSize: '12px', color: '#DC2626', fontWeight: 700 }}>
                             Missed: -₹{formatDecimal(pos.missedProfit)}
@@ -898,11 +895,11 @@ export default function ClosedPositionsPage() {
                             fontWeight: 800,
                             padding: '3px 8px',
                             borderRadius: '4px',
-                            backgroundColor: pos.exitReason === 'TARGET_HIT' ? '#DCFCE7' : pos.exitReason === 'STOP_LOSS_HIT' ? '#FEE2E2' : '#FEF3C7',
-                            color: pos.exitReason === 'TARGET_HIT' ? '#15803D' : pos.exitReason === 'STOP_LOSS_HIT' ? '#991B1B' : '#92400E',
+                            backgroundColor: pos.exitReason === 'TARGET_HIT' ? '#DCFCE7' : pos.exitReason === 'STOP_LOSS_HIT' ? '#FEE2E2' : '#F1F5F9',
+                            color: pos.exitReason === 'TARGET_HIT' ? '#15803D' : pos.exitReason === 'STOP_LOSS_HIT' ? '#991B1B' : '#64748B',
                           }}
                         >
-                          {pos.exitReason === 'TARGET_HIT' ? '🎯 Target Hit' : pos.exitReason === 'STOP_LOSS_HIT' ? '🛑 SL Hit' : 'Manual Exit'}
+                          {pos.exitReason === 'TARGET_HIT' ? 'Target Hit' : pos.exitReason === 'STOP_LOSS_HIT' ? 'SL Hit' : 'Manual Exit'}
                         </span>
                       </td>
 
@@ -956,7 +953,7 @@ export default function ClosedPositionsPage() {
       {deletingId && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ width: '380px', backgroundColor: cardBg, padding: '24px', borderRadius: '12px', border: `1px solid ${borderCol}`, color: textCol }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 900, color: '#DC2626' }}>🗑️ Delete Closed Position</h3>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 900, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '8px' }}><Trash2 size={18} /> Delete Closed Position</h3>
             <p style={{ fontSize: '13px', color: subTextCol, margin: '0 0 16px 0' }}>
               Are you sure you want to delete this closed position permanently from history?
             </p>
