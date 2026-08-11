@@ -39,7 +39,18 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       setIsTablet(width >= 768 && width < 1024);
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    
+    const handleSetInterval = (e: any) => {
+      if (e.detail && typeof e.detail.interval === 'number') {
+        setRefreshInterval(e.detail.interval);
+      }
+    };
+    window.addEventListener('shree_set_refresh_interval', handleSetInterval);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('shree_set_refresh_interval', handleSetInterval);
+    };
   }, []);
 
   const toggleCollapse = () => {
@@ -85,10 +96,6 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         sidebarWidth={sidebarWidth}
         isCollapsed={isTablet || isCollapsed}
         toggleSidebar={toggleCollapse}
-        refreshInterval={refreshInterval}
-        setRefreshInterval={setRefreshInterval}
-        onManualRefresh={handleManualRefresh}
-        lastUpdatedTime={lastUpdatedTime}
         isMobile={isMobile}
         toggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
       />

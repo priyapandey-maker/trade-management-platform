@@ -654,21 +654,19 @@ export default function OpenPositionsPage() {
 
   // Performance Leaders Logic
   const sortedByPerf = positions.length > 0 ? [...positions].sort((a, b) => b.profitLossPct - a.profitLossPct) : [];
-  const bestPerformers = sortedByPerf.slice(0, 3).filter(p => p.profitLossPct > 0).map(p => ({ ...p, type: 'BEST' }));
-  const worstPerformers = sortedByPerf.slice(-3).reverse().filter(p => p.profitLossPct < 0).map(p => ({ ...p, type: 'WORST' }));
+  const bestPerformers = sortedByPerf.slice(0, 3).filter(p => p.profitLossPct > 0).map((p, i) => ({ ...p, type: 'BEST PERFORMER', rank: i + 1 }));
+  const worstPerformers = sortedByPerf.slice(-3).reverse().filter(p => p.profitLossPct < 0).map((p, i) => ({ ...p, type: 'WORST PERFORMER', rank: i + 1 }));
   const performanceLeaders = [...bestPerformers, ...worstPerformers];
   
   useEffect(() => {
     if (performanceLeaders.length <= 1) return;
     const interval = setInterval(() => {
-      setPerformerIndex(prev => (prev + 1) % performanceLeaders.length);
-    }, 4000);
+      setPerformerIndex(prev => prev + 1);
+    }, 3500);
     return () => clearInterval(interval);
   }, [performanceLeaders.length]);
   
-  const currentLeader = performanceLeaders.length > 0 ? performanceLeaders[performerIndex] : null;
-  const currentLeaderRank = performanceLeaders.length > 0 ? (performerIndex < bestPerformers.length ? performerIndex + 1 : performerIndex - bestPerformers.length + 1) : 0;
-
+  const currentLeader = performanceLeaders.length > 0 ? performanceLeaders[performerIndex % performanceLeaders.length] : null;
 
   // Filtering & Sorting
   const filteredPositions = positions
@@ -768,25 +766,25 @@ export default function OpenPositionsPage() {
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {currentLeader?.type === 'BEST' ? <TrendingUp size={14} color="#16A34A" /> : <TrendingDown size={14} color={currentLeader ? "#DC2626" : subTextCol} />}
+              {currentLeader?.type === 'BEST PERFORMER' ? <TrendingUp size={14} color="#16A34A" /> : <TrendingDown size={14} color={currentLeader ? "#DC2626" : subTextCol} />}
               Performance Leaders
             </span>
             {currentLeader && (
-              <span style={{ fontSize: '10px', fontWeight: 800, color: textCol, backgroundColor: isDark ? '#334155' : '#F1F5F9', padding: '2px 6px', borderRadius: '4px' }}>
-                #{currentLeaderRank} {currentLeader.type}
+              <span style={{ fontSize: '10px', fontWeight: 800, color: currentLeader.type === 'BEST PERFORMER' ? '#16A34A' : '#DC2626', backgroundColor: currentLeader.type === 'BEST PERFORMER' ? (isDark ? '#064E3B' : '#DCFCE7') : (isDark ? '#7F1D1D' : '#FEE2E2'), padding: '2px 6px', borderRadius: '4px' }}>
+                #{currentLeader.rank} {currentLeader.type}
               </span>
             )}
           </div>
           
           {currentLeader ? (
-            <div key={currentLeader.symbol} style={{ animation: 'fadeSlideIn 0.4s ease-out forwards' }}>
+            <div key={`${currentLeader.symbol}-${currentLeader.type}-${currentLeader.rank}`} style={{ animation: 'fadeSlideIn 0.5s ease-out forwards' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
                   <div style={{ fontSize: '18px', fontWeight: 900, color: textCol, lineHeight: 1.2 }}>{currentLeader.symbol}</div>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: subTextCol, marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>₹{currentLeader.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 900, color: currentLeader.profitLossPct >= 0 ? '#16A34A' : '#DC2626', fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: currentLeader.type === 'BEST PERFORMER' ? '#16A34A' : '#DC2626', fontVariantNumeric: 'tabular-nums' }}>
                     {currentLeader.profitLossPct >= 0 ? '+' : ''}{formatDecimal(currentLeader.profitLossPct)}%
                   </div>
                   <div style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol, marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
