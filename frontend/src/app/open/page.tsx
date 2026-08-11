@@ -6,7 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Pencil, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { Pencil, Trash2, CheckCircle2, Clock, TrendingUp, TrendingDown, Target, ShieldAlert, Users, X, Info } from 'lucide-react';
 import { formatDecimal, calculateInvestment, calculateCurrentValue, calculateLivePnL, calculateReturnPct, calculateRealizedPnL, calculateRealizedReturnPct } from '@/lib/financial-calculations';
 
 export default function OpenPositionsPage() {
@@ -18,6 +18,9 @@ export default function OpenPositionsPage() {
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Performer Rotation State
+  const [performerIndex, setPerformerIndex] = useState(0);
 
   // Search, Filter, Sort, Pagination
   const [search, setSearch] = useState('');
@@ -649,9 +652,23 @@ export default function OpenPositionsPage() {
   const currentExposure = positions.reduce((sum, p) => sum + p.currentValue, 0);
   const overallPnL = positions.reduce((sum, p) => sum + p.profitLoss, 0);
 
-  // Top Highlights (Req 8)
-  const highestPos = summary?.highestPerformingOpen || (positions.length > 0 ? [...positions].sort((a, b) => b.profitLossPct - a.profitLossPct)[0] : null);
-  const secondHighestPos = summary?.secondHighestPerformingOpen || (positions.length > 1 ? [...positions].sort((a, b) => b.profitLossPct - a.profitLossPct)[1] : null);
+  // Performance Leaders Logic
+  const sortedByPerf = positions.length > 0 ? [...positions].sort((a, b) => b.profitLossPct - a.profitLossPct) : [];
+  const bestPerformers = sortedByPerf.slice(0, 3).filter(p => p.profitLossPct > 0).map(p => ({ ...p, type: 'BEST' }));
+  const worstPerformers = sortedByPerf.slice(-3).reverse().filter(p => p.profitLossPct < 0).map(p => ({ ...p, type: 'WORST' }));
+  const performanceLeaders = [...bestPerformers, ...worstPerformers];
+  
+  useEffect(() => {
+    if (performanceLeaders.length <= 1) return;
+    const interval = setInterval(() => {
+      setPerformerIndex(prev => (prev + 1) % performanceLeaders.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [performanceLeaders.length]);
+  
+  const currentLeader = performanceLeaders.length > 0 ? performanceLeaders[performerIndex] : null;
+  const currentLeaderRank = performanceLeaders.length > 0 ? (performerIndex < bestPerformers.length ? performerIndex + 1 : performerIndex - bestPerformers.length + 1) : 0;
+
 
   // Filtering & Sorting
   const filteredPositions = positions
@@ -693,7 +710,7 @@ export default function OpenPositionsPage() {
         <div>
           <h1 style={{ fontSize: isMobile ? '20px' : '22px', fontWeight: 900, color: textCol, margin: 0 }}>Open Positions</h1>
           <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>
-            Live active trades, right-side configuration editor, and real-time target/stop proximity metrics.
+            Active positions and live market performance
           </p>
         </div>
         
@@ -721,64 +738,65 @@ export default function OpenPositionsPage() {
       )}
 
       {/* Highlights & KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <style>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Total Open Trades</div>
-          <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>{totalOpenTrades}</div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>{totalOpenTrades}</div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Active Allocations</div>
         </div>
 
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Current Exposure</div>
-          <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px' }}>₹{currentExposure.toLocaleString('en-IN')}</div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>₹{currentExposure.toLocaleString('en-IN')}</div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Total Market Value</div>
         </div>
 
         <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Unrealized Live P&amp;L</div>
-          <div style={{ fontSize: '24px', fontWeight: 900, color: overallPnL >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px' }}>
-            {overallPnL >= 0 ? '+' : ''}₹{overallPnL.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div style={{ fontSize: '24px', fontWeight: 900, color: overallPnL >= 0 ? '#16A34A' : '#DC2626', marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>
+            {overallPnL >= 0 ? '+' : ''}₹{Math.abs(overallPnL).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '2px' }}>Open Profit/Loss</div>
         </div>
 
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#16A34A', textTransform: 'uppercase' }}>🏆 #1 Top Performer</span>
-            {highestPos && <span style={{ fontSize: '10.5px', fontWeight: 800, color: textCol }}>₹{highestPos.currentPrice}</span>}
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {currentLeader?.type === 'BEST' ? <TrendingUp size={14} color="#16A34A" /> : <TrendingDown size={14} color={currentLeader ? "#DC2626" : subTextCol} />}
+              Performance Leaders
+            </span>
+            {currentLeader && (
+              <span style={{ fontSize: '10px', fontWeight: 800, color: textCol, backgroundColor: isDark ? '#334155' : '#F1F5F9', padding: '2px 6px', borderRadius: '4px' }}>
+                #{currentLeaderRank} {currentLeader.type}
+              </span>
+            )}
           </div>
-          {highestPos ? (
-            <>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, marginTop: '4px' }}>{highestPos.company} ({highestPos.symbol})</div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                <span style={{ fontSize: '15px', fontWeight: 900, color: '#16A34A' }}>+{formatDecimal(highestPos.profitLossPct)}%</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>(+₹{highestPos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
+          
+          {currentLeader ? (
+            <div key={currentLeader.symbol} style={{ animation: 'fadeSlideIn 0.4s ease-out forwards' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                  <div style={{ fontSize: '18px', fontWeight: 900, color: textCol, lineHeight: 1.2 }}>{currentLeader.symbol}</div>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: subTextCol, marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>₹{currentLeader.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: currentLeader.profitLossPct >= 0 ? '#16A34A' : '#DC2626', fontVariantNumeric: 'tabular-nums' }}>
+                    {currentLeader.profitLossPct >= 0 ? '+' : ''}{formatDecimal(currentLeader.profitLossPct)}%
+                  </div>
+                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol, marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+                    {currentLeader.profitLoss >= 0 ? '+' : ''}₹{Math.abs(currentLeader.profitLoss).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
               </div>
-            </>
+            </div>
           ) : (
-            <div style={{ fontSize: '12.5px', color: subTextCol, marginTop: '10px' }}>No Active Trades</div>
-          )}
-        </div>
-
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '16px', borderRadius: '12px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563EB', textTransform: 'uppercase' }}>🥈 #2 Top Performer</span>
-            {secondHighestPos && <span style={{ fontSize: '10.5px', fontWeight: 800, color: textCol }}>₹{secondHighestPos.currentPrice}</span>}
-          </div>
-          {secondHighestPos ? (
-            <>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: textCol, marginTop: '4px' }}>{secondHighestPos.company} ({secondHighestPos.symbol})</div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                <span style={{ fontSize: '15px', fontWeight: 900, color: secondHighestPos.profitLossPct >= 0 ? '#16A34A' : '#DC2626' }}>
-                  {secondHighestPos.profitLossPct >= 0 ? '+' : ''}{formatDecimal(secondHighestPos.profitLossPct)}%
-                </span>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>
-                  ({secondHighestPos.profitLoss >= 0 ? '+' : ''}₹{secondHighestPos.profitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                </span>
-              </div>
-            </>
-          ) : (
-            <div style={{ fontSize: '12.5px', color: subTextCol, marginTop: '10px' }}>No Active Trades</div>
+            <div style={{ fontSize: '13px', color: subTextCol, fontStyle: 'italic' }}>No active performance data</div>
           )}
         </div>
       </div>
@@ -786,13 +804,18 @@ export default function OpenPositionsPage() {
       {/* Filters Bar */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '14px 18px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: '12px', flex: 1, width: '100%', maxWidth: isMobile ? 'none' : '600px' }}>
-          <input
-            type="text"
-            placeholder="Search symbol, company..."
-            value={displaySearch}
-            onChange={(e) => setDisplaySearch(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', flex: 1, backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
-          />
+          <div style={{ position: 'relative', flex: 1 }}>
+            <input
+              type="text"
+              placeholder="Search symbol, notes..."
+              value={displaySearch}
+              onChange={(e) => setDisplaySearch(e.target.value)}
+              style={{ padding: '8px 12px', paddingLeft: '32px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', width: '100%', backgroundColor: isDark ? '#0F172A' : '#FFFFFF', color: textCol }}
+            />
+            <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: subTextCol }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+          </div>
 
           <select
             value={`${sortBy}-${sortOrder}`}
@@ -823,13 +846,13 @@ export default function OpenPositionsPage() {
         </div>
 
         {selectedIds.length > 0 && user?.role === 'OWNER' && (
-          <button onClick={() => setShowBulkDeleteConfirm(true)} style={{ padding: '8px 14px', backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>
-            🗑️ Delete Selected ({selectedIds.length})
+          <button onClick={() => setShowBulkDeleteConfirm(true)} style={{ padding: '8px 14px', backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Trash2 size={14} /> Delete Selected ({selectedIds.length})
           </button>
         )}
       </div>
 
-      {/* TABLE */}
+      {/* TABLE & CARDS */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', overflow: 'hidden' }}>
         {loading && positions.length === 0 ? (
           <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -843,19 +866,21 @@ export default function OpenPositionsPage() {
           </div>
         ) : filteredPositions.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center' }}>
-            <div style={{ fontSize: '42px', marginBottom: '12px' }}>💼</div>
-            <h3 style={{ fontSize: '16px', fontWeight: 800, color: textCol, margin: 0 }}>No Open Positions Found</h3>
-            <p style={{ fontSize: '13px', color: subTextCol, marginTop: '4px', marginBottom: '16px' }}>
-              Create your first trade allocation to start tracking live market positions.
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <Info size={48} color={subTextCol} />
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: textCol, margin: 0 }}>No Open Positions</h3>
+            <p style={{ fontSize: '14px', color: subTextCol, marginTop: '8px', marginBottom: '24px' }}>
+              There are currently no active positions.
             </p>
             {user?.role === 'OWNER' && (
               <button onClick={() => setShowAddModal(true)} className="btnPrimary" style={{ padding: '10px 20px', fontSize: '13px', backgroundColor: '#16A34A', borderRadius: '8px' }}>
-                ➕ Create First Trade
+                ➕ Create Position
               </button>
             )}
           </div>
         ) : isMobile ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px' }}>
             {paginatedPositions.map((pos) => {
               const targetRem = getTargetRemaining(pos);
               const stopRem = getStopRemaining(pos);
@@ -865,7 +890,7 @@ export default function OpenPositionsPage() {
                 <div
                   key={pos.id}
                   style={{
-                    backgroundColor: stopRem.isWarning ? (isDark ? '#451A1A' : '#FFF5F5') : (isDark ? '#1E293B' : '#FFFFFF'),
+                    backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
                     border: `1px solid ${borderCol}`,
                     borderRadius: '12px',
                     padding: '16px',
@@ -875,69 +900,20 @@ export default function OpenPositionsPage() {
                     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <div style={{ fontSize: '15px', fontWeight: 900, color: textCol }} title={pos.company}>{pos.symbol}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 900, color: textCol }}>{pos.symbol}</div>
+                      <div style={{ width: '80px', height: '12px' }}>
+                        <Sparkline symbol={pos.symbol} />
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                      <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? '#DCFCE7' : '#FEE2E2', color: pos.tradeType === 'BUY' ? '#15803D' : '#991B1B', fontSize: '11px', fontWeight: 800 }}>
-                        {pos.tradeType}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 900, color: textCol, fontVariantNumeric: 'tabular-nums' }}>
+                        ₹{pos.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: textCol }}>
-                        Qty: {pos.quantity}
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: subTextCol }}>
+                        Buy: ₹{pos.buyPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
-                    </div>
-                  </div>
-
-                  {(pos.atBuyPrice || pos.nearBuyPrice) && (
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      {pos.atBuyPrice && (
-                        <span style={{ fontSize: '9.5px', fontWeight: 900, backgroundColor: '#DCFCE7', color: '#15803D', padding: '2px 6px', borderRadius: '4px' }}>
-                          🎯 At Buy Price
-                        </span>
-                      )}
-                      {!pos.atBuyPrice && pos.nearBuyPrice && (
-                        <span style={{ fontSize: '9.5px', fontWeight: 900, backgroundColor: '#FEF3C7', color: '#B45309', padding: '2px 6px', borderRadius: '4px' }}>
-                          📍 Near Buy (±1%)
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  <div style={{ borderTop: `1px solid ${borderCol}`, margin: '4px 0' }} />
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '13px' }}>
-                    <div>
-                      <span style={{ color: subTextCol }}>Buy Price: </span>
-                      <strong style={{ color: textCol }}>₹{pos.buyPrice}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: subTextCol }}>CMP: </span>
-                      <strong style={{ color: '#16A34A' }}>₹{pos.currentPrice}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: subTextCol }}>Target: </span>
-                      <strong style={{ color: '#16A34A' }}>{pos.targetPrice ? `₹${pos.targetPrice}` : '-'}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: subTextCol }}>Stop Loss: </span>
-                      <strong style={{ color: '#DC2626' }}>{pos.stopLoss ? `₹${pos.stopLoss}` : '-'}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: subTextCol }}>Est. Target: </span>
-                      <strong style={{ color: '#16A34A' }}>{targetRem.text}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: subTextCol }}>Stop Rem.: </span>
-                      <strong style={{ color: '#DC2626' }}>{stopRem.text}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: subTextCol }}>Holding: </span>
-                      <strong style={{ color: textCol }}>{pos.holdingPeriod} Days</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: subTextCol }}>Invested: </span>
-                      <strong style={{ color: textCol }}>₹{pos.investedAmount.toLocaleString('en-IN')}</strong>
                     </div>
                   </div>
 
@@ -945,84 +921,103 @@ export default function OpenPositionsPage() {
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <span style={{ fontSize: '11px', color: subTextCol }}>Current Value:</span>
-                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: textCol }}>₹{pos.currentValue.toLocaleString('en-IN')}</div>
+                      <div style={{ fontSize: '12px', color: subTextCol }}>Live P&amp;L</div>
+                      <div style={{ fontSize: '16px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626', fontVariantNumeric: 'tabular-nums' }}>
+                        {isProfit ? '+' : ''}₹{Math.abs(pos.profitLoss).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '11px', color: subTextCol }}>Live P&amp;L:</span>
-                      <div style={{ fontSize: '14px', fontWeight: 900, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        {isProfit ? '+' : ''}₹{formatDecimal(pos.profitLoss)} ({isProfit ? '+' : ''}{formatDecimal(pos.profitLossPct)}%)
+                      <div style={{ fontSize: '12px', color: subTextCol }}>Return</div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, color: isProfit ? '#16A34A' : '#DC2626', fontVariantNumeric: 'tabular-nums' }}>
+                        {isProfit ? '+' : ''}{formatDecimal(pos.profitLossPct)}%
                       </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '13px', marginTop: '4px', backgroundColor: isDark ? '#0F172A' : '#F8FAFC', padding: '12px', borderRadius: '8px' }}>
+                    <div>
+                      <span style={{ color: subTextCol, display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Target</span>
+                      <strong style={{ color: textCol }}>{pos.targetPrice ? `₹${formatDecimal(pos.targetPrice)}` : <span style={{ color: subTextCol }}>N/A</span>}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol, display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Stop Loss</span>
+                      <strong style={{ color: textCol }}>{pos.stopLoss ? `₹${formatDecimal(pos.stopLoss)}` : <span style={{ color: subTextCol }}>N/A</span>}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol, display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Quantity</span>
+                      <strong style={{ color: textCol }}>{pos.quantity}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: subTextCol, display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Holding</span>
+                      <strong style={{ color: textCol }}>{pos.holdingPeriod} Days</strong>
                     </div>
                   </div>
 
                   {user?.role === 'OWNER' && (
-                    <>
-                      <div style={{ borderTop: `1px solid ${borderCol}`, margin: '8px 0' }} />
-                      <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                        <button
-                          onClick={() => {
-                            setClosingPosition(pos);
-                            setClosePrice(pos.currentPrice.toString());
-                          }}
-                          style={{
-                            flex: 1.5,
-                            height: '44px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: '#16A34A',
-                            color: '#FFFFFF',
-                            fontSize: '13px',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          ✅ Close Position
-                        </button>
-                        <button
-                          onClick={() => handleOpenEditDrawer(pos)}
-                          style={{
-                            flex: 1,
-                            height: '44px',
-                            borderRadius: '8px',
-                            border: `1px solid ${borderCol}`,
-                            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
-                            color: textCol,
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button
-                          onClick={() => setDeletingId(pos.id)}
-                          style={{
-                            flex: 1,
-                            height: '44px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: '#FEE2E2',
-                            color: '#991B1B',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          🗑️ Delete
-                        </button>
-                      </div>
-                    </>
+                    <div style={{ display: 'flex', gap: '8px', width: '100%', marginTop: '8px' }}>
+                      <button
+                        onClick={() => {
+                          setClosingPosition(pos);
+                          setClosePrice(pos.currentPrice.toString());
+                        }}
+                        style={{
+                          flex: 1.5,
+                          height: '40px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          backgroundColor: '#16A34A',
+                          color: '#FFFFFF',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <CheckCircle2 size={16} /> Close
+                      </button>
+                      <button
+                        onClick={() => handleOpenEditDrawer(pos)}
+                        style={{
+                          flex: 1,
+                          height: '40px',
+                          borderRadius: '8px',
+                          border: `1px solid ${borderCol}`,
+                          backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                          color: textCol,
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <Pencil size={16} /> Edit
+                      </button>
+                      <button
+                        onClick={() => setDeletingId(pos.id)}
+                        style={{
+                          flex: 1,
+                          height: '40px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          backgroundColor: '#FEE2E2',
+                          color: '#991B1B',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   )}
                 </div>
               );
@@ -1030,24 +1025,24 @@ export default function OpenPositionsPage() {
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ backgroundColor: isDark ? '#0F172A' : '#F8FAFC', borderBottom: `2px solid ${borderCol}`, color: subTextCol, textAlign: 'left' }}>
-                  {user?.role === 'OWNER' && <th style={{ padding: '12px', width: '30px', textAlign: 'center' }}>✓</th>}
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Symbol &amp; Trend</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Type</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Qty</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Buy Price</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>CMP</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Target</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Stop Loss</th>
-                  <th style={{ padding: '12px', fontWeight: 800, color: '#16A34A' }}>Est. Target</th>
-                  <th style={{ padding: '12px', fontWeight: 800, color: '#DC2626' }}>Stop Rem.</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Holding</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Invested</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Current Val</th>
-                  <th style={{ padding: '12px', fontWeight: 800 }}>Live P&amp;L</th>
-                  {user?.role === 'OWNER' && <th style={{ padding: '12px', textAlign: 'center', width: '220px' }}>Actions</th>}
+                  {user?.role === 'OWNER' && <th style={{ padding: '14px', width: '30px', textAlign: 'center' }}>✓</th>}
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Symbol &amp; Trend</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Type</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Qty</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Buy Price</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>CMP</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Target</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Stop Loss</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Est. Target</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Stop Rem.</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Holding</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Invested</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Current Val</th>
+                  <th style={{ padding: '14px', fontWeight: 800 }}>Live P&amp;L</th>
+                  {user?.role === 'OWNER' && <th style={{ padding: '14px', textAlign: 'center', width: '220px' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -1057,9 +1052,9 @@ export default function OpenPositionsPage() {
                   const isProfit = pos.profitLoss >= 0;
 
                   return (
-                    <tr key={pos.id} style={{ borderBottom: `1px solid ${borderCol}`, backgroundColor: stopRem.isWarning ? (isDark ? '#451A1A' : '#FFF5F5') : 'transparent' }}>
+                    <tr key={pos.id} style={{ borderBottom: `1px solid ${borderCol}`, backgroundColor: 'transparent' }}>
                       {user?.role === 'OWNER' && (
-                        <td style={{ padding: '10px', textAlign: 'center' }}>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
                           <input
                             type="checkbox"
                             checked={selectedIds.includes(pos.id)}
@@ -1072,77 +1067,62 @@ export default function OpenPositionsPage() {
                         </td>
                       )}
 
-                      <td style={{ padding: '10px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontWeight: 800, color: textCol, fontSize: '13.5px' }} title={pos.company}>{pos.symbol}</span>
-                          </div>
-                          
-                          {/* Sparkline directly below the symbol */}
-                          <div style={{ width: '100px', height: '14px', display: 'flex', alignItems: 'center', marginTop: '2px' }}>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{ fontWeight: 800, color: textCol, fontSize: '14px' }}>{pos.symbol}</div>
+                          <div style={{ width: '80px', height: '14px', display: 'flex', alignItems: 'center' }}>
                             <Sparkline symbol={pos.symbol} />
                           </div>
-
-                          {pos.atBuyPrice && (
-                            <span style={{ fontSize: '9px', fontWeight: 950, backgroundColor: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px', width: 'fit-content' }}>
-                              🎯 At Buy Price
-                            </span>
-                          )}
-                          {!pos.atBuyPrice && pos.nearBuyPrice && (
-                            <span style={{ fontSize: '9px', fontWeight: 950, backgroundColor: '#FEF3C7', color: '#B45309', padding: '1px 5px', borderRadius: '4px', width: 'fit-content' }}>
-                              📍 Near Buy (±1%)
-                            </span>
-                          )}
                         </div>
                       </td>
 
-                      <td style={{ padding: '10px', fontWeight: 700 }}>
-                        <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? '#DCFCE7' : '#FEE2E2', color: pos.tradeType === 'BUY' ? '#15803D' : '#991B1B', fontSize: '11px', fontWeight: 800 }}>
+                      <td style={{ padding: '12px', fontWeight: 700 }}>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? (isDark ? '#064E3B' : '#DCFCE7') : (isDark ? '#7F1D1D' : '#FEE2E2'), color: pos.tradeType === 'BUY' ? (isDark ? '#34D399' : '#15803D') : (isDark ? '#FCA5A5' : '#991B1B'), fontSize: '11px', fontWeight: 800 }}>
                           {pos.tradeType}
                         </span>
                       </td>
 
-                      <td style={{ padding: '10px', fontWeight: 600 }}>{pos.quantity}</td>
+                      <td style={{ padding: '12px', fontWeight: 600 }}>{pos.quantity}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 700 }}>₹{formatDecimal(pos.buyPrice)}</td>
+                      <td style={{ padding: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(pos.buyPrice)}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 800, color: '#16A34A' }}>₹{formatDecimal(pos.currentPrice)}</td>
+                      <td style={{ padding: '12px', fontWeight: 800, color: '#16A34A', fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(pos.currentPrice)}</td>
 
-                      <td style={{ padding: '10px', color: '#16A34A', fontWeight: 700 }}>{pos.targetPrice ? `₹${formatDecimal(pos.targetPrice)}` : '-'}</td>
+                      <td style={{ padding: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: textCol }}>{pos.targetPrice ? `₹${formatDecimal(pos.targetPrice)}` : <span style={{ color: subTextCol }}>N/A</span>}</td>
 
-                      <td style={{ padding: '10px', color: '#DC2626', fontWeight: 700 }}>{pos.stopLoss ? `₹${formatDecimal(pos.stopLoss)}` : '-'}</td>
+                      <td style={{ padding: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: textCol }}>{pos.stopLoss ? `₹${formatDecimal(pos.stopLoss)}` : <span style={{ color: subTextCol }}>N/A</span>}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 700, color: '#16A34A' }}>{targetRem.text}</td>
+                      <td style={{ padding: '12px', fontWeight: 700, color: targetRem.text === 'N/A' ? subTextCol : '#16A34A' }}>{targetRem.text}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 700, color: '#DC2626' }}>{stopRem.text}</td>
+                      <td style={{ padding: '12px', fontWeight: 700, color: stopRem.text === 'N/A' ? subTextCol : '#DC2626' }}>{stopRem.text}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 700, color: textCol }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: isDark ? '#334155' : '#F1F5F9', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={12} /> {pos.holdingPeriod} Days
+                      <td style={{ padding: '12px', fontWeight: 700, color: textCol }}>
+                        <span style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} color={subTextCol} /> {pos.holdingPeriod} Days
                         </span>
                       </td>
 
-                      <td style={{ padding: '10px', fontWeight: 600 }}>₹{formatDecimal(pos.investedAmount)}</td>
+                      <td style={{ padding: '12px', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>₹{pos.investedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 700 }}>₹{formatDecimal(pos.currentValue)}</td>
+                      <td style={{ padding: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>₹{pos.currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
 
-                      <td style={{ padding: '10px', fontWeight: 800, color: isProfit ? '#16A34A' : '#DC2626' }}>
-                        <div>{isProfit ? '+' : ''}₹{formatDecimal(pos.profitLoss)}</div>
-                        <div style={{ fontSize: '11px' }}>({isProfit ? '+' : ''}{formatDecimal(pos.profitLossPct)}%)</div>
+                      <td style={{ padding: '12px', fontWeight: 800, color: isProfit ? '#16A34A' : '#DC2626', fontVariantNumeric: 'tabular-nums' }}>
+                        <div>{isProfit ? '+' : ''}₹{Math.abs(pos.profitLoss).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div style={{ fontSize: '11.5px' }}>({isProfit ? '+' : ''}{formatDecimal(pos.profitLossPct)}%)</div>
                       </td>
 
-                      {/* Actions in exact requested order: Close Position -> Edit -> Delete */}
+                      {/* Actions */}
                       {user?.role === 'OWNER' && (
-                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                             <button
                               onClick={() => {
                                 setClosingPosition(pos);
                                 setClosePrice(pos.currentPrice.toString());
                               }}
-                              style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#16A34A', color: '#FFFFFF', fontSize: '11.5px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#16A34A', color: '#FFFFFF', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             >
-                              <CheckCircle2 size={13} /> Close
+                              <CheckCircle2 size={14} /> Close
                             </button>
                             <button
                               onClick={() => handleOpenEditDrawer(pos)}
