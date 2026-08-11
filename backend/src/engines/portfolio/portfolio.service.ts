@@ -107,41 +107,15 @@ export class PortfolioService {
             pos.profitLossPct = profitLossPct;
             (pos as any).changePercent = changePercentMap[pos.symbol] || changePercentMap[pos.symbol.split('.')[0]] || 0;
 
-            // ⚡ AUTOMATIC TRADE CLOSING ENGINE
-            let autoClosed = false;
-            if (pos.tradeType === 'BUY') {
-              if (pos.targetPrice !== null && pos.targetPrice !== undefined && currentPrice >= pos.targetPrice) {
-                this.logger.log(`🎯 Automatic Target Hit for ${pos.symbol} (CMP ₹${currentPrice} >= Target ₹${pos.targetPrice})`);
-                await this.closePosition(pos.id, pos.targetPrice, pos.brokerCharges, new Date().toISOString(), pos.notes || undefined, 'TARGET_HIT');
-                autoClosed = true;
-              } else if (pos.stopLoss !== null && pos.stopLoss !== undefined && currentPrice <= pos.stopLoss) {
-                this.logger.log(`🛑 Automatic Stop Loss Hit for ${pos.symbol} (CMP ₹${currentPrice} <= Stop ₹${pos.stopLoss})`);
-                await this.closePosition(pos.id, pos.stopLoss, pos.brokerCharges, new Date().toISOString(), pos.notes || undefined, 'STOP_LOSS_HIT');
-                autoClosed = true;
-              }
-            } else if (pos.tradeType === 'SELL') {
-              if (pos.targetPrice !== null && pos.targetPrice !== undefined && currentPrice <= pos.targetPrice) {
-                this.logger.log(`🎯 Automatic Target Hit for SELL ${pos.symbol} (CMP ₹${currentPrice} <= Target ₹${pos.targetPrice})`);
-                await this.closePosition(pos.id, pos.targetPrice, pos.brokerCharges, new Date().toISOString(), pos.notes || undefined, 'TARGET_HIT');
-                autoClosed = true;
-              } else if (pos.stopLoss !== null && pos.stopLoss !== undefined && currentPrice >= pos.stopLoss) {
-                this.logger.log(`🛑 Automatic Stop Loss Hit for SELL ${pos.symbol} (CMP ₹${currentPrice} >= Stop ₹${pos.stopLoss})`);
-                await this.closePosition(pos.id, pos.stopLoss, pos.brokerCharges, new Date().toISOString(), pos.notes || undefined, 'STOP_LOSS_HIT');
-                autoClosed = true;
-              }
-            }
-
-            if (!autoClosed) {
-              await prisma.portfolioPosition.update({
-                where: { id: pos.id },
-                data: {
-                  currentPrice,
-                  currentValue,
-                  profitLoss,
-                  profitLossPct,
-                },
-              }).catch(() => {});
-            }
+            await prisma.portfolioPosition.update({
+              where: { id: pos.id },
+              data: {
+                currentPrice,
+                currentValue,
+                profitLoss,
+                profitLossPct,
+              },
+            }).catch(() => {});
           }
         }
       } catch (err: any) {
@@ -149,16 +123,11 @@ export class PortfolioService {
       }
     }
 
-    // Re-fetch positions if any trade was auto-closed
-    const refreshedPositions: PortfolioPosition[] = await prisma.portfolioPosition.findMany({
-      orderBy: { entryDate: 'desc' },
-    });
-
     const openList: any[] = [];
     const closedList: any[] = [];
     const archivedList: any[] = [];
 
-    for (const p of refreshedPositions) {
+    for (const p of positions) {
       const entryTime = new Date(p.entryDate).getTime();
       const bp = p.buyPrice;
       const qty = p.quantity;
@@ -386,7 +355,7 @@ export class PortfolioService {
         open: openList,
         closed: closedList,
         archived: archivedList,
-        all: refreshedPositions,
+        all: positions,
       },
       investors: investorsList,
       summary: {
