@@ -95,13 +95,19 @@ export default function PortfolioPage() {
   };
 
   // --- PERFORMANCE LEADERS ROTATION ---
-  // Sort all open positions by profitLossPct descending
+  // Sort ALL open positions by profitLossPct descending (best first)
   const sortedByPerf = [...openPositions].sort((a, b) => b.profitLossPct - a.profitLossPct);
-  // Best = top 3 (highest %)
+
+  // BEST: top 3 from sorted list (highest %, regardless of sign)
   const bestList = sortedByPerf.slice(0, 3);
-  // Worst = bottom 3, excluding any already in bestList (to avoid duplicates when < 6 positions)
-  const remainingForWorst = sortedByPerf.filter(pos => !bestList.some(b => b.id === pos.id));
-  const worstList = [...remainingForWorst].reverse().slice(0, 3);
+
+  // WORST: last 3 from sorted list, reversed so worst is first (lowest %, regardless of sign)
+  const worstListRaw = [...sortedByPerf].reverse().slice(0, 3);
+
+  // Deduplicate: if total positions < 6, some positions would appear in both groups.
+  // Remove from worstList any position that already appears in bestList.
+  const bestIds = new Set(bestList.map(p => p.id));
+  const worstList = worstListRaw.filter(p => !bestIds.has(p.id));
 
   const performanceLeaders = [
     ...bestList.map((p, i) => ({ ...p, label: `BEST #${i + 1}`, isBest: true })),
