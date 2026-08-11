@@ -215,12 +215,12 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
                       {user?.role === 'OWNER' && (
                         <>
-                          <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: '#0F172A' }}><Users size={14} /> Manage Clients</button>
-                          <Link href="/settings" onClick={() => setShowProfileMenu(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: '12.5px', fontWeight: 600, color: '#0F172A', boxSizing: 'border-box' }}><Settings size={14} /> Settings</Link>
+                          <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} className="dropdown-menu-item"><Users size={14} /> Manage Clients</button>
+                          <Link href="/settings" onClick={() => setShowProfileMenu(false)} className="dropdown-menu-item"><Settings size={14} /> Settings</Link>
                         </>
                       )}
 
-                      <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700, color: '#EF4444' }}><LogOut size={14} /> Sign Out</button>
+                      <button onClick={logout} className="dropdown-menu-item-danger"><LogOut size={14} /> Sign Out</button>
                     </div>
                   )}
                 </div>
@@ -256,27 +256,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 SHREE ASSOCIATES
               </div>
             </Link>
-            
-            <button
-              onClick={toggleSidebar}
-              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-              style={{
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                cursor: 'pointer',
-                color: textCol,
-                fontSize: '20px',
-                padding: '6px 8px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-            >
-              <Menu size={20} />
-            </button>
           </div>
 
           {/* MIDDLE SECTION: Centered Search Bar */}
@@ -288,6 +267,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 <Search size={14} style={{ color: '#FFFFFF', marginRight: '8px' }} />
                 <input
                   type="text"
+                  className="header-search-input"
                   placeholder="Search Symbol..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -316,24 +296,42 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             
             {/* PROFILE MENU */}
             <div style={{ position: 'relative' }}>
-              <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', backgroundColor: '#FFFFFF', color: textCol, cursor: 'pointer', fontSize: '12.5px', fontWeight: 700 }}>
+              <button 
+                onClick={() => setShowProfileMenu(!showProfileMenu)} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  padding: '7px 14px', 
+                  borderRadius: '8px', 
+                  border: '1px solid rgba(255, 255, 255, 0.25)', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)', 
+                  color: '#FFFFFF', 
+                  cursor: 'pointer', 
+                  fontSize: '12.5px', 
+                  fontWeight: 700,
+                  transition: 'background-color 0.2s ease-out'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'}
+              >
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><User size={16} /> {user?.name || 'Analyst'}</span>
               </button>
               {showProfileMenu && (
-                <div style={{ position: 'absolute', top: '42px', right: 0, width: '210px', backgroundColor: '#FFFFFF', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px 0' }}>
-                  <div style={{ padding: '8px 16px', borderBottom: `1px solid ${borderCol}`, fontSize: '11.5px', color: subTextCol }}>
+                <div style={{ position: 'absolute', top: '42px', right: 0, width: '210px', backgroundColor: '#FFFFFF', border: `1px solid #E2E8F0`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px 0' }}>
+                  <div style={{ padding: '8px 16px', borderBottom: `1px solid #E2E8F0`, fontSize: '11.5px', color: '#64748B' }}>
                     Logged in as <br />
-                    <strong style={{ color: textCol, fontSize: '12.5px' }}>{user?.email}</strong>
+                    <strong style={{ color: '#0F172A', fontSize: '12.5px' }}>{user?.email}</strong>
                   </div>
 
                   {user?.role === 'OWNER' && (
                     <>
-                      <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600, color: textCol }}><Users size={14} /> Manage Clients</button>
-                      <Link href="/settings" onClick={() => setShowProfileMenu(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: '12.5px', fontWeight: 600, color: textCol, boxSizing: 'border-box' }}><Settings size={14} /> Settings</Link>
+                      <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} className="dropdown-menu-item"><Users size={14} /> Manage Clients</button>
+                      <Link href="/settings" onClick={() => setShowProfileMenu(false)} className="dropdown-menu-item"><Settings size={14} /> Settings</Link>
                     </>
                   )}
 
-                  <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700, color: '#EF4444' }}><LogOut size={14} /> Sign Out</button>
+                  <button onClick={logout} className="dropdown-menu-item-danger"><LogOut size={14} /> Sign Out</button>
                 </div>
               )}
             </div>

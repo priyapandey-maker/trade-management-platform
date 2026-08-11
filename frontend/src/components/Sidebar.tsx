@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Briefcase, CheckCircle, PieChart, LayoutDashboard, Users, Settings, X, LogOut } from 'lucide-react';
+import { Briefcase, CheckCircle, PieChart, LayoutDashboard, Users, Settings, X, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -169,10 +169,18 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         display: 'flex',
         flexDirection: 'column',
         zIndex: 40,
-        transition: 'width 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'width 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
+      <button
+        onClick={toggleCollapse}
+        className="sidebar-toggle-btn"
+        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
       {/* Navigation Group with Enterprise Financial Icons */}
       <nav style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
         {navItems.map((item) => {

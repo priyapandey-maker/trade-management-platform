@@ -104,7 +104,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           marginTop: '70px',
           padding: isMobile ? '16px' : '28px 32px',
           minHeight: 'calc(100vh - 70px)',
-          transition: 'margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'margin-left 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
           boxSizing: 'border-box',
         }}
       >
