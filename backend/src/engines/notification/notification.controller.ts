@@ -1,4 +1,18 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Req, ForbiddenException, HttpException, HttpStatus, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Req,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Query,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.controller';
 import { NotificationService } from './NotificationService';
@@ -9,7 +23,9 @@ const prisma = new PrismaClient();
 @Controller('notification')
 @UseGuards(AuthGuard)
 export class NotificationController {
-  private notificationsCache: { [key: string]: { data: any; timestamp: number } } = {};
+  private notificationsCache: {
+    [key: string]: { data: any; timestamp: number };
+  } = {};
 
   private clearCache() {
     this.notificationsCache = {};
@@ -18,7 +34,11 @@ export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
   @Get()
-  async getNotifications(@Req() req: any, @Query('status') status?: string, @Query('search') search?: string) {
+  async getNotifications(
+    @Req() req: any,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
     const userId = req.user.sub;
     const cacheKey = `${userId}:${status || ''}:${search || ''}`;
     const nowTime = Date.now();
@@ -119,7 +139,7 @@ export class NotificationController {
     });
 
     if (!targetUser) {
-      throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
+      throw new HttpException('User not found.', HttpStatus.UNAUTHORIZED);
     }
 
     return {
@@ -147,7 +167,9 @@ export class NotificationController {
   @Patch('settings')
   async updateSettings(@Req() req: any, @Body() body: any) {
     if (req.user.role !== 'OWNER') {
-      throw new ForbiddenException('Only platform owners can modify notification configurations.');
+      throw new ForbiddenException(
+        'Only platform owners can modify notification configurations.',
+      );
     }
 
     const userId = req.user.sub;
@@ -155,21 +177,29 @@ export class NotificationController {
 
     const updateData: any = {};
     if (preferences) {
-      if (preferences.prefNearBuy !== undefined) updateData.prefNearBuy = preferences.prefNearBuy;
-      if (preferences.prefBuyTrigger !== undefined) updateData.prefBuyTrigger = preferences.prefBuyTrigger;
-      if (preferences.prefStopLoss !== undefined) updateData.prefStopLoss = preferences.prefStopLoss;
-      if (preferences.prefTargetHit !== undefined) updateData.prefTargetHit = preferences.prefTargetHit;
-      if (preferences.prefManualClose !== undefined) updateData.prefManualClose = preferences.prefManualClose;
-      if (preferences.prefDailySummary !== undefined) updateData.prefDailySummary = preferences.prefDailySummary;
-      if (preferences.prefPriceMovement !== undefined) updateData.prefPriceMovement = preferences.prefPriceMovement;
-      
+      if (preferences.prefNearBuy !== undefined)
+        updateData.prefNearBuy = preferences.prefNearBuy;
+      if (preferences.prefBuyTrigger !== undefined)
+        updateData.prefBuyTrigger = preferences.prefBuyTrigger;
+      if (preferences.prefStopLoss !== undefined)
+        updateData.prefStopLoss = preferences.prefStopLoss;
+      if (preferences.prefTargetHit !== undefined)
+        updateData.prefTargetHit = preferences.prefTargetHit;
+      if (preferences.prefManualClose !== undefined)
+        updateData.prefManualClose = preferences.prefManualClose;
+      if (preferences.prefDailySummary !== undefined)
+        updateData.prefDailySummary = preferences.prefDailySummary;
+      if (preferences.prefPriceMovement !== undefined)
+        updateData.prefPriceMovement = preferences.prefPriceMovement;
+
       // Handle the new settings and sync older names
       if (preferences.emailEnabled !== undefined) {
         updateData.emailEnabled = preferences.emailEnabled;
         updateData.emailNotificationsEnabled = preferences.emailEnabled;
       } else if (preferences.emailNotificationsEnabled !== undefined) {
         updateData.emailEnabled = preferences.emailNotificationsEnabled;
-        updateData.emailNotificationsEnabled = preferences.emailNotificationsEnabled;
+        updateData.emailNotificationsEnabled =
+          preferences.emailNotificationsEnabled;
       }
 
       if (preferences.telegramEnabled !== undefined) {
@@ -177,7 +207,8 @@ export class NotificationController {
         updateData.telegramNotificationsEnabled = preferences.telegramEnabled;
       } else if (preferences.telegramNotificationsEnabled !== undefined) {
         updateData.telegramEnabled = preferences.telegramNotificationsEnabled;
-        updateData.telegramNotificationsEnabled = preferences.telegramNotificationsEnabled;
+        updateData.telegramNotificationsEnabled =
+          preferences.telegramNotificationsEnabled;
       }
 
       if (preferences.inAppEnabled !== undefined) {
@@ -185,7 +216,8 @@ export class NotificationController {
         updateData.inAppNotificationsEnabled = preferences.inAppEnabled;
       } else if (preferences.inAppNotificationsEnabled !== undefined) {
         updateData.inAppEnabled = preferences.inAppNotificationsEnabled;
-        updateData.inAppNotificationsEnabled = preferences.inAppNotificationsEnabled;
+        updateData.inAppNotificationsEnabled =
+          preferences.inAppNotificationsEnabled;
       }
 
       if (preferences.telegramChatIds !== undefined) {
@@ -226,14 +258,15 @@ export class NotificationController {
     const userId = req.user.sub;
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      throw new HttpException('User not found.', HttpStatus.NOT_FOUND);
+      throw new HttpException('User not found.', HttpStatus.UNAUTHORIZED);
     }
 
     await this.notificationService.createNotification({
       type: NotificationType.TEST,
       symbol: 'TEST.NS',
       company: 'Test Company Limited',
-      message: 'This is a custom test notification triggered from the Shree Associates Control Panel.',
+      message:
+        'This is a custom test notification triggered from the Shree Associates Control Panel.',
       triggerPrice: 100.0,
       triggerKey: `test-${userId}-${Date.now()}`,
     });

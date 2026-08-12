@@ -5,7 +5,7 @@ import {
   calculateInvestment,
   calculateCurrentValue,
   calculateLivePnL,
-  calculateReturnPct
+  calculateReturnPct,
 } from '../../shared/financial-calculations';
 
 const prisma = new PrismaClient();
@@ -26,13 +26,29 @@ export class TradeImportService {
     if (lines.length === 0 || !lines[0]) {
       throw new BadRequestException('CSV header is missing.');
     }
-    const headers = lines[0].split(',').map((h) => h.trim().replace(/^["']|["']$/g, ''));
+    const headers = lines[0]
+      .split(',')
+      .map((h) => h.trim().replace(/^["']|["']$/g, ''));
 
     // Validate headers
-    const required = ['Investor', 'Symbol', 'Buy Price', 'Quantity', 'Target', 'Stop Loss', 'Buy Date', 'Trade Type', 'Notes'];
-    const missing = required.filter(r => !headers.some(h => h.toLowerCase() === r.toLowerCase()));
+    const required = [
+      'Investor',
+      'Symbol',
+      'Buy Price',
+      'Quantity',
+      'Target',
+      'Stop Loss',
+      'Buy Date',
+      'Trade Type',
+      'Notes',
+    ];
+    const missing = required.filter(
+      (r) => !headers.some((h) => h.toLowerCase() === r.toLowerCase()),
+    );
     if (missing.length > 0) {
-      throw new BadRequestException(`Invalid CSV template. Missing headers: ${missing.join(', ')}`);
+      throw new BadRequestException(
+        `Invalid CSV template. Missing headers: ${missing.join(', ')}`,
+      );
     }
 
     const result: any[] = [];
@@ -78,11 +94,13 @@ export class TradeImportService {
 
     rows.forEach((row, idx) => {
       const errors: string[] = [];
-      
+
       // Map keys case-insensitively
       const getVal = (keys: string[]) => {
         for (const k of keys) {
-          const match = Object.keys(row).find(rk => rk.toLowerCase() === k.toLowerCase());
+          const match = Object.keys(row).find(
+            (rk) => rk.toLowerCase() === k.toLowerCase(),
+          );
           if (match) return row[match];
         }
         return '';
@@ -91,7 +109,9 @@ export class TradeImportService {
       const investorName = (getVal(['Investor']) || 'Shree').trim();
       const symbol = (getVal(['Symbol']) || '').trim().toUpperCase();
       const notes = (getVal(['Notes']) || '').trim();
-      const tradeType = (getVal(['Trade Type', 'TradeType']) || 'BUY').trim().toUpperCase();
+      const tradeType = (getVal(['Trade Type', 'TradeType']) || 'BUY')
+        .trim()
+        .toUpperCase();
       const rawBuyPrice = getVal(['Buy Price', 'BuyPrice']);
       const rawQty = getVal(['Quantity', 'Qty']);
       const rawTarget = getVal(['Target', 'TargetPrice']);
@@ -141,17 +161,23 @@ export class TradeImportService {
       // Check SL/TP logic
       if (tradeType === 'BUY') {
         if (targetPriceNum && targetPriceNum <= buyPriceNum) {
-          errors.push('Target Price must be greater than Buy Price for BUY trades.');
+          errors.push(
+            'Target Price must be greater than Buy Price for BUY trades.',
+          );
         }
         if (stopLossNum && stopLossNum >= buyPriceNum) {
           errors.push('Stop Loss must be less than Buy Price for BUY trades.');
         }
       } else if (tradeType === 'SELL') {
         if (targetPriceNum && targetPriceNum >= buyPriceNum) {
-          errors.push('Target Price must be less than Buy Price for SELL trades.');
+          errors.push(
+            'Target Price must be less than Buy Price for SELL trades.',
+          );
         }
         if (stopLossNum && stopLossNum <= buyPriceNum) {
-          errors.push('Stop Loss must be greater than Buy Price for SELL trades.');
+          errors.push(
+            'Stop Loss must be greater than Buy Price for SELL trades.',
+          );
         }
       }
 
@@ -196,7 +222,9 @@ export class TradeImportService {
   /**
    * Check for duplicate records already in the database
    */
-  async detectDuplicates(validRows: any[]): Promise<{ ready: any[]; duplicates: any[] }> {
+  async detectDuplicates(
+    validRows: any[],
+  ): Promise<{ ready: any[]; duplicates: any[] }> {
     const ready: any[] = [];
     const duplicates: any[] = [];
 
@@ -246,9 +274,23 @@ export class TradeImportService {
       const d = item.data;
 
       const investedAmount = calculateInvestment(d.buyPrice, d.quantity);
-      const currentValue = calculateCurrentValue(d.buyPrice, d.quantity, d.tradeType, d.buyPrice); 
-      const profitLoss = calculateLivePnL(d.buyPrice, d.buyPrice, d.quantity, d.tradeType);
-      const profitLossPct = calculateReturnPct(d.buyPrice, d.buyPrice, d.tradeType);
+      const currentValue = calculateCurrentValue(
+        d.buyPrice,
+        d.quantity,
+        d.tradeType,
+        d.buyPrice,
+      );
+      const profitLoss = calculateLivePnL(
+        d.buyPrice,
+        d.buyPrice,
+        d.quantity,
+        d.tradeType,
+      );
+      const profitLossPct = calculateReturnPct(
+        d.buyPrice,
+        d.buyPrice,
+        d.tradeType,
+      );
 
       const created = await prisma.portfolioPosition.create({
         data: {
@@ -289,9 +331,20 @@ export class TradeImportService {
         invalidCount: invalid.length,
         success: invalid.length === 0 && duplicates.length === 0,
       },
-      imported: imported.map(item => ({ row: item.row, symbol: item.symbol || item.data?.symbol })),
-      duplicates: duplicates.map(item => ({ row: item.row, symbol: item.symbol, reason: item.reason })),
-      invalid: invalid.map(item => ({ row: item.row, symbol: item.symbol, errors: item.errors })),
+      imported: imported.map((item) => ({
+        row: item.row,
+        symbol: item.symbol || item.data?.symbol,
+      })),
+      duplicates: duplicates.map((item) => ({
+        row: item.row,
+        symbol: item.symbol,
+        reason: item.reason,
+      })),
+      invalid: invalid.map((item) => ({
+        row: item.row,
+        symbol: item.symbol,
+        errors: item.errors,
+      })),
     };
   }
 }

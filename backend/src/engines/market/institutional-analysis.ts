@@ -30,7 +30,10 @@ export interface OrderBlock {
 
 export type ScannerZoneStatus = 'INSIDE_ZONE' | 'NEAR_ZONE' | 'FAR';
 
-export function calculateRSI(candles: Candle[], period: number = 14): { current: number; period: number; state: string; history: number[] } {
+export function calculateRSI(
+  candles: Candle[],
+  period: number = 14,
+): { current: number; period: number; state: string; history: number[] } {
   if (!candles || candles.length < period + 1) {
     return { current: 50, period, state: 'NEUTRAL', history: [50] };
   }
@@ -71,7 +74,10 @@ export function calculateRSI(candles: Candle[], period: number = 14): { current:
   return { current, period, state, history };
 }
 
-export function detectFVG(candles: Candle[]): { bullish: any[]; bearish: any[] } {
+export function detectFVG(candles: Candle[]): {
+  bullish: any[];
+  bearish: any[];
+} {
   const bullish: any[] = [];
   const bearish: any[] = [];
   if (!candles || candles.length < 3) return { bullish, bearish };
@@ -81,35 +87,69 @@ export function detectFVG(candles: Candle[]): { bullish: any[]; bearish: any[] }
     const c3 = candles[i];
 
     if (c3.low > c1.high) {
-      bullish.push({ type: 'BULLISH', top: c3.low, bottom: c1.high, index: i - 1 });
+      bullish.push({
+        type: 'BULLISH',
+        top: c3.low,
+        bottom: c1.high,
+        index: i - 1,
+      });
     } else if (c3.high < c1.low) {
-      bearish.push({ type: 'BEARISH', top: c1.low, bottom: c3.high, index: i - 1 });
+      bearish.push({
+        type: 'BEARISH',
+        top: c1.low,
+        bottom: c3.high,
+        index: i - 1,
+      });
     }
   }
 
   return { bullish, bearish };
 }
 
-export function calculateSupport(candles: Candle[]): { price: number; supportPrice: number; currentPrice: number; distancePct: number } {
+export function calculateSupport(candles: Candle[]): {
+  price: number;
+  supportPrice: number;
+  currentPrice: number;
+  distancePct: number;
+} {
   if (!candles || candles.length === 0) {
     return { price: 0, supportPrice: 0, currentPrice: 0, distancePct: 0 };
   }
   const currentPrice = candles[candles.length - 1].close;
   const lows = candles.map((c) => c.low);
   const supportPrice = Math.min(...lows);
-  const distancePct = currentPrice > 0 ? ((currentPrice - supportPrice) / currentPrice) * 100 : 0;
-  return { price: supportPrice, supportPrice, currentPrice, distancePct: Math.round(distancePct * 100) / 100 };
+  const distancePct =
+    currentPrice > 0 ? ((currentPrice - supportPrice) / currentPrice) * 100 : 0;
+  return {
+    price: supportPrice,
+    supportPrice,
+    currentPrice,
+    distancePct: Math.round(distancePct * 100) / 100,
+  };
 }
 
-export function calculateResistance(candles: Candle[]): { price: number; resistancePrice: number; currentPrice: number; distancePct: number } {
+export function calculateResistance(candles: Candle[]): {
+  price: number;
+  resistancePrice: number;
+  currentPrice: number;
+  distancePct: number;
+} {
   if (!candles || candles.length === 0) {
     return { price: 0, resistancePrice: 0, currentPrice: 0, distancePct: 0 };
   }
   const currentPrice = candles[candles.length - 1].close;
   const highs = candles.map((c) => c.high);
   const resistancePrice = Math.max(...highs);
-  const distancePct = currentPrice > 0 ? ((resistancePrice - currentPrice) / currentPrice) * 100 : 0;
-  return { price: resistancePrice, resistancePrice, currentPrice, distancePct: Math.round(distancePct * 100) / 100 };
+  const distancePct =
+    currentPrice > 0
+      ? ((resistancePrice - currentPrice) / currentPrice) * 100
+      : 0;
+  return {
+    price: resistancePrice,
+    resistancePrice,
+    currentPrice,
+    distancePct: Math.round(distancePct * 100) / 100,
+  };
 }
 
 export function generateRecommendation(data: any): string {
@@ -123,7 +163,11 @@ export function generateRecommendation(data: any): string {
   return 'HOLD';
 }
 
-export function evaluateOrderBlocks(candles: Candle[], _opt?: any, _filterPct?: any): { bullish: OrderBlock[]; bearish: OrderBlock[] } {
+export function evaluateOrderBlocks(
+  candles: Candle[],
+  _opt?: any,
+  _filterPct?: any,
+): { bullish: OrderBlock[]; bearish: OrderBlock[] } {
   const bullish: OrderBlock[] = [];
   const bearish: OrderBlock[] = [];
 
@@ -135,7 +179,11 @@ export function evaluateOrderBlocks(candles: Candle[], _opt?: any, _filterPct?: 
     const curr = candles[i];
     const next = candles[i + 1];
 
-    if (curr.close < curr.open && next.close > next.open && next.close > curr.high) {
+    if (
+      curr.close < curr.open &&
+      next.close > next.open &&
+      next.close > curr.high
+    ) {
       bullish.push({
         top: curr.high,
         bottom: curr.low,
@@ -148,7 +196,11 @@ export function evaluateOrderBlocks(candles: Candle[], _opt?: any, _filterPct?: 
           widthPct: ((next.close - curr.close) / curr.close) * 100,
         },
       });
-    } else if (curr.close > curr.open && next.close < next.open && next.close < curr.low) {
+    } else if (
+      curr.close > curr.open &&
+      next.close < next.open &&
+      next.close < curr.low
+    ) {
       bearish.push({
         top: curr.high,
         bottom: curr.low,

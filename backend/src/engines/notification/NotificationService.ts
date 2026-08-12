@@ -34,7 +34,9 @@ export class NotificationService {
       });
 
       if (existing) {
-        this.logger.debug(`Deduplicated alert for triggerKey: "${payload.triggerKey}". Skipping.`);
+        this.logger.debug(
+          `Deduplicated alert for triggerKey: "${payload.triggerKey}". Skipping.`,
+        );
         return;
       }
     }
@@ -105,7 +107,9 @@ export class NotificationService {
         }
       }
 
-      this.logger.log(`Notification created and queued for user ${user.id}: type=${payload.type} symbol=${payload.symbol}`);
+      this.logger.log(
+        `Notification created and queued for user ${user.id}: type=${payload.type} symbol=${payload.symbol}`,
+      );
     }
   }
 
@@ -115,7 +119,9 @@ export class NotificationService {
       where: { symbol: normSym, triggerKey: { not: null } },
       data: { triggerKey: null },
     });
-    this.logger.debug(`Reset trigger alerts deduplication for symbol "${normSym}".`);
+    this.logger.debug(
+      `Reset trigger alerts deduplication for symbol "${normSym}".`,
+    );
   }
 
   async sendTestTelegram(userId: string): Promise<void> {

@@ -16,13 +16,13 @@ describe('Financial Calculations Engine Audit Suite', () => {
   // Expected: P&L = +3.00, Return = +0.30%
   test('TEST 1: Buy = 100, CMP = 100.30, Qty = 10 (BUY)', () => {
     const buyPrice = 100;
-    const cmp = 100.30;
+    const cmp = 100.3;
     const qty = 10;
     const pnl = calculateLivePnL(buyPrice, cmp, qty, 'BUY');
     const ret = calculateReturnPct(buyPrice, cmp, 'BUY');
-    
-    expect(pnl).toBeCloseTo(3.00, 2);
-    expect(ret).toBeCloseTo(0.30, 2);
+
+    expect(pnl).toBeCloseTo(3.0, 2);
+    expect(ret).toBeCloseTo(0.3, 2);
     expect(formatDecimal(pnl)).toBe('3.00');
     expect(formatDecimal(ret)).toBe('0.30');
   });
@@ -32,13 +32,13 @@ describe('Financial Calculations Engine Audit Suite', () => {
   // Expected: P&L = -3.00, Return = -0.30%
   test('TEST 2: Buy = 100, CMP = 99.70, Qty = 10 (BUY)', () => {
     const buyPrice = 100;
-    const cmp = 99.70;
+    const cmp = 99.7;
     const qty = 10;
     const pnl = calculateLivePnL(buyPrice, cmp, qty, 'BUY');
     const ret = calculateReturnPct(buyPrice, cmp, 'BUY');
-    
-    expect(pnl).toBeCloseTo(-3.00, 2);
-    expect(ret).toBeCloseTo(-0.30, 2);
+
+    expect(pnl).toBeCloseTo(-3.0, 2);
+    expect(ret).toBeCloseTo(-0.3, 2);
     expect(formatDecimal(pnl)).toBe('-3.00');
     expect(formatDecimal(ret)).toBe('-0.30');
   });
@@ -52,7 +52,7 @@ describe('Financial Calculations Engine Audit Suite', () => {
     const qty = 5;
     const pnl = calculateRealizedPnL(buyPrice, exitPrice, qty, 'BUY');
     const ret = calculateRealizedReturnPct(buyPrice, exitPrice, 'BUY');
-    
+
     expect(pnl).toBeCloseTo(500, 2);
     expect(ret).toBeCloseTo(5, 2);
     expect(formatDecimal(pnl)).toBe('500.00');
@@ -68,7 +68,7 @@ describe('Financial Calculations Engine Audit Suite', () => {
     const qty = 5;
     const pnl = calculateRealizedPnL(buyPrice, exitPrice, qty, 'BUY');
     const ret = calculateRealizedReturnPct(buyPrice, exitPrice, 'BUY');
-    
+
     expect(pnl).toBeCloseTo(-500, 2);
     expect(ret).toBeCloseTo(-5, 2);
     expect(formatDecimal(pnl)).toBe('-500.00');
@@ -83,11 +83,22 @@ describe('Financial Calculations Engine Audit Suite', () => {
     const targetPrice = 120;
     const qty = 10;
     const exitPrice = 110;
-    
-    const potentialProfit = calculatePotentialProfit(buyPrice, targetPrice, qty, 'BUY');
+
+    const potentialProfit = calculatePotentialProfit(
+      buyPrice,
+      targetPrice,
+      qty,
+      'BUY',
+    );
     const actualProfit = calculateRealizedPnL(buyPrice, exitPrice, qty, 'BUY');
-    const { missedProfit, extraProfit } = calculateMissedProfit(buyPrice, targetPrice, exitPrice, qty, 'BUY');
-    
+    const { missedProfit, extraProfit } = calculateMissedProfit(
+      buyPrice,
+      targetPrice,
+      exitPrice,
+      qty,
+      'BUY',
+    );
+
     expect(potentialProfit).toBeCloseTo(200, 2);
     expect(actualProfit).toBeCloseTo(100, 2);
     expect(missedProfit).toBeCloseTo(100, 2);
@@ -102,11 +113,22 @@ describe('Financial Calculations Engine Audit Suite', () => {
     const targetPrice = 120;
     const qty = 10;
     const exitPrice = 130;
-    
-    const potentialProfit = calculatePotentialProfit(buyPrice, targetPrice, qty, 'BUY');
+
+    const potentialProfit = calculatePotentialProfit(
+      buyPrice,
+      targetPrice,
+      qty,
+      'BUY',
+    );
     const actualProfit = calculateRealizedPnL(buyPrice, exitPrice, qty, 'BUY');
-    const { missedProfit, extraProfit } = calculateMissedProfit(buyPrice, targetPrice, exitPrice, qty, 'BUY');
-    
+    const { missedProfit, extraProfit } = calculateMissedProfit(
+      buyPrice,
+      targetPrice,
+      exitPrice,
+      qty,
+      'BUY',
+    );
+
     expect(potentialProfit).toBeCloseTo(200, 2);
     expect(actualProfit).toBeCloseTo(300, 2);
     expect(missedProfit).toBeCloseTo(0, 2);
@@ -122,7 +144,7 @@ describe('Financial Calculations Engine Audit Suite', () => {
     const qty = 10;
     const pnl = calculateLivePnL(buyPrice, cmp, qty, 'BUY');
     const ret = calculateReturnPct(buyPrice, cmp, 'BUY');
-    
+
     expect(pnl).toBe(0);
     expect(ret).toBe(0);
     expect(formatDecimal(pnl)).toBe('0.00');

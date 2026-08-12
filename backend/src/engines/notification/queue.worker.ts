@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { TelegramProvider } from './providers/TelegramProvider';
 import { EmailProvider } from './providers/EmailProvider';
@@ -51,8 +56,8 @@ export class QueueWorker implements OnModuleInit, OnModuleDestroy {
 
       for (const notification of pendingNotifications) {
         const { user } = notification;
-        let updateData: any = {};
-        let errors: string[] = [];
+        const updateData: any = {};
+        const errors: string[] = [];
 
         // 1. Process Telegram channel
         if (notification.telegramStatus === 'PENDING') {
@@ -64,9 +69,17 @@ export class QueueWorker implements OnModuleInit, OnModuleDestroy {
             updateData.telegramRetries = 1;
             errors.push(`Telegram Err: ${err.message}`);
           }
-        } else if (notification.telegramStatus === 'FAILED' && notification.telegramRetries < 3) {
+        } else if (
+          notification.telegramStatus === 'FAILED' &&
+          notification.telegramRetries < 3
+        ) {
           const elapsed = nowMs - new Date(notification.createdAt).getTime();
-          const backoffMinutes = notification.telegramRetries === 1 ? 1 : notification.telegramRetries === 2 ? 5 : 15;
+          const backoffMinutes =
+            notification.telegramRetries === 1
+              ? 1
+              : notification.telegramRetries === 2
+                ? 5
+                : 15;
           const backoffMs = backoffMinutes * 60 * 1000;
 
           if (elapsed >= backoffMs) {
@@ -75,7 +88,9 @@ export class QueueWorker implements OnModuleInit, OnModuleDestroy {
               updateData.telegramStatus = 'SENT';
             } catch (err: any) {
               updateData.telegramRetries = notification.telegramRetries + 1;
-              errors.push(`Telegram Retry ${updateData.telegramRetries} Err: ${err.message}`);
+              errors.push(
+                `Telegram Retry ${updateData.telegramRetries} Err: ${err.message}`,
+              );
             }
           }
         }
@@ -90,9 +105,17 @@ export class QueueWorker implements OnModuleInit, OnModuleDestroy {
             updateData.emailRetries = 1;
             errors.push(`Email Err: ${err.message}`);
           }
-        } else if (notification.emailStatus === 'FAILED' && notification.emailRetries < 3) {
+        } else if (
+          notification.emailStatus === 'FAILED' &&
+          notification.emailRetries < 3
+        ) {
           const elapsed = nowMs - new Date(notification.createdAt).getTime();
-          const backoffMinutes = notification.emailRetries === 1 ? 1 : notification.emailRetries === 2 ? 5 : 15;
+          const backoffMinutes =
+            notification.emailRetries === 1
+              ? 1
+              : notification.emailRetries === 2
+                ? 5
+                : 15;
           const backoffMs = backoffMinutes * 60 * 1000;
 
           if (elapsed >= backoffMs) {
@@ -101,7 +124,9 @@ export class QueueWorker implements OnModuleInit, OnModuleDestroy {
               updateData.emailStatus = 'SENT';
             } catch (err: any) {
               updateData.emailRetries = notification.emailRetries + 1;
-              errors.push(`Email Retry ${updateData.emailRetries} Err: ${err.message}`);
+              errors.push(
+                `Email Retry ${updateData.emailRetries} Err: ${err.message}`,
+              );
             }
           }
         }

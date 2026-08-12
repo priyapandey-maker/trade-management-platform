@@ -5,7 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 export class RedisService {
   private readonly logger = new Logger(RedisService.name);
   private cache = new Map<string, string>();
-  
+
   constructor(private eventEmitter: EventEmitter2) {}
 
   async hset(key: string, field: string, value: string): Promise<void> {

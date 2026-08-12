@@ -19,7 +19,9 @@ export class EmailProvider implements NotificationProvider {
     const pass = process.env.SMTP_PASSWORD;
 
     if (!host || !user || !pass) {
-      this.logger.warn('SMTP configuration is missing. Email notifications are inactive.');
+      this.logger.warn(
+        'SMTP configuration is missing. Email notifications are inactive.',
+      );
       return;
     }
 
@@ -40,11 +42,15 @@ export class EmailProvider implements NotificationProvider {
     }
 
     if (!user.email) {
-      this.logger.warn(`No email configured for user ${user.id}. Skipping email.`);
+      this.logger.warn(
+        `No email configured for user ${user.id}. Skipping email.`,
+      );
       return;
     }
 
-    const from = process.env.EMAIL_FROM || '"SHREE ASSOCIATES" <alerts@shreeassociates.com>';
+    const from =
+      process.env.EMAIL_FROM ||
+      '"SHREE ASSOCIATES" <alerts@shreeassociates.com>';
     const subject = `[SHREE ASSOCIATES] Alert: ${notification.type} - ${notification.symbol}`;
 
     let html = '';
@@ -78,11 +84,15 @@ export class EmailProvider implements NotificationProvider {
       }
 
       const componentPath = path.join(templatesDir, templateName);
-      let baseLayout = fs.existsSync(layoutPath) ? fs.readFileSync(layoutPath, 'utf8') : '{{CONTENT}}';
-      let componentContent = fs.existsSync(componentPath) ? fs.readFileSync(componentPath, 'utf8') : '<p>{{message}}</p>';
+      const baseLayout = fs.existsSync(layoutPath)
+        ? fs.readFileSync(layoutPath, 'utf8')
+        : '{{CONTENT}}';
+      let componentContent = fs.existsSync(componentPath)
+        ? fs.readFileSync(componentPath, 'utf8')
+        : '<p>{{message}}</p>';
 
       // Parse metadata if available on notification
-      let meta: any = {};
+      const meta: any = {};
       try {
         // If triggerKey holds extra metadata or we can fetch/calculate it
       } catch (e) {}
@@ -92,7 +102,9 @@ export class EmailProvider implements NotificationProvider {
         '{{symbol}}': notification.symbol || '',
         '{{company}}': notification.company || '',
         '{{message}}': notification.message || '',
-        '{{currentPrice}}': notification.triggerPrice ? notification.triggerPrice.toString() : '0',
+        '{{currentPrice}}': notification.triggerPrice
+          ? notification.triggerPrice.toString()
+          : '0',
         '{{buyPrice}}': '0',
         '{{targetPrice}}': '0',
         '{{stopLoss}}': '0',
@@ -107,7 +119,10 @@ export class EmailProvider implements NotificationProvider {
       };
 
       for (const [placeholder, val] of Object.entries(replacements)) {
-        componentContent = componentContent.replace(new RegExp(placeholder, 'g'), val);
+        componentContent = componentContent.replace(
+          new RegExp(placeholder, 'g'),
+          val,
+        );
       }
 
       html = baseLayout.replace('{{CONTENT}}', componentContent);
@@ -124,7 +139,9 @@ export class EmailProvider implements NotificationProvider {
         html,
       });
     } catch (err: any) {
-      this.logger.error(`Failed to send email alert to ${user.email}: ${err.message}`);
+      this.logger.error(
+        `Failed to send email alert to ${user.email}: ${err.message}`,
+      );
       throw err;
     }
   }

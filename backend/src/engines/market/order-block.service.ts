@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { 
-  evaluateOrderBlocks, 
-  Candle, 
-  OrderBlock, 
-  ScannerZoneStatus 
+import {
+  evaluateOrderBlocks,
+  Candle,
+  OrderBlock,
+  ScannerZoneStatus,
 } from './institutional-analysis';
 
 export interface WeeklyCandle {
@@ -25,7 +25,12 @@ export interface OrderBlockZone {
   confidence?: string;
 }
 
-export type FvgZoneStatus = 'INSIDE_BUY_ZONE' | 'NEAR_BUY_ZONE' | 'INSIDE_SELL_ZONE' | 'NEAR_SELL_ZONE' | 'NEUTRAL';
+export type FvgZoneStatus =
+  | 'INSIDE_BUY_ZONE'
+  | 'NEAR_BUY_ZONE'
+  | 'INSIDE_SELL_ZONE'
+  | 'NEAR_SELL_ZONE'
+  | 'NEUTRAL';
 
 export interface OrderBlockResult {
   state: 'BULLISH_ZONE' | 'NEUTRAL' | 'BEARISH_ZONE';
@@ -46,7 +51,10 @@ export class OrderBlockService {
    * Delegates all technical calculations to the shared @shree/institutional-analysis package.
    * Requirement 1: Zero duplicated mathematical calculations in the backend.
    */
-  evaluateWeeklyOrderBlocks(candles: WeeklyCandle[], filterPct = 0.5): OrderBlockResult {
+  evaluateWeeklyOrderBlocks(
+    candles: WeeklyCandle[],
+    filterPct = 0.5,
+  ): OrderBlockResult {
     if (!candles || candles.length < 10) {
       return {
         state: 'NEUTRAL',
@@ -56,7 +64,8 @@ export class OrderBlockService {
         activeBullishZones: [],
         activeBearishZones: [],
         latestZone: null,
-        explanation: 'Insufficient weekly historical candle data to evaluate institutional Order Blocks.',
+        explanation:
+          'Insufficient weekly historical candle data to evaluate institutional Order Blocks.',
       };
     }
 
@@ -86,12 +95,15 @@ export class OrderBlockService {
     const bullZones = res.bullish.map(mapZone);
     const bearZones = res.bearish.map(mapZone);
 
-    const latestBull = bullZones.length > 0 ? bullZones[bullZones.length - 1] : null;
-    const latestBear = bearZones.length > 0 ? bearZones[bearZones.length - 1] : null;
+    const latestBull =
+      bullZones.length > 0 ? bullZones[bullZones.length - 1] : null;
+    const latestBear =
+      bearZones.length > 0 ? bearZones[bearZones.length - 1] : null;
 
     let state: 'BULLISH_ZONE' | 'NEUTRAL' | 'BEARISH_ZONE' = 'NEUTRAL';
     let latestZone: OrderBlockZone | null = null;
-    let explanation = 'No active weekly bullish or bearish order block zone detected. Market is currently in a neutral consolidation phase.';
+    let explanation =
+      'No active weekly bullish or bearish order block zone detected. Market is currently in a neutral consolidation phase.';
 
     if (latestBull && !latestBear) {
       state = 'BULLISH_ZONE';

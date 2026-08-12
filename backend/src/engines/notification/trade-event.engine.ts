@@ -6,7 +6,7 @@ import {
   calculateInvestment,
   calculateCurrentValue,
   calculateRealizedPnL,
-  calculateRealizedReturnPct
+  calculateRealizedReturnPct,
 } from '../../shared/financial-calculations';
 
 const prisma = new PrismaClient();
@@ -20,19 +20,43 @@ export class TradeEventEngine {
     private readonly notificationService: NotificationService,
   ) {}
 
-  async handleEvaluationEvent(pos: PortfolioPosition, type: NotificationType, currentPrice: number): Promise<void> {
+  async handleEvaluationEvent(
+    pos: PortfolioPosition,
+    type: NotificationType,
+    currentPrice: number,
+  ): Promise<void> {
     const triggerKey = `${pos.id}-${type}-${pos.buyPrice}`;
 
-    if (type === NotificationType.TARGET_HIT || type === NotificationType.STOP_LOSS) {
+    if (
+      type === NotificationType.TARGET_HIT ||
+      type === NotificationType.STOP_LOSS
+    ) {
       // 1. Move trade from Open Positions to Closed Positions first
       const start = new Date(pos.entryDate).getTime();
       const end = Date.now();
-      const diffDays = Math.max(0, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
+      const diffDays = Math.max(
+        0,
+        Math.floor((end - start) / (1000 * 60 * 60 * 24)),
+      );
 
       const investedAmount = calculateInvestment(pos.buyPrice, pos.quantity);
-      const currentValue = calculateCurrentValue(currentPrice, pos.quantity, pos.tradeType, pos.buyPrice);
-      const profitLoss = calculateRealizedPnL(pos.buyPrice, currentPrice, pos.quantity, pos.tradeType);
-      const profitLossPct = calculateRealizedReturnPct(pos.buyPrice, currentPrice, pos.tradeType);
+      const currentValue = calculateCurrentValue(
+        currentPrice,
+        pos.quantity,
+        pos.tradeType,
+        pos.buyPrice,
+      );
+      const profitLoss = calculateRealizedPnL(
+        pos.buyPrice,
+        currentPrice,
+        pos.quantity,
+        pos.tradeType,
+      );
+      const profitLossPct = calculateRealizedReturnPct(
+        pos.buyPrice,
+        currentPrice,
+        pos.tradeType,
+      );
 
       // Close the position
       await prisma.portfolioPosition.update({
@@ -45,7 +69,10 @@ export class TradeEventEngine {
           profitLossPct,
           sellingPrice: currentPrice,
           closedAt: new Date(),
-          exitReason: type === NotificationType.TARGET_HIT ? 'TARGET_HIT' : 'STOP_LOSS_HIT',
+          exitReason:
+            type === NotificationType.TARGET_HIT
+              ? 'TARGET_HIT'
+              : 'STOP_LOSS_HIT',
           holdingPeriod: diffDays,
         },
       });
@@ -53,9 +80,10 @@ export class TradeEventEngine {
       this.logger.log(`Automatic trade closed: ${pos.symbol} on ${type}`);
 
       // 2. Publish target hit / stop loss notification event
-      const message = type === NotificationType.TARGET_HIT
-        ? `Target Price of ₹${pos.targetPrice} hit for ${pos.symbol} at ₹${currentPrice}. Trade closed successfully.`
-        : `Stop Loss Limit of ₹${pos.stopLoss} triggered for ${pos.symbol} at ₹${currentPrice}. Trade closed to manage risk.`;
+      const message =
+        type === NotificationType.TARGET_HIT
+          ? `Target Price of ₹${pos.targetPrice} hit for ${pos.symbol} at ₹${currentPrice}. Trade closed successfully.`
+          : `Stop Loss Limit of ₹${pos.stopLoss} triggered for ${pos.symbol} at ₹${currentPrice}. Trade closed to manage risk.`;
 
       await this.notificationService.createNotification({
         type,
@@ -73,7 +101,6 @@ export class TradeEventEngine {
           currentPrice,
         },
       });
-
     } else if (type === NotificationType.BUY_TRIGGER) {
       // Trigger price is exactly or cross buy price
       const message = `Stock return at Buy Price limit of ₹${pos.buyPrice} reached.`;
@@ -90,7 +117,6 @@ export class TradeEventEngine {
           stopLoss: pos.stopLoss,
         },
       });
-
     } else if (type === NotificationType.NEAR_BUY) {
       // Proximity event
       const message = `Stock within proximity range (±${pos.nearBuyProximityPct}%) of Buy Price ₹${pos.buyPrice}.`;
@@ -111,7 +137,12 @@ export class TradeEventEngine {
   }
 
   // Hook for Manual Trade Close
-  async handleManualCloseEvent(pos: PortfolioPosition, closingPrice: number, profitLoss: number, profitLossPct: number): Promise<void> {
+  async handleManualCloseEvent(
+    pos: PortfolioPosition,
+    closingPrice: number,
+    profitLoss: number,
+    profitLossPct: number,
+  ): Promise<void> {
     const triggerKey = `${pos.id}-MANUAL_CLOSE-${Date.now()}`;
     const message = `Position manually closed by platform administrator at ₹${closingPrice}.`;
     await this.notificationService.createNotification({
@@ -131,7 +162,13 @@ export class TradeEventEngine {
   }
 
   // Price Movement Alerts Handler
-  async handlePriceMovementAlert(pos: PortfolioPosition, pct: number, direction: string, currentPrice: number, triggerKey: string): Promise<void> {
+  async handlePriceMovementAlert(
+    pos: PortfolioPosition,
+    pct: number,
+    direction: string,
+    currentPrice: number,
+    triggerKey: string,
+  ): Promise<void> {
     const message = `Price Alert: ${pos.symbol} has moved ${pct}% ${direction} from its Buy Price of ₹${pos.buyPrice} (CMP: ₹${currentPrice}).`;
     await this.notificationService.createNotification({
       type: NotificationType.PRICE_MOVEMENT,

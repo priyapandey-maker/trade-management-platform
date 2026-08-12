@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { MarketService } from '../market/market.service';
 import { MarketEvaluationEngine } from './market-evaluation.engine';
@@ -65,7 +70,9 @@ export class MarketPollingEngine implements OnModuleInit, OnModuleDestroy {
       }
 
       const timezone = process.env.MARKET_TIMEZONE || 'Asia/Kolkata';
-      const localString = new Date().toLocaleString('en-US', { timeZone: timezone });
+      const localString = new Date().toLocaleString('en-US', {
+        timeZone: timezone,
+      });
       const localDate = new Date(localString);
 
       const open = this.isMarketOpen(localDate);
@@ -92,7 +99,9 @@ export class MarketPollingEngine implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      this.logger.debug(`Polling live quotes for ${symbols.length} positions...`);
+      this.logger.debug(
+        `Polling live quotes for ${symbols.length} positions...`,
+      );
       const quotes = await this.marketService.getQuotes(symbols);
       const quoteMap: Record<string, number> = {};
 

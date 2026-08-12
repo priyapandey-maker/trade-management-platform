@@ -21,6 +21,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem('shree_theme') as Theme;
     if (saved && (saved === 'light' || saved === 'dark')) {
       setTheme(saved);
+      document.documentElement.setAttribute('data-theme', saved);
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
     }
   }, []);
 
@@ -28,14 +31,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(nextTheme);
     localStorage.setItem('shree_theme', nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
   };
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       <div className={`theme-${theme}`} style={{
         minHeight: '100vh',
-        backgroundColor: theme === 'dark' ? '#0B0F17' : '#F8FAFC',
-        color: theme === 'dark' ? '#F8FAFC' : '#0F172A',
+        backgroundColor: 'var(--color-bg-base)',
+        color: 'var(--color-text-primary)',
         transition: 'background-color 0.2s ease, color 0.2s ease'
       }}>
         {children}

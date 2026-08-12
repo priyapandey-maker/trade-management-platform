@@ -66,10 +66,10 @@ export default function DashboardPage() {
   const closedPositions = portfolioData?.positions?.closed || [];
   const growthData = dashboardData?.charts?.area || [];
 
-  const cardBg = '#FFFFFF';
-  const borderCol = '#E2E8F0';
-  const textCol = '#0F172A';
-  const subTextCol = '#64748B';
+  const cardBg = 'var(--color-surface-1)';
+  const borderCol = 'var(--color-border)';
+  const textCol = 'var(--color-text-primary)';
+  const subTextCol = 'var(--color-text-secondary)';
   const chartThemeColor = '#2563EB';
 
   // --- SIGN-SAFE FINANCIAL FORMATTERS ---

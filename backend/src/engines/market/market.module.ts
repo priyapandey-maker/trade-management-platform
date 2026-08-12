@@ -27,6 +27,11 @@ import { RedisModule } from '../../core/services/redis/redis.module';
     OrderBlockService,
   ],
   controllers: [MarketController],
-  exports: [MarketService, OrderBlockService, 'MARKET_DATA_PROVIDER', 'MARKET_PROVIDER'],
+  exports: [
+    MarketService,
+    OrderBlockService,
+    'MARKET_DATA_PROVIDER',
+    'MARKET_PROVIDER',
+  ],
 })
 export class MarketModule {}

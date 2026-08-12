@@ -695,10 +695,10 @@ export default function OpenPositionsPage() {
   const totalPages = Math.ceil(filteredPositions.length / itemsPerPage);
   const paginatedPositions = filteredPositions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const cardBg = '#FFFFFF';
-  const borderCol = '#E2E8F0';
-  const textCol = '#0F172A';
-  const subTextCol = '#64748B';
+  const cardBg = 'var(--color-surface-1)';
+  const borderCol = 'var(--color-border)';
+  const textCol = 'var(--color-text-primary)';
+  const subTextCol = 'var(--color-text-secondary)';
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>

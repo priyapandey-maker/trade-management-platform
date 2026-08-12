@@ -1,14 +1,29 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject, HttpException, HttpStatus } from '@nestjs/common';
-import type { MarketDataProvider, TickData } from '../../core/interfaces/market-provider.interface';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+  Inject,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import type {
+  MarketDataProvider,
+  TickData,
+} from '../../core/interfaces/market-provider.interface';
 import { RedisService } from '../../core/services/redis/redis.service';
-import { OrderBlockService, WeeklyCandle, OrderBlockResult } from './order-block.service';
-import { 
-  calculateRSI, 
-  detectFVG, 
-  calculateSupport, 
-  calculateResistance, 
-  generateRecommendation, 
-  Candle 
+import {
+  OrderBlockService,
+  WeeklyCandle,
+  OrderBlockResult,
+} from './order-block.service';
+import {
+  calculateRSI,
+  detectFVG,
+  calculateSupport,
+  calculateResistance,
+  generateRecommendation,
+  Candle,
 } from './institutional-analysis';
 
 export interface WeeklyMarketAnalysis {
@@ -41,10 +56,14 @@ export interface WeeklyMarketAnalysis {
 @Injectable()
 export class MarketService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MarketService.name);
-  private readonly memoryCache = new Map<string, { data: any; expiresAt: number }>();
+  private readonly memoryCache = new Map<
+    string,
+    { data: any; expiresAt: number }
+  >();
 
   constructor(
-    @Inject('MARKET_DATA_PROVIDER') private readonly marketProvider: MarketDataProvider,
+    @Inject('MARKET_DATA_PROVIDER')
+    private readonly marketProvider: MarketDataProvider,
     private readonly redisService: RedisService,
     private readonly orderBlockService: OrderBlockService,
   ) {}
@@ -52,7 +71,9 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     await this.marketProvider.connect();
     const targetSymbols = ['RELIANCE.NS', 'HDFCBANK.NS', 'TCS.NS', 'INFY.NS'];
-    this.marketProvider.subscribe(targetSymbols, (tick) => this.handleTick(tick));
+    this.marketProvider.subscribe(targetSymbols, (tick) =>
+      this.handleTick(tick),
+    );
   }
 
   async onModuleDestroy() {
@@ -80,7 +101,10 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const quote = await this.marketProvider.getQuote(symbol);
-      this.memoryCache.set(cacheKey, { data: quote, expiresAt: now + 30 * 1000 }); // 30s TTL for live quotes
+      this.memoryCache.set(cacheKey, {
+        data: quote,
+        expiresAt: now + 30 * 1000,
+      }); // 30s TTL for live quotes
       return quote;
     } catch (error: any) {
       this.logger.warn(`Failed to fetch quote for ${symbol}: ${error.message}`);
@@ -110,21 +134,31 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
    * Fetches WEEKLY chart data from MarketDataProvider and delegates calculations to @shree/institutional-analysis.
    * Decoupled from any external provider APIs.
    */
-  async getWeeklyMarketAnalysis(symbolInput: string): Promise<WeeklyMarketAnalysis> {
+  async getWeeklyMarketAnalysis(
+    symbolInput: string,
+  ): Promise<WeeklyMarketAnalysis> {
     const symbol = this.formatSymbol(symbolInput);
     const cacheKey = `market:weekly:${symbol}`;
     const now = Date.now();
     const cached = this.memoryCache.get(cacheKey);
     if (cached && cached.expiresAt > now) {
-      this.logger.debug(`Returning cached weekly market analysis for ${symbol}`);
+      this.logger.debug(
+        `Returning cached weekly market analysis for ${symbol}`,
+      );
       return cached.data;
     }
 
-    this.logger.log(`Fetching REAL historical weekly candles for ${symbol} via MarketDataProvider (4 years lookback)`);
+    this.logger.log(
+      `Fetching REAL historical weekly candles for ${symbol} via MarketDataProvider (4 years lookback)`,
+    );
 
     try {
       // Use 5Y range to ensure deep institutional lookback without truncation
-      const rawCandles = await this.marketProvider.getCandles(symbol, '1wk', '5Y');
+      const rawCandles = await this.marketProvider.getCandles(
+        symbol,
+        '1wk',
+        '5Y',
+      );
 
       if (!rawCandles || rawCandles.length < 15) {
         throw new HttpException(
@@ -169,19 +203,74 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       const fvgRes = detectFVG(sharedCandles);
       const suppRes = calculateSupport(sharedCandles);
       const resRes = calculateResistance(sharedCandles);
-      const orderBlockResult = this.orderBlockService.evaluateWeeklyOrderBlocks(weeklyCandles);
+      const orderBlockResult =
+        this.orderBlockService.evaluateWeeklyOrderBlocks(weeklyCandles);
 
-      const latestBullOB = orderBlockResult.activeBullishZones.length > 0 ? orderBlockResult.activeBullishZones[orderBlockResult.activeBullishZones.length - 1] : null;
-      const latestBearOB = orderBlockResult.activeBearishZones.length > 0 ? orderBlockResult.activeBearishZones[orderBlockResult.activeBearishZones.length - 1] : null;
-      const latestBullFVG = fvgRes.bullish.length > 0 ? fvgRes.bullish[fvgRes.bullish.length - 1] : null;
-      const latestBearFVG = fvgRes.bearish.length > 0 ? fvgRes.bearish[fvgRes.bearish.length - 1] : null;
+      const latestBullOB =
+        orderBlockResult.activeBullishZones.length > 0
+          ? orderBlockResult.activeBullishZones[
+              orderBlockResult.activeBullishZones.length - 1
+            ]
+          : null;
+      const latestBearOB =
+        orderBlockResult.activeBearishZones.length > 0
+          ? orderBlockResult.activeBearishZones[
+              orderBlockResult.activeBearishZones.length - 1
+            ]
+          : null;
+      const latestBullFVG =
+        fvgRes.bullish.length > 0
+          ? fvgRes.bullish[fvgRes.bullish.length - 1]
+          : null;
+      const latestBearFVG =
+        fvgRes.bearish.length > 0
+          ? fvgRes.bearish[fvgRes.bearish.length - 1]
+          : null;
 
       const recommendation = generateRecommendation({
         currentPrice,
         fundamentalScore: 3,
         rsiValue: rsiRes.current,
-        activeBullishOB: latestBullOB ? { type: 'BULLISH', top: latestBullOB.top, bottom: latestBullOB.bottom, startIndex: latestBullOB.createdAtIndex, endIndex: sharedCandles.length - 1, price: latestBullOB.top, volume: 0, strength: { score: latestBullOB.strengthScore || 50, confidence: (latestBullOB.confidence as any) || 'MEDIUM', creationDate: '', age: 0, widthPct: latestBullOB.imbalancePct, mitigated: false, retestCount: 0 } } : null,
-        activeBearishOB: latestBearOB ? { type: 'BEARISH', top: latestBearOB.top, bottom: latestBearOB.bottom, startIndex: latestBearOB.createdAtIndex, endIndex: sharedCandles.length - 1, price: latestBearOB.bottom, volume: 0, strength: { score: latestBearOB.strengthScore || 50, confidence: (latestBearOB.confidence as any) || 'MEDIUM', creationDate: '', age: 0, widthPct: latestBearOB.imbalancePct, mitigated: false, retestCount: 0 } } : null,
+        activeBullishOB: latestBullOB
+          ? {
+              type: 'BULLISH',
+              top: latestBullOB.top,
+              bottom: latestBullOB.bottom,
+              startIndex: latestBullOB.createdAtIndex,
+              endIndex: sharedCandles.length - 1,
+              price: latestBullOB.top,
+              volume: 0,
+              strength: {
+                score: latestBullOB.strengthScore || 50,
+                confidence: (latestBullOB.confidence as any) || 'MEDIUM',
+                creationDate: '',
+                age: 0,
+                widthPct: latestBullOB.imbalancePct,
+                mitigated: false,
+                retestCount: 0,
+              },
+            }
+          : null,
+        activeBearishOB: latestBearOB
+          ? {
+              type: 'BEARISH',
+              top: latestBearOB.top,
+              bottom: latestBearOB.bottom,
+              startIndex: latestBearOB.createdAtIndex,
+              endIndex: sharedCandles.length - 1,
+              price: latestBearOB.bottom,
+              volume: 0,
+              strength: {
+                score: latestBearOB.strengthScore || 50,
+                confidence: (latestBearOB.confidence as any) || 'MEDIUM',
+                creationDate: '',
+                age: 0,
+                widthPct: latestBearOB.imbalancePct,
+                mitigated: false,
+                retestCount: 0,
+              },
+            }
+          : null,
         activeBullishFVG: latestBullFVG,
         activeBearishFVG: latestBearFVG,
         supportDistancePct: suppRes ? suppRes.distancePct : null,
@@ -217,7 +306,10 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
         weeklyCandlesCount: weeklyCandles.length,
       };
 
-      this.memoryCache.set(cacheKey, { data: analysis, expiresAt: now + 15 * 60 * 1000 });
+      this.memoryCache.set(cacheKey, {
+        data: analysis,
+        expiresAt: now + 15 * 60 * 1000,
+      });
       return analysis;
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
@@ -232,7 +324,11 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getCandles(symbolInput: string, intervalInput = '1wk', rangeInput?: string): Promise<any> {
+  async getCandles(
+    symbolInput: string,
+    intervalInput = '1wk',
+    rangeInput?: string,
+  ): Promise<any> {
     const symbol = this.formatSymbol(symbolInput);
     const interval = intervalInput.toLowerCase().trim() || '1wk';
     const range = rangeInput ? rangeInput.toUpperCase().trim() : '1Y';
@@ -240,12 +336,18 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
     const now = Date.now();
     const cached = this.memoryCache.get(cacheKey);
     if (cached && cached.expiresAt > now) {
-      this.logger.debug(`Returning cached candles for ${symbol} (${interval}, ${range})`);
+      this.logger.debug(
+        `Returning cached candles for ${symbol} (${interval}, ${range})`,
+      );
       return cached.data;
     }
 
     try {
-      const candles = await this.marketProvider.getCandles(symbol, interval, range);
+      const candles = await this.marketProvider.getCandles(
+        symbol,
+        interval,
+        range,
+      );
 
       if (!candles || candles.length === 0) {
         throw new HttpException(
@@ -261,7 +363,9 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       const currentPrice = latestCandle.close;
 
       // Requirement 6: Enforce Weekly Strategy regardless of chart interval
-      const weeklyAnalysis = await this.getWeeklyMarketAnalysis(symbol).catch(() => null);
+      const weeklyAnalysis = await this.getWeeklyMarketAnalysis(symbol).catch(
+        () => null,
+      );
 
       const rsiRes = calculateRSI(candles as any, 14);
       const suppRes = calculateSupport(candles as any);
@@ -275,7 +379,8 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
         close: c.close,
         volume: c.volume,
       }));
-      const localOB = this.orderBlockService.evaluateWeeklyOrderBlocks(obCandles);
+      const localOB =
+        this.orderBlockService.evaluateWeeklyOrderBlocks(obCandles);
       const localFVG = detectFVG(candles as any);
 
       const result = {
@@ -286,12 +391,29 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
         currentPrice,
         isWeeklyStrategyEnforced: true,
         support: {
-          price: weeklyAnalysis ? weeklyAnalysis.weeklySupport.supportPrice : (suppRes ? suppRes.price : currentPrice),
-          distancePct: weeklyAnalysis ? weeklyAnalysis.weeklySupport.distancePct : (suppRes ? suppRes.distancePct : 0),
+          price: weeklyAnalysis
+            ? weeklyAnalysis.weeklySupport.supportPrice
+            : suppRes
+              ? suppRes.price
+              : currentPrice,
+          distancePct: weeklyAnalysis
+            ? weeklyAnalysis.weeklySupport.distancePct
+            : suppRes
+              ? suppRes.distancePct
+              : 0,
         },
         resistance: {
-          price: weeklyAnalysis ? (weeklyAnalysis as any).weeklyResistance?.resistancePrice || currentPrice : (resRes ? resRes.price : currentPrice),
-          distancePct: weeklyAnalysis ? (weeklyAnalysis as any).weeklyResistance?.distancePct || 0 : (resRes ? resRes.distancePct : 0),
+          price: weeklyAnalysis
+            ? (weeklyAnalysis as any).weeklyResistance?.resistancePrice ||
+              currentPrice
+            : resRes
+              ? resRes.price
+              : currentPrice,
+          distancePct: weeklyAnalysis
+            ? (weeklyAnalysis as any).weeklyResistance?.distancePct || 0
+            : resRes
+              ? resRes.distancePct
+              : 0,
         },
         rsi: {
           current: rsiRes.current,
@@ -306,9 +428,25 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
 
       // Multi-tier caching durations per requirements:
       // Intraday: 1 min | Daily: 5 mins | Weekly/Monthly: 15 mins
-      const isIntraday = ['1m', '5m', '15m', '30m', '1h', '60m', '1min', '5min', '15min', '30min', '60min'].includes(interval);
-      const ttlMs = isIntraday ? 60 * 1000 : (interval === '1d' || interval === 'daily' || interval === 'day' ? 5 * 60 * 1000 : 15 * 60 * 1000);
-      
+      const isIntraday = [
+        '1m',
+        '5m',
+        '15m',
+        '30m',
+        '1h',
+        '60m',
+        '1min',
+        '5min',
+        '15min',
+        '30min',
+        '60min',
+      ].includes(interval);
+      const ttlMs = isIntraday
+        ? 60 * 1000
+        : interval === '1d' || interval === 'daily' || interval === 'day'
+          ? 5 * 60 * 1000
+          : 15 * 60 * 1000;
+
       this.memoryCache.set(cacheKey, { data: result, expiresAt: now + ttlMs });
 
       return result;
@@ -327,7 +465,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
 
   async getSparklines(symbols: string[]): Promise<Record<string, number[]>> {
     const results: Record<string, number[]> = {};
-    
+
     await Promise.all(
       symbols.map(async (symbol) => {
         try {
@@ -338,10 +476,12 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
             results[symbol] = [];
           }
         } catch (e: any) {
-          this.logger.debug(`Failed to fetch sparkline for ${symbol}: ${e.message}`);
+          this.logger.debug(
+            `Failed to fetch sparkline for ${symbol}: ${e.message}`,
+          );
           results[symbol] = [];
         }
-      })
+      }),
     );
 
     return results;

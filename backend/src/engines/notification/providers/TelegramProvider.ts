@@ -9,13 +9,18 @@ export class TelegramProvider implements NotificationProvider {
   async send(user: User, notification: Notification): Promise<void> {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) {
-      this.logger.warn('TELEGRAM_BOT_TOKEN is not set. Skipping Telegram notification.');
+      this.logger.warn(
+        'TELEGRAM_BOT_TOKEN is not set. Skipping Telegram notification.',
+      );
       return;
     }
 
     // Split comma-separated chat IDs from the user settings
     const chatIds = user.telegramChatIds
-      ? user.telegramChatIds.split(',').map((id) => id.trim()).filter((id) => id.length > 0)
+      ? user.telegramChatIds
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => id.length > 0)
       : [];
 
     if (chatIds.length === 0) {
@@ -25,12 +30,19 @@ export class TelegramProvider implements NotificationProvider {
 
     // Format rich Telegram message using standard emojis (Branded premium styling)
     const emojiHeader =
-      notification.type === 'NEAR_BUY' ? '📍 NEAR BUY PRICE' :
-      notification.type === 'BUY_TRIGGER' ? '🟢 BUY PRICE REACHED' :
-      notification.type === 'TARGET_HIT' ? '🎯 TARGET PRICE HIT' :
-      notification.type === 'STOP_LOSS' ? '🛑 STOP LOSS REACHED' :
-      notification.type === 'TRADE_CLOSED' ? '💼 POSITION CLOSED' :
-      notification.type === 'DAILY_SUMMARY' ? '📊 DAILY SUMMARY' : '🔔 ALERT';
+      notification.type === 'NEAR_BUY'
+        ? '📍 NEAR BUY PRICE'
+        : notification.type === 'BUY_TRIGGER'
+          ? '🟢 BUY PRICE REACHED'
+          : notification.type === 'TARGET_HIT'
+            ? '🎯 TARGET PRICE HIT'
+            : notification.type === 'STOP_LOSS'
+              ? '🛑 STOP LOSS REACHED'
+              : notification.type === 'TRADE_CLOSED'
+                ? '💼 POSITION CLOSED'
+                : notification.type === 'DAILY_SUMMARY'
+                  ? '📊 DAILY SUMMARY'
+                  : '🔔 ALERT';
 
     const text = `
 *${emojiHeader}*
@@ -45,7 +57,7 @@ Open SHREE ASSOCIATES → http://localhost:3000
     `.trim();
 
     let anyFailed = false;
-    let errorMsgs: string[] = [];
+    const errorMsgs: string[] = [];
 
     for (const chatId of chatIds) {
       try {
@@ -67,12 +79,16 @@ Open SHREE ASSOCIATES → http://localhost:3000
       } catch (err: any) {
         anyFailed = true;
         errorMsgs.push(`chatId ${chatId}: ${err.message}`);
-        this.logger.error(`Failed to send Telegram message to chatId ${chatId}: ${err.message}`);
+        this.logger.error(
+          `Failed to send Telegram message to chatId ${chatId}: ${err.message}`,
+        );
       }
     }
 
     if (anyFailed) {
-      throw new Error(`Failed to send to some chat IDs: ${errorMsgs.join('; ')}`);
+      throw new Error(
+        `Failed to send to some chat IDs: ${errorMsgs.join('; ')}`,
+      );
     }
   }
 }

@@ -6,10 +6,7 @@ import { MarketModule } from '../market/market.module';
 import { NotificationModule } from '../notification/notification.module';
 
 @Module({
-  imports: [
-    MarketModule,
-    forwardRef(() => NotificationModule),
-  ],
+  imports: [MarketModule, forwardRef(() => NotificationModule)],
   providers: [PortfolioService, TradeImportService],
   controllers: [PortfolioController],
   exports: [PortfolioService, TradeImportService],

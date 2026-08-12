@@ -68,10 +68,10 @@ export default function InvestorsPage() {
   const totalNetProfit = investors.reduce((sum, inv) => sum + inv.netProfit, 0);
   const overallROI = totalCapitalManaged > 0 ? (totalNetProfit / totalCapitalManaged) * 100 : 0;
 
-  const cardBg = '#FFFFFF';
-  const borderCol = '#E2E8F0';
-  const textCol = '#0F172A';
-  const subTextCol = '#64748B';
+  const cardBg = 'var(--color-surface-1)';
+  const borderCol = 'var(--color-border)';
+  const textCol = 'var(--color-text-primary)';
+  const subTextCol = 'var(--color-text-secondary)';
 
   const paletteColors = [
     '#2563EB', // Navy/Blue

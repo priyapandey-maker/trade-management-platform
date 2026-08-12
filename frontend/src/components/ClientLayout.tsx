@@ -66,7 +66,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC', color: '#0F172A', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-base)', color: 'var(--color-text-primary)', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '36px', marginBottom: '12px' }}>▲</div>
           <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '0.05em' }}>Connecting to Shree Associates Terminal...</div>
@@ -83,7 +83,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const sidebarWidth = isMobile ? 0 : (isTablet || isCollapsed ? 80 : 260);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', color: '#0F172A' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-bg-base)', color: 'var(--color-text-primary)' }}>
       <Sidebar 
         isCollapsed={isTablet || isCollapsed} 
         toggleCollapse={toggleCollapse} 

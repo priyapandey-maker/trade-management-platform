@@ -34,10 +34,10 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     { name: 'Settings', href: '/settings', icon: <Settings size={18} /> },
   ];
 
-  const bgCol = '#FFFFFF';
-  const borderCol = '#E2E8F0';
-  const textCol = '#0F172A';
-  const subTextCol = '#64748B';
+  const bgCol = 'var(--color-surface-1)';
+  const borderCol = 'var(--color-border)';
+  const textCol = 'var(--color-text-primary)';
+  const subTextCol = 'var(--color-text-secondary)';
 
   if (isMobile) {
     return (

@@ -1,5 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MarketDataProvider, TickData, QuoteData, CandleData } from '../../../core/interfaces/market-provider.interface';
+import {
+  MarketDataProvider,
+  TickData,
+  QuoteData,
+  CandleData,
+} from '../../../core/interfaces/market-provider.interface';
 
 /**
  * TwelveDataMarketProvider
@@ -20,7 +25,9 @@ export class TwelveDataMarketProvider implements MarketDataProvider {
   }
 
   async connect(): Promise<void> {
-    this.logger.log('Connected to Twelve Data Market Provider (Active Primary Engine)');
+    this.logger.log(
+      'Connected to Twelve Data Market Provider (Active Primary Engine)',
+    );
     this.timer = setInterval(() => this.pollPrices(), 15000);
   }
 
@@ -43,7 +50,10 @@ export class TwelveDataMarketProvider implements MarketDataProvider {
   /**
    * Translate institutional symbol (e.g. RELIANCE.NS) to Twelve Data parameters
    */
-  private parseSymbolAndExchange(symbolInput: string): { symbol: string; exchange: string } {
+  private parseSymbolAndExchange(symbolInput: string): {
+    symbol: string;
+    exchange: string;
+  } {
     const raw = symbolInput.trim().toUpperCase();
     if (raw.endsWith('.NS')) {
       return { symbol: raw.replace('.NS', ''), exchange: 'NSE' };
@@ -103,21 +113,56 @@ export class TwelveDataMarketProvider implements MarketDataProvider {
    */
   private getOutputSize(interval: string, range?: string): number {
     const tdInterval = this.mapInterval(interval);
-    const isIntraday = ['1min', '5min', '15min', '30min', '1h'].includes(tdInterval);
+    const isIntraday = ['1min', '5min', '15min', '30min', '1h'].includes(
+      tdInterval,
+    );
     const rng = (range || '1Y').toUpperCase();
 
     if (rng === 'MAX') return 5000; // Twelve Data max limit
-    if (rng === '5Y') return isIntraday ? 5000 : tdInterval === '1week' ? 265 : tdInterval === '1month' ? 60 : 1260;
-    if (rng === '3Y') return isIntraday ? 5000 : tdInterval === '1week' ? 160 : tdInterval === '1month' ? 36 : 760;
-    if (rng === '2Y') return isIntraday ? 3000 : tdInterval === '1week' ? 106 : tdInterval === '1month' ? 24 : 510;
-    if (rng === '1Y') return isIntraday ? 2000 : tdInterval === '1week' ? 54 : tdInterval === '1month' ? 12 : 255;
+    if (rng === '5Y')
+      return isIntraday
+        ? 5000
+        : tdInterval === '1week'
+          ? 265
+          : tdInterval === '1month'
+            ? 60
+            : 1260;
+    if (rng === '3Y')
+      return isIntraday
+        ? 5000
+        : tdInterval === '1week'
+          ? 160
+          : tdInterval === '1month'
+            ? 36
+            : 760;
+    if (rng === '2Y')
+      return isIntraday
+        ? 3000
+        : tdInterval === '1week'
+          ? 106
+          : tdInterval === '1month'
+            ? 24
+            : 510;
+    if (rng === '1Y')
+      return isIntraday
+        ? 2000
+        : tdInterval === '1week'
+          ? 54
+          : tdInterval === '1month'
+            ? 12
+            : 255;
     if (rng === 'YTD') {
       const now = new Date();
-      const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+      const dayOfYear = Math.floor(
+        (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) /
+          86400000,
+      );
       return Math.max(20, Math.floor((dayOfYear * 5) / 7));
     }
-    if (rng === '6M') return isIntraday ? 1500 : tdInterval === '1week' ? 27 : 130;
-    if (rng === '3M') return isIntraday ? 800 : tdInterval === '1week' ? 14 : 66;
+    if (rng === '6M')
+      return isIntraday ? 1500 : tdInterval === '1week' ? 27 : 130;
+    if (rng === '3M')
+      return isIntraday ? 800 : tdInterval === '1week' ? 14 : 66;
     if (rng === '1M') return isIntraday ? 350 : 23;
     if (rng === '5D') return isIntraday ? 200 : 10;
     if (rng === '1D') return isIntraday ? 80 : 5;
@@ -125,7 +170,11 @@ export class TwelveDataMarketProvider implements MarketDataProvider {
     return 300;
   }
 
-  async getCandles(symbolInput: string, intervalInput: string, range = '1Y'): Promise<CandleData[]> {
+  async getCandles(
+    symbolInput: string,
+    intervalInput: string,
+    range = '1Y',
+  ): Promise<CandleData[]> {
     const { symbol, exchange } = this.parseSymbolAndExchange(symbolInput);
     const tdInterval = this.mapInterval(intervalInput);
     const outputSize = this.getOutputSize(intervalInput, range);
@@ -133,17 +182,32 @@ export class TwelveDataMarketProvider implements MarketDataProvider {
 
     const url = `${this.baseUrl}/time_series?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange)}&interval=${tdInterval}&outputsize=${outputSize}&apikey=${apiKey}`;
 
-    this.logger.debug(`Twelve Data time_series request: ${symbol} (${exchange}) interval=${tdInterval} size=${outputSize}`);
+    this.logger.debug(
+      `Twelve Data time_series request: ${symbol} (${exchange}) interval=${tdInterval} size=${outputSize}`,
+    );
 
     const res = await fetch(url);
     if (!res.ok) {
-      throw new Error(`Twelve Data HTTP error: ${res.status} ${res.statusText}`);
+      throw new Error(
+        `Twelve Data HTTP error: ${res.status} ${res.statusText}`,
+      );
     }
 
     const data = await res.json();
-    if (data.status === 'error' || data.code || !data.values || !Array.isArray(data.values)) {
-      const errMsg = data.message || (data.code ? `API Error Code ${data.code}` : 'Invalid values array returned');
-      throw new Error(`Twelve Data time_series failed for ${symbolInput}: ${errMsg}`);
+    if (
+      data.status === 'error' ||
+      data.code ||
+      !data.values ||
+      !Array.isArray(data.values)
+    ) {
+      const errMsg =
+        data.message ||
+        (data.code
+          ? `API Error Code ${data.code}`
+          : 'Invalid values array returned');
+      throw new Error(
+        `Twelve Data time_series failed for ${symbolInput}: ${errMsg}`,
+      );
     }
 
     // Twelve Data returns time series in descending order (newest first).
@@ -167,7 +231,9 @@ export class TwelveDataMarketProvider implements MarketDataProvider {
     });
 
     if (candles.length === 0) {
-      throw new Error(`No historical candles found in Twelve Data for ${symbolInput} (${tdInterval})`);
+      throw new Error(
+        `No historical candles found in Twelve Data for ${symbolInput} (${tdInterval})`,
+      );
     }
 
     return candles;
@@ -185,13 +251,18 @@ export class TwelveDataMarketProvider implements MarketDataProvider {
 
     const data = await res.json();
     if (data.status === 'error' || !data.close) {
-      throw new Error(`Twelve Data quote failed for ${symbolInput}: ${data.message || 'No close price'}`);
+      throw new Error(
+        `Twelve Data quote failed for ${symbolInput}: ${data.message || 'No close price'}`,
+      );
     }
 
     const price = Number(parseFloat(data.close).toFixed(2));
-    const prevClose = Number(parseFloat(data.previous_close || data.close).toFixed(2));
+    const prevClose = Number(
+      parseFloat(data.previous_close || data.close).toFixed(2),
+    );
     const change = Number((price - prevClose).toFixed(2));
-    const changePercent = prevClose !== 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0;
+    const changePercent =
+      prevClose !== 0 ? Number(((change / prevClose) * 100).toFixed(2)) : 0;
 
     return {
       symbol: symbolInput.toUpperCase(),
@@ -211,10 +282,12 @@ export class TwelveDataMarketProvider implements MarketDataProvider {
     return Promise.all(
       symbols.map((s) =>
         this.getQuote(s).catch((err) => {
-          this.logger.debug(`Twelve Data getQuote failed for ${s}: ${err.message}`);
+          this.logger.debug(
+            `Twelve Data getQuote failed for ${s}: ${err.message}`,
+          );
           throw err;
-        })
-      )
+        }),
+      ),
     );
   }
 

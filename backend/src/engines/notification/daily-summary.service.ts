@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { NotificationType } from './notification.types';
 import { NotificationService } from './NotificationService';
@@ -7,7 +12,7 @@ import {
   calculateCurrentValue,
   calculateLivePnL,
   calculateReturnPct,
-  calculateRealizedPnL
+  calculateRealizedPnL,
 } from '../../shared/financial-calculations';
 
 const prisma = new PrismaClient();
@@ -34,7 +39,9 @@ export class DailySummaryService implements OnModuleInit, OnModuleDestroy {
       const timezone = process.env.MARKET_TIMEZONE || 'Asia/Kolkata';
 
       // Verify current local time in target timezone
-      const localString = new Date().toLocaleString('en-US', { timeZone: timezone });
+      const localString = new Date().toLocaleString('en-US', {
+        timeZone: timezone,
+      });
       const localDate = new Date(localString);
 
       // Summaries only run Mon-Fri
@@ -44,7 +51,9 @@ export class DailySummaryService implements OnModuleInit, OnModuleDestroy {
       const currentHour = localDate.getHours();
       const currentMinute = localDate.getMinutes();
 
-      const [targetHour, targetMinute] = summaryTimeStr.split(':').map((s) => parseInt(s));
+      const [targetHour, targetMinute] = summaryTimeStr
+        .split(':')
+        .map((s) => parseInt(s));
 
       if (currentHour === targetHour && currentMinute === targetMinute) {
         await this.generateDailySummary();
@@ -98,13 +107,16 @@ export class DailySummaryService implements OnModuleInit, OnModuleDestroy {
       };
     });
 
-    const unrealizedPnLPct = totalInvested > 0 ? (unrealizedPnL / totalInvested) * 100 : 0;
+    const unrealizedPnLPct =
+      totalInvested > 0 ? (unrealizedPnL / totalInvested) * 100 : 0;
 
     // Find best and worst performer (based on recalculated values)
     let bestPerformer = 'N/A';
     let worstPerformer = 'N/A';
     if (openPositionsRecalc.length > 0) {
-      const sorted = [...openPositionsRecalc].sort((a, b) => b.profitLossPct - a.profitLossPct);
+      const sorted = [...openPositionsRecalc].sort(
+        (a, b) => b.profitLossPct - a.profitLossPct,
+      );
       bestPerformer = `${sorted[0].symbol} (${sorted[0].profitLossPct >= 0 ? '+' : ''}${sorted[0].profitLossPct.toFixed(2)}%)`;
       worstPerformer = `${sorted[sorted.length - 1].symbol} (${sorted[sorted.length - 1].profitLossPct >= 0 ? '+' : ''}${sorted[sorted.length - 1].profitLossPct.toFixed(2)}%)`;
     }

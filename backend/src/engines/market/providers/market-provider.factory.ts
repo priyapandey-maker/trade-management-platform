@@ -1,5 +1,10 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
-import { MarketDataProvider, TickData, QuoteData, CandleData } from '../../../core/interfaces/market-provider.interface';
+import {
+  MarketDataProvider,
+  TickData,
+  QuoteData,
+  CandleData,
+} from '../../../core/interfaces/market-provider.interface';
 import { TwelveDataMarketProvider } from './twelve-data-market.provider';
 import { AlphaVantageMarketProvider } from './alpha-vantage-market.provider';
 import { YahooMarketProvider } from './yahoo-market.provider';
@@ -27,17 +32,24 @@ export class MarketProviderFactory implements MarketDataProvider {
     this.providers = [
       { name: 'TwelveData (Primary)', instance: this.twelveData },
       { name: 'AlphaVantage (Secondary)', instance: this.alphaVantage },
-      { name: 'YahooFinance (@deprecated Fallback)', instance: this.yahooFallback },
+      {
+        name: 'YahooFinance (@deprecated Fallback)',
+        instance: this.yahooFallback,
+      },
     ];
   }
 
   async connect(): Promise<void> {
-    this.logger.log('Initializing Pluggable Institutional Market Data Chain...');
+    this.logger.log(
+      'Initializing Pluggable Institutional Market Data Chain...',
+    );
     for (const p of this.providers) {
       try {
         await p.instance.connect();
       } catch (err: any) {
-        this.logger.warn(`Failed to connect provider ${p.name}: ${err.message}`);
+        this.logger.warn(
+          `Failed to connect provider ${p.name}: ${err.message}`,
+        );
       }
     }
   }
@@ -47,7 +59,9 @@ export class MarketProviderFactory implements MarketDataProvider {
       try {
         await p.instance.disconnect();
       } catch (err: any) {
-        this.logger.warn(`Failed disconnecting provider ${p.name}: ${err.message}`);
+        this.logger.warn(
+          `Failed disconnecting provider ${p.name}: ${err.message}`,
+        );
       }
     }
     this.logger.log('All Market Data Providers disconnected.');
@@ -75,26 +89,36 @@ export class MarketProviderFactory implements MarketDataProvider {
         // Attempt execution on current provider in priority chain
         return await action(p.instance, p.name);
       } catch (err: any) {
-        this.logger.warn(`[${operationName}] Provider ${p.name} attempt 1 failed: ${err.message}`);
-        
+        this.logger.warn(
+          `[${operationName}] Provider ${p.name} attempt 1 failed: ${err.message}`,
+        );
+
         // If it's the primary provider, do an immediate automatic retry once per rules
         if (i === 0) {
           try {
             await new Promise((res) => setTimeout(res, 250)); // Brief 250ms backoff
-            this.logger.debug(`[${operationName}] Retrying primary provider ${p.name}...`);
+            this.logger.debug(
+              `[${operationName}] Retrying primary provider ${p.name}...`,
+            );
             return await action(p.instance, p.name);
           } catch (retryErr: any) {
-            this.logger.warn(`[${operationName}] Provider ${p.name} automatic retry failed: ${retryErr.message}`);
+            this.logger.warn(
+              `[${operationName}] Provider ${p.name} automatic retry failed: ${retryErr.message}`,
+            );
           }
         }
 
         errors.push(`${p.name}: ${err.message}`);
-        this.logger.warn(`[${operationName}] Cascading failover to next provider...`);
+        this.logger.warn(
+          `[${operationName}] Cascading failover to next provider...`,
+        );
       }
     }
 
     // All providers exhausted — enforce strict error handling per requirements
-    this.logger.error(`[${operationName}] All market data providers failed. Errors: ${errors.join(' | ')}`);
+    this.logger.error(
+      `[${operationName}] All market data providers failed. Errors: ${errors.join(' | ')}`,
+    );
     throw new HttpException(
       {
         status: 'error',
@@ -106,13 +130,21 @@ export class MarketProviderFactory implements MarketDataProvider {
     );
   }
 
-  async getCandles(symbol: string, interval: string, range = '1Y'): Promise<CandleData[]> {
+  async getCandles(
+    symbol: string,
+    interval: string,
+    range = '1Y',
+  ): Promise<CandleData[]> {
     return this.executeWithFailover('getCandles', async (provider, name) => {
       const candles = await provider.getCandles(symbol, interval, range);
       if (!candles || !Array.isArray(candles) || candles.length === 0) {
-        throw new Error(`Provider ${name} returned empty candle array for ${symbol}`);
+        throw new Error(
+          `Provider ${name} returned empty candle array for ${symbol}`,
+        );
       }
-      this.logger.debug(`Successfully retrieved ${candles.length} candles for ${symbol} (${interval}, ${range}) via ${name}`);
+      this.logger.debug(
+        `Successfully retrieved ${candles.length} candles for ${symbol} (${interval}, ${range}) via ${name}`,
+      );
       return candles;
     });
   }
@@ -121,7 +153,9 @@ export class MarketProviderFactory implements MarketDataProvider {
     return this.executeWithFailover('getQuote', async (provider, name) => {
       const quote = await provider.getQuote(symbol);
       if (!quote || quote.price === undefined) {
-        throw new Error(`Provider ${name} returned invalid quote for ${symbol}`);
+        throw new Error(
+          `Provider ${name} returned invalid quote for ${symbol}`,
+        );
       }
       return quote;
     });

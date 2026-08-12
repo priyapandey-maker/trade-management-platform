@@ -29,14 +29,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const pathname = usePathname();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('shree_token');
-    const storedUser = localStorage.getItem('shree_user');
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem('shree_token');
+      const storedUser = localStorage.getItem('shree_user');
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+      if (storedToken && storedUser) {
+        try {
+          const res = await api.get('/auth/me');
+          setToken(storedToken);
+          setUser(res.data);
+        } catch {
+          localStorage.removeItem('shree_token');
+          localStorage.removeItem('shree_user');
+          setToken(null);
+          setUser(null);
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   // Watch unauthenticated redirects

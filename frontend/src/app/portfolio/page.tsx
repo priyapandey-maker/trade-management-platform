@@ -68,10 +68,10 @@ export default function PortfolioPage() {
   const highestProfitPos = [...openPositions].sort((a, b) => (b.profitLoss || 0) - (a.profitLoss || 0))[0];
   const highestLossPos = [...openPositions].sort((a, b) => (a.profitLoss || 0) - (b.profitLoss || 0))[0];
 
-  const cardBg = '#FFFFFF';
-  const borderCol = '#E2E8F0';
-  const textCol = '#0F172A';
-  const subTextCol = '#64748B';
+  const cardBg = 'var(--color-surface-1)';
+  const borderCol = 'var(--color-border)';
+  const textCol = 'var(--color-text-primary)';
+  const subTextCol = 'var(--color-text-secondary)';
   const COLORS = ['#2563EB', '#10B981', '#7C3AED', '#EA580C', '#64748B', '#0D9488'];
 
   // --- FORMATTERS ---

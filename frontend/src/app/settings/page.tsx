@@ -31,10 +31,10 @@ export default function SettingsPage() {
     email: '',
   });
 
-  const cardBg = '#FFFFFF';
-  const borderCol = '#E2E8F0';
-  const textCol = '#0F172A';
-  const subTextCol = '#64748B';
+  const cardBg = 'var(--color-surface-1)';
+  const borderCol = 'var(--color-border)';
+  const textCol = 'var(--color-text-primary)';
+  const subTextCol = 'var(--color-text-secondary)';
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -254,6 +254,40 @@ export default function SettingsPage() {
                   <input type="checkbox" checked={notifPreferences.prefDailySummary} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefDailySummary: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
                   Daily Performance Portfolio Summary
                 </label>
+              </div>
+
+              {/* Delivery Channels */}
+              <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '16px', marginTop: '10px' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: textCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Channels</h4>
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                    <input type="checkbox" checked={notifPreferences.emailEnabled} onChange={(e) => setNotifPreferences({ ...notifPreferences, emailEnabled: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                    Email Alerts
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                    <input type="checkbox" checked={notifPreferences.telegramEnabled} onChange={(e) => setNotifPreferences({ ...notifPreferences, telegramEnabled: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                    Telegram Alerts
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                    <input type="checkbox" checked={notifPreferences.inAppEnabled} onChange={(e) => setNotifPreferences({ ...notifPreferences, inAppEnabled: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                    In-App Alerts
+                  </label>
+                </div>
+              </div>
+
+              {/* Alert Destinations */}
+              <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '16px', marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <h4 style={{ margin: '0', fontSize: '13px', fontWeight: 800, color: textCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Alert Destinations</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: subTextCol, marginBottom: '6px' }}>Email Address</label>
+                    <input type="email" value={notifPreferences.email || ''} onChange={(e) => setNotifPreferences({ ...notifPreferences, email: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13.5px', backgroundColor: 'var(--color-surface-2)', color: textCol }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: subTextCol, marginBottom: '6px' }}>Telegram Chat IDs (comma-separated)</label>
+                    <input type="text" placeholder="e.g. 982736412, 123456789" value={notifPreferences.telegramChatIds || ''} onChange={(e) => setNotifPreferences({ ...notifPreferences, telegramChatIds: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13.5px', backgroundColor: 'var(--color-surface-2)', color: textCol }} />
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: `1px solid ${borderCol}`, paddingTop: '16px', marginTop: '4px' }}>

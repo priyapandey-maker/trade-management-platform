@@ -25,7 +25,9 @@ export class MarketEvaluationEngine {
         continue;
       }
 
-      const cmp = quoteMap[pos.symbol.toUpperCase()] || quoteMap[pos.symbol.split('.')[0].toUpperCase()];
+      const cmp =
+        quoteMap[pos.symbol.toUpperCase()] ||
+        quoteMap[pos.symbol.split('.')[0].toUpperCase()];
       if (cmp === undefined) continue;
 
       // Evaluation Conditions
@@ -39,27 +41,51 @@ export class MarketEvaluationEngine {
       let stopLossHit = false;
 
       if (pos.tradeType === 'BUY') {
-        if (pos.targetPrice !== null && pos.targetPrice !== undefined && cmp >= pos.targetPrice) {
+        if (
+          pos.targetPrice !== null &&
+          pos.targetPrice !== undefined &&
+          cmp >= pos.targetPrice
+        ) {
           targetHit = true;
-        } else if (pos.stopLoss !== null && pos.stopLoss !== undefined && cmp <= pos.stopLoss) {
+        } else if (
+          pos.stopLoss !== null &&
+          pos.stopLoss !== undefined &&
+          cmp <= pos.stopLoss
+        ) {
           stopLossHit = true;
         }
       } else if (pos.tradeType === 'SELL') {
-        if (pos.targetPrice !== null && pos.targetPrice !== undefined && cmp <= pos.targetPrice) {
+        if (
+          pos.targetPrice !== null &&
+          pos.targetPrice !== undefined &&
+          cmp <= pos.targetPrice
+        ) {
           targetHit = true;
-        } else if (pos.stopLoss !== null && pos.stopLoss !== undefined && cmp >= pos.stopLoss) {
+        } else if (
+          pos.stopLoss !== null &&
+          pos.stopLoss !== undefined &&
+          cmp >= pos.stopLoss
+        ) {
           stopLossHit = true;
         }
       }
 
       // Handle hit events with higher priority (breaks evaluating buy/near buy triggers since position is closed)
       if (targetHit) {
-        await this.tradeEventEngine.handleEvaluationEvent(pos, NotificationType.TARGET_HIT, cmp);
+        await this.tradeEventEngine.handleEvaluationEvent(
+          pos,
+          NotificationType.TARGET_HIT,
+          cmp,
+        );
         continue;
       }
 
       if (stopLossHit) {
-        await this.tradeEventEngine.handleEvaluationEvent(pos, NotificationType.STOP_LOSS, cmp);
+        await this.tradeEventEngine.handleEvaluationEvent(
+          pos,
+          NotificationType.STOP_LOSS,
+          cmp,
+        );
         continue;
       }
 
@@ -82,20 +108,34 @@ export class MarketEvaluationEngine {
       if (thresholdTriggered > 0 && fieldToUpdate) {
         const direction = cmp >= pos.buyPrice ? 'up' : 'down';
         const triggerKey = `${pos.id}-MOVEMENT-${thresholdTriggered}-${pos.buyPrice}`;
-        
+
         await prisma.portfolioPosition.update({
           where: { id: pos.id },
           data: { [fieldToUpdate]: true },
         });
 
-        await (this.tradeEventEngine as any).handlePriceMovementAlert(pos, thresholdTriggered, direction, cmp, triggerKey);
+        await (this.tradeEventEngine as any).handlePriceMovementAlert(
+          pos,
+          thresholdTriggered,
+          direction,
+          cmp,
+          triggerKey,
+        );
       }
 
       // If not closed, check buy price alerts
       if (atBuyPrice && pos.buyPriceAlertActive) {
-        await this.tradeEventEngine.handleEvaluationEvent(pos, NotificationType.BUY_TRIGGER, cmp);
+        await this.tradeEventEngine.handleEvaluationEvent(
+          pos,
+          NotificationType.BUY_TRIGGER,
+          cmp,
+        );
       } else if (nearBuyPrice && pos.nearBuyAlertActive) {
-        await this.tradeEventEngine.handleEvaluationEvent(pos, NotificationType.NEAR_BUY, cmp);
+        await this.tradeEventEngine.handleEvaluationEvent(
+          pos,
+          NotificationType.NEAR_BUY,
+          cmp,
+        );
       }
     }
   }
