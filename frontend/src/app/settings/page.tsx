@@ -1,19 +1,21 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import api from '@/lib/axios';
+import { User, Bell, Eye, Settings } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // States matching backend schema
+  // States matching backend schema - keeping all fields to preserve API contract
   const [notifPreferences, setNotifPreferences] = useState({
     prefNearBuy: true,
     prefBuyTrigger: true,
@@ -29,22 +31,10 @@ export default function SettingsPage() {
     email: '',
   });
 
-  const [telegramRecipients, setTelegramRecipients] = useState<any[]>([]);
-  const [newChatId, setNewChatId] = useState('');
-  const [newChatName, setNewChatName] = useState('');
-
-  // Notifications State
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [notifSearch, setNotifSearch] = useState('');
-  const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'read'>('all');
-  const [refreshInterval, setRefreshInterval] = useState(60);
-
-  // Styling Tokens
   const cardBg = '#FFFFFF';
   const borderCol = '#E2E8F0';
   const textCol = '#0F172A';
   const subTextCol = '#64748B';
-  const inputBg = '#F8FAFC';
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -54,9 +44,6 @@ export default function SettingsPage() {
       if (res.data?.preferences) {
         setNotifPreferences(res.data.preferences);
       }
-      if (res.data?.telegramRecipients) {
-        setTelegramRecipients(res.data.telegramRecipients);
-      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load configuration settings.');
     } finally {
@@ -64,21 +51,11 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const res = await api.get('/notification');
-      setNotifications(res.data.notifications || []);
-    } catch (e) {}
-  }, []);
-
   useEffect(() => {
     if (user?.role === 'OWNER') {
       fetchSettings();
-      fetchNotifications();
-      const interval = setInterval(fetchNotifications, 15000);
-      return () => clearInterval(interval);
     }
-  }, [user, fetchSettings, fetchNotifications]);
+  }, [user, fetchSettings]);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +67,7 @@ export default function SettingsPage() {
       await api.patch('/notification/settings', {
         preferences: notifPreferences,
       });
-      setSuccessMsg('✅ Notification engine preferences saved successfully.');
+      setSuccessMsg('✅ Notification preferences saved successfully.');
       setTimeout(() => setSuccessMsg(null), 5000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save configuration settings.');
@@ -99,112 +76,32 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAddTelegramRecipient = async () => {
-    if (!newChatId.trim()) return;
-    setError(null);
-    try {
-      const res = await api.post('/notification/recipient', {
-        chatId: newChatId.trim(),
-        name: newChatName.trim() || null,
-      });
-      setTelegramRecipients([...telegramRecipients, res.data]);
-      setNewChatId('');
-      setNewChatName('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to add Telegram recipient.');
-    }
-  };
-
-  const handleDeleteTelegramRecipient = async (id: string) => {
-    setError(null);
-    try {
-      await api.delete(`/notification/recipient/${id}`);
-      setTelegramRecipients(telegramRecipients.filter((r) => r.id !== id));
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete Telegram recipient.');
-    }
-  };
-
-  const handleMarkAllRead = async () => {
-    try {
-      await api.patch('/notification/mark-all-read');
-      fetchNotifications();
-    } catch (e) {}
-  };
-
-  const handleClearAll = async () => {
-    try {
-      await api.delete('/notification/clear-all');
-      fetchNotifications();
-    } catch (e) {}
-  };
-
-  const handleNotifClick = async (notif: any) => {
-    try {
-      await api.patch(`/notification/${notif.id}/read`);
-      fetchNotifications();
-      if (notif.type === 'TARGET_HIT' || notif.type === 'STOP_LOSS' || notif.type === 'TRADE_CLOSED') {
-        window.location.href = '/closed';
-      } else {
-        window.location.href = '/open';
-      }
-    } catch (e) {}
-  };
-
-  const handleSetInterval = (val: number) => {
-    setRefreshInterval(val);
-    window.dispatchEvent(new CustomEvent('shree_set_refresh_interval', { detail: { interval: val } }));
-  };
-
-  const handleInstantRefresh = () => {
-    window.dispatchEvent(new CustomEvent('shree_manual_refresh'));
-  };
-
-  const formatRelativeTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.max(0, Math.floor(diffMs / (60 * 1000)));
-    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
-    const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-  };
-
-  const filteredNotifications = notifications
-    .filter((n) => {
-      const term = notifSearch.toLowerCase();
-      const matchesSearch =
-        n.symbol.toLowerCase().includes(term) ||
-        n.company.toLowerCase().includes(term) ||
-        n.message.toLowerCase().includes(term) ||
-        n.type.toLowerCase().includes(term);
-
-      if (notifFilter === 'unread') return matchesSearch && !n.read;
-      if (notifFilter === 'read') return matchesSearch && n.read;
-      return matchesSearch;
-    });
-
+  // Compact access denied state
   if (user?.role !== 'OWNER') {
     return (
-      <div style={{ padding: '24px', color: textCol }}>
-        <h2>⚠️ Access Denied</h2>
-        <p style={{ color: subTextCol }}>Only platform administrators have access to global engine preferences.</p>
+      <div style={{ maxWidth: '600px', margin: '40px auto', padding: '24px', backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#EF4444', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          ⚠️ Access Denied
+        </h2>
+        <p style={{ fontSize: '13.5px', color: subTextCol, margin: 0 }}>
+          Only platform administrators have access to global engine preferences.
+        </p>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
       {/* Title Header */}
       <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: 900, color: textCol, margin: 0 }}>Global Terminal Control</h1>
-        <p style={{ fontSize: '14px', color: subTextCol, margin: 0 }}>Configure alerts thresholds, delivery networks, bot integrations and notifications channels</p>
+        <h1 style={{ fontSize: '24px', fontWeight: 900, color: textCol, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Settings size={22} style={{ color: '#2563EB' }} />
+          Settings
+        </h1>
+        <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>
+          Manage your account, preferences, notifications and appearance.
+        </p>
       </div>
 
       {error && (
@@ -221,249 +118,151 @@ export default function SettingsPage() {
 
       {loading ? (
         <div style={{ padding: '40px', textAlign: 'center', color: subTextCol }}>
-          Loading system preferences...
+          Loading user preferences...
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-          {/* MARKET DATA PREFERENCES */}
+          {/* ========================================================== */}
+          {/* SECTION 1: ACCOUNT                                        */}
+          {/* ========================================================== */}
           <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-             <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Market Data Stream</h3>
-             <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Configure real-time market data connections and refresh cycles.</p>
-             
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '16px', borderBottom: `1px solid ${borderCol}` }}>
-               <div>
-                 <div style={{ fontSize: '14px', fontWeight: 700, color: textCol }}>Connection Status</div>
-                 <div style={{ fontSize: '12.5px', color: subTextCol }}>Current status of the NSE market data feed</div>
-               </div>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, padding: '6px 12px', backgroundColor: '#DCFCE7', borderRadius: '20px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block', boxShadow: '0 0 6px #16A34A' }} />
-                  <span style={{ color: '#16A34A', fontSize: '12px' }}>NSE LIVE</span>
-               </div>
-             </div>
-
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-               <div>
-                 <div style={{ fontSize: '14px', fontWeight: 700, color: textCol }}>Data Refresh Interval</div>
-                 <div style={{ fontSize: '12.5px', color: subTextCol }}>How often the terminal pulls new prices</div>
-               </div>
-               <div style={{ display: 'flex', gap: '10px' }}>
-                 <select value={refreshInterval} onChange={(e) => handleSetInterval(Number(e.target.value))} style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: inputBg, color: textCol, fontSize: '13px', cursor: 'pointer' }}>
-                   <option value={0}>Auto: OFF</option>
-                   <option value={30}>Auto: 30 seconds</option>
-                   <option value={60}>Auto: 60 seconds</option>
-                   <option value={300}>Auto: 5 minutes</option>
-                 </select>
-                 <button onClick={handleInstantRefresh} className="btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                   Force Refresh
-                 </button>
-               </div>
-             </div>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '14.5px', fontWeight: 900, color: textCol, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <User size={15} style={{ color: '#2563EB' }} />
+              Account
+            </h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '12.5px', color: subTextCol }}>Profile and account details.</p>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Name</span>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: textCol, marginTop: '4px' }}>{user?.name || 'N/A'}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Email</span>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: textCol, marginTop: '4px' }}>{user?.email || 'N/A'}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Role</span>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: textCol, marginTop: '4px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: '#EFF6FF', color: '#2563EB', padding: '3px 8px', borderRadius: '4px' }}>
+                    {user?.role || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <form onSubmit={handleSaveSettings}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              {/* Alert Switches Section */}
-              <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Alert Engine Switches</h3>
-                <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Select which market event categories should generate alert dispatches.</p>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={notifPreferences.prefNearBuy} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefNearBuy: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#10B981' }} />
-                    Near Buy Entry Range (±Proximity %)
-                  </label>
-                  
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={notifPreferences.prefBuyTrigger} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefBuyTrigger: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#10B981' }} />
-                    Buy Target Reached
-                  </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={notifPreferences.prefStopLoss} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefStopLoss: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#10B981' }} />
-                    Stop Loss triggers (Auto-exit)
-                  </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={notifPreferences.prefTargetHit} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefTargetHit: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#10B981' }} />
-                    Target Price Hit (Auto-exit)
-                  </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={notifPreferences.prefManualClose} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefManualClose: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#10B981' }} />
-                    Manual Position Closures
-                  </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={notifPreferences.prefPriceMovement} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefPriceMovement: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#10B981' }} />
-                    Price Movements (2%, 3%, 5%)
-                  </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer', gridColumn: 'span 2' }}>
-                    <input type="checkbox" checked={notifPreferences.prefDailySummary} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefDailySummary: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#10B981' }} />
-                    Daily Performance Portfolio Summary
-                  </label>
-                </div>
-              </div>
-
-              {/* Delivery Channels Section */}
-              <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Active Delivery Networks</h3>
-                <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Define which messaging channels are used for broadcasting alerts.</p>
-                
-                <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={notifPreferences.emailEnabled} onChange={(e) => setNotifPreferences({ ...notifPreferences, emailEnabled: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#2563EB' }} />
-                    Email Dispatch System
-                  </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={notifPreferences.telegramEnabled} onChange={(e) => setNotifPreferences({ ...notifPreferences, telegramEnabled: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#2563EB' }} />
-                    Telegram Bot Gateway
-                  </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={notifPreferences.inAppEnabled} onChange={(e) => setNotifPreferences({ ...notifPreferences, inAppEnabled: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#2563EB' }} />
-                    In-App Notification Feed
-                  </label>
-                </div>
-              </div>
-
-              {/* Network Credentials Configuration */}
-              <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Channel Configuration</h3>
-                <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Specify contact endpoints for automated system alerts.</p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>System Administrator Email *</label>
-                    <input type="email" value={notifPreferences.email || ''} onChange={(e) => setNotifPreferences({ ...notifPreferences, email: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '14px', backgroundColor: inputBg, color: textCol }} required />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>Telegram Chat IDs (comma-separated for multi-channel broadcasts)</label>
-                    <input type="text" placeholder="e.g. 982736412, 123456789" value={notifPreferences.telegramChatIds || ''} onChange={(e) => setNotifPreferences({ ...notifPreferences, telegramChatIds: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '14px', backgroundColor: inputBg, color: textCol }} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Save Button */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="submit" disabled={saving} className="btn-primary" style={{ padding: '12px 28px', borderRadius: '8px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? 'Saving preferences...' : 'Save Settings'}
+          {/* ========================================================== */}
+          {/* SECTION 2: APPEARANCE                                     */}
+          {/* ========================================================== */}
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '14.5px', fontWeight: 900, color: textCol, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Eye size={15} style={{ color: '#2563EB' }} />
+              Appearance
+            </h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '12.5px', color: subTextCol }}>Customize the look and feel of the platform terminal.</p>
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '13.5px', fontWeight: 700, color: textCol }}>Theme Mode</span>
+              <div style={{ display: 'flex', gap: '6px', backgroundColor: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => theme === 'dark' && toggleTheme()}
+                  style={{
+                    border: 'none',
+                    background: theme === 'light' ? '#FFFFFF' : 'transparent',
+                    color: theme === 'light' ? '#2563EB' : subTextCol,
+                    padding: '6px 16px',
+                    borderRadius: '6px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: theme === 'light' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  Light
+                </button>
+                <button
+                  type="button"
+                  onClick={() => theme === 'light' && toggleTheme()}
+                  style={{
+                    border: 'none',
+                    background: theme === 'dark' ? '#FFFFFF' : 'transparent',
+                    color: theme === 'dark' ? '#2563EB' : subTextCol,
+                    padding: '6px 16px',
+                    borderRadius: '6px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: theme === 'dark' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  Dark
                 </button>
               </div>
+            </div>
+          </div>
 
+          {/* ========================================================== */}
+          {/* SECTION 3: NOTIFICATIONS                                  */}
+          {/* ========================================================== */}
+          <form onSubmit={handleSaveSettings}>
+            <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '14.5px', fontWeight: 900, color: textCol, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Bell size={15} style={{ color: '#2563EB' }} />
+                  Notifications
+                </h3>
+                <p style={{ margin: 0, fontSize: '12.5px', color: subTextCol }}>Manage which market event categories should generate alert dispatches.</p>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                  <input type="checkbox" checked={notifPreferences.prefNearBuy} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefNearBuy: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                  Near Buy Entry Range (±Proximity %)
+                </label>
+                
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                  <input type="checkbox" checked={notifPreferences.prefBuyTrigger} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefBuyTrigger: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                  Buy Target Reached
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                  <input type="checkbox" checked={notifPreferences.prefStopLoss} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefStopLoss: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                  Stop Loss triggers (Auto-exit)
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                  <input type="checkbox" checked={notifPreferences.prefTargetHit} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefTargetHit: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                  Target Price Hit (Auto-exit)
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                  <input type="checkbox" checked={notifPreferences.prefManualClose} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefManualClose: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                  Manual Position Closures
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                  <input type="checkbox" checked={notifPreferences.prefPriceMovement} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefPriceMovement: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                  Price Movements (2%, 3%, 5%)
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13.5px', cursor: 'pointer', color: textCol }}>
+                  <input type="checkbox" checked={notifPreferences.prefDailySummary} onChange={(e) => setNotifPreferences({ ...notifPreferences, prefDailySummary: e.target.checked })} style={{ width: '15px', height: '15px', accentColor: '#2563EB' }} />
+                  Daily Performance Portfolio Summary
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: `1px solid ${borderCol}`, paddingTop: '16px', marginTop: '4px' }}>
+                <button type="submit" disabled={saving} className="btn-primary" style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+                  {saving ? 'Saving...' : 'Save Preferences'}
+                </button>
+              </div>
             </div>
           </form>
-
-          {/* IN-APP NOTIFICATIONS INBOX */}
-          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 800 }}>In-App Notifications Inbox</h3>
-                <p style={{ margin: 0, fontSize: '13px', color: subTextCol }}>View all system notifications and trading alerts directly from the dashboard.</p>
-              </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={handleMarkAllRead} className="btn-secondary" style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Mark All Read</button>
-                <button onClick={handleClearAll} className="btn-danger" style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Clear All</button>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-              <input
-                type="text"
-                placeholder="Search notifications..."
-                value={notifSearch}
-                onChange={(e) => setNotifSearch(e.target.value)}
-                style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13.5px', backgroundColor: inputBg, color: textCol }}
-              />
-              <div style={{ display: 'flex', gap: '4px', backgroundColor: inputBg, padding: '4px', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
-                {(['all', 'unread', 'read'] as const).map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setNotifFilter(filter)}
-                    style={{
-                      padding: '6px 16px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontSize: '12px',
-                      fontWeight: notifFilter === filter ? 700 : 500,
-                      backgroundColor: notifFilter === filter ? '#E2E8F0' : 'transparent',
-                      color: textCol,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {filter.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '500px', overflowY: 'auto', paddingRight: '8px' }}>
-              {filteredNotifications.length === 0 ? (
-                <div style={{ padding: '40px 20px', textAlign: 'center', color: subTextCol, fontSize: '14px', backgroundColor: inputBg, borderRadius: '8px', border: `1px dashed ${borderCol}` }}>
-                  No notifications match your criteria.
-                </div>
-              ) : (
-                filteredNotifications.map((n) => {
-                  const isUnread = !n.read;
-                  return (
-                    <div
-                      key={n.id}
-                      onClick={() => handleNotifClick(n)}
-                      style={{
-                        padding: '16px',
-                        borderRadius: '8px',
-                        backgroundColor: isUnread ? '#F0FDF4' : inputBg,
-                        border: `1px solid ${isUnread ? '#DCFCE7' : borderCol}`,
-                        cursor: 'pointer',
-                        position: 'relative',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', color: n.type === 'TARGET_HIT' ? '#16A34A' : n.type === 'STOP_LOSS' ? '#DC2626' : '#2563EB' }}>
-                          {n.type.replace('_', ' ')}
-                        </span>
-                        <span style={{ fontSize: '12px', color: subTextCol }}>{formatRelativeTime(n.createdAt)}</span>
-                      </div>
-                      <div style={{ fontSize: '14px', fontWeight: 800, color: textCol }}>{n.company} ({n.symbol})</div>
-                      <div style={{ fontSize: '13px', color: subTextCol, marginTop: '4px' }}>{n.message}</div>
-                      {isUnread && <span style={{ position: 'absolute', top: '16px', left: '8px', width: '6px', height: '6px', backgroundColor: '#16A34A', borderRadius: '50%' }} />}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Legacy Bot Recipients configuration */}
-          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800 }}>Telegram Bot Recipients (Legacy)</h3>
-            <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: subTextCol }}>Manage dedicated individual subscriber chat nodes connected to the bot.</p>
-            
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-              <input type="text" placeholder="Telegram Chat ID (e.g. 9827318)" value={newChatId} onChange={(e) => setNewChatId(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13.5px', flex: 2, backgroundColor: inputBg, color: textCol }} />
-              <input type="text" placeholder="Subscriber Name (e.g. Anuj)" value={newChatName} onChange={(e) => setNewChatName(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13.5px', flex: 2, backgroundColor: inputBg, color: textCol }} />
-              <button type="button" onClick={handleAddTelegramRecipient} className="btn-primary" style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', flex: 1, minWidth: '100px' }}>Add node</button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {telegramRecipients.length === 0 ? (
-                <p style={{ margin: 0, fontSize: '13px', color: subTextCol }}>No custom bot nodes registered yet.</p>
-              ) : (
-                telegramRecipients.map((r) => (
-                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', border: `1px solid ${borderCol}`, borderRadius: '8px', backgroundColor: '#F8FAFC' }}>
-                    <div>
-                      <span style={{ fontSize: '14px', fontWeight: 700 }}>{r.name || 'Unnamed Recipient'}</span>
-                      <span style={{ fontSize: '12.5px', color: subTextCol, marginLeft: '12px' }}>ID: {r.chatId}</span>
-                    </div>
-                    <button onClick={() => handleDeleteTelegramRecipient(r.id)} className="btn-danger" style={{ padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 700 }}>Delete</button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
 
         </div>
       )}
