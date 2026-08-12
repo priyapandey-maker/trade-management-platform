@@ -26,12 +26,11 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
   const { logout } = useAuth();
 
   const navItems = [
-    { name: 'Open Positions', href: '/open', icon: <Briefcase size={18} /> },
-    { name: 'Closed Positions', href: '/closed', icon: <CheckCircle size={18} /> },
     { name: 'Portfolio', href: '/portfolio', icon: <PieChart size={18} /> },
     { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
     { name: 'Investors', href: '/investors', icon: <Users size={18} /> },
-    { name: 'Settings', href: '/settings', icon: <Settings size={18} /> },
+    { name: 'Open Positions', href: '/open', icon: <Briefcase size={18} /> },
+    { name: 'Closed Positions', href: '/closed', icon: <CheckCircle size={18} /> },
   ];
 
   const bgCol = 'var(--color-surface-1)';
@@ -124,7 +123,28 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               );
             })}
           </nav>
-          <div style={{ padding: '16px 12px', borderTop: `1px solid ${borderCol}` }}>
+          <div style={{ padding: '16px 12px', borderTop: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+            <Link
+              href="/settings"
+              onClick={onClose}
+              title="Settings"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                color: pathname === '/settings' || pathname.startsWith('/settings') ? '#2563EB' : subTextCol,
+                backgroundColor: pathname === '/settings' || pathname.startsWith('/settings') ? '#EFF6FF' : 'transparent',
+                transition: 'all 0.15s ease',
+                textDecoration: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <Settings size={18} />
+            </Link>
+
             <button
               onClick={() => {
                 onClose?.();
@@ -216,7 +236,27 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
       </nav>
 
       {/* Footer Status & Logout */}
-      <div style={{ padding: '16px 12px', borderTop: `1px solid ${borderCol}`, marginTop: 'auto' }}>
+      <div style={{ padding: '16px 12px', borderTop: `1px solid ${borderCol}`, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+        <Link
+          href="/settings"
+          title="Settings"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            color: pathname === '/settings' || pathname.startsWith('/settings') ? '#2563EB' : subTextCol,
+            backgroundColor: pathname === '/settings' || pathname.startsWith('/settings') ? '#EFF6FF' : 'transparent',
+            transition: 'all 0.15s ease',
+            textDecoration: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <Settings size={18} />
+        </Link>
+
         <button
           onClick={logout}
           style={{
