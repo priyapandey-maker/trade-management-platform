@@ -123,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               );
             })}
           </nav>
-          <div style={{ padding: '16px 12px', borderTop: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+          <div style={{ padding: '12px', borderTop: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <Link
               href="/settings"
               onClick={onClose}
@@ -140,6 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                 transition: 'all 0.15s ease',
                 textDecoration: 'none',
                 cursor: 'pointer',
+                flexShrink: 0,
               }}
             >
               <Settings size={18} />
@@ -153,16 +154,14 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'flex-start',
-                gap: '14px',
-                padding: '12px 16px',
+                gap: '8px',
+                padding: '10px 14px',
                 borderRadius: '10px',
                 fontSize: '13.5px',
                 fontWeight: 600,
                 color: '#EF4444',
                 backgroundColor: 'transparent',
                 border: 'none',
-                width: '100%',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -235,8 +234,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         })}
       </nav>
 
-      {/* Footer Status & Logout */}
-      <div style={{ padding: '16px 12px', borderTop: `1px solid ${borderCol}`, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+      {/* Footer: Settings + Logout side-by-side */}
+      <div style={{ padding: '12px', borderTop: `1px solid ${borderCol}`, marginTop: 'auto', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', gap: '8px' }}>
         <Link
           href="/settings"
           title="Settings"
@@ -252,33 +251,55 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             transition: 'all 0.15s ease',
             textDecoration: 'none',
             cursor: 'pointer',
+            flexShrink: 0,
           }}
         >
           <Settings size={18} />
         </Link>
 
-        <button
-          onClick={logout}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: isCollapsed ? 'center' : 'flex-start',
-            gap: '14px',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            fontSize: '13.5px',
-            fontWeight: 600,
-            color: '#EF4444',
-            backgroundColor: 'transparent',
-            border: 'none',
-            width: '100%',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <LogOut size={18} />
-          {!isCollapsed && <span>Logout</span>}
-        </button>
+        {!isCollapsed && (
+          <button
+            onClick={logout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 14px',
+              borderRadius: '10px',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              color: '#EF4444',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <LogOut size={18} />
+            <span>Logout</span>
+          </button>
+        )}
+        {isCollapsed && (
+          <button
+            onClick={logout}
+            title="Logout"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              color: '#EF4444',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <LogOut size={18} />
+          </button>
+        )}
       </div>
     </aside>
   );
