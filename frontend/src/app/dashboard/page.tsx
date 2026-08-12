@@ -2,107 +2,140 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-
 import api from '@/lib/axios';
 import { useQuery } from '@tanstack/react-query';
 import {
   ResponsiveContainer,
-  LineChart, Line,
-  BarChart, Bar,
-  PieChart, Pie, Cell,
   AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend
+  XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Link from 'next/link';
-import { TrendingUp, TrendingDown, RefreshCw, FileText } from 'lucide-react';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  FileText, 
+  Wallet, 
+  Briefcase, 
+  Layers, 
+  Users, 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  Activity 
+} from 'lucide-react';
 import { formatDecimal } from '@/lib/financial-calculations';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   
-  
-
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
+  const [activeLeaderTab, setActiveLeaderTab] = useState<'best' | 'worst'>('best');
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
-    setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
-      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // React Query cached fetch
-  const { data: dashboardData, isLoading, error } = useQuery({
-    queryKey: ['dashboardData'],
+  // React Query cached fetch - parallel dashboard and portfolio data
+  const { data: dashboardAndPortfolio, isLoading, error } = useQuery({
+    queryKey: ['dashboardAndPortfolio'],
     queryFn: async () => {
-      const res = await api.get('/portfolio/dashboard');
-      return res.data;
+      const [dashRes, portRes] = await Promise.all([
+        api.get('/portfolio/dashboard'),
+        api.get('/portfolio')
+      ]);
+      return {
+        dashboard: dashRes.data,
+        portfolio: portRes.data
+      };
     },
     refetchInterval: 30000, // 30s auto-refresh
   });
 
-  // Performer Widget Rotation State
-  const [performerIndex, setPerformerIndex] = useState(0);
+  const dashboardData = dashboardAndPortfolio?.dashboard;
+  const portfolioData = dashboardAndPortfolio?.portfolio;
 
   const summary = dashboardData?.summary || {};
-  const performers = dashboardData?.performers || [];
-  const recentPositions = dashboardData?.recentPositions || [];
-  const openPositions = dashboardData?.positions?.open || [];
-
-  useEffect(() => {
-    if (performers.length === 0) return;
-    const interval = setInterval(() => {
-      setPerformerIndex((prev) => (prev + 1) % performers.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [performers.length]);
+  const openPositions = portfolioData?.positions?.open || [];
+  const closedPositions = portfolioData?.positions?.closed || [];
+  const growthData = dashboardData?.charts?.area || [];
 
   const cardBg = '#FFFFFF';
   const borderCol = '#E2E8F0';
   const textCol = '#0F172A';
   const subTextCol = '#64748B';
+  const chartThemeColor = '#2563EB';
 
-  const chartThemeColor = '#10B981';
-  const chartAltColor = '#2563EB';
-  const COLORS = ['#2563EB', '#10B981', '#7C3AED', '#EA580C', '#64748B', '#0D9488'];
+  // --- SIGN-SAFE FINANCIAL FORMATTERS ---
+  const formatAbsoluteCurrency = (val: number, decimals: number = 2) => {
+    if (val === undefined || val === null || isNaN(val)) return '₹0.00';
+    const absVal = Math.abs(val);
+    const formatted = absVal.toLocaleString('en-IN', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+    return `₹${formatted}`;
+  };
 
-  // --- CHART DATA PROCESSING ---
-  // 1. Portfolio Allocation (Pie)
-  const pieData = openPositions.map((p: any) => ({
-    name: p.symbol,
-    value: p.investedAmount || 0,
-  }));
+  const formatFinancialValue = (val: number, decimals: number = 2) => {
+    if (val === undefined || val === null || isNaN(val)) return '₹0.00';
+    const isNegative = val < 0;
+    const absVal = Math.abs(val);
+    const formatted = absVal.toLocaleString('en-IN', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+    return `${isNegative ? '-' : '+'}₹${formatted}`;
+  };
 
-  // 2. Investor Split (Radial / Bar)
-  const radialData = (dashboardData?.investors || []).map((inv: any) => ({
-    name: inv.name,
-    Capital: inv.totalInvestment || 0,
-  }));
+  const formatPercent = (val: number, decimals: number = 2) => {
+    if (val === undefined || val === null || isNaN(val)) return '0.00%';
+    const isNegative = val < 0;
+    return `${isNegative ? '-' : '+'}${Math.abs(val).toFixed(decimals)}%`;
+  };
 
-  // 3. Sector Allocation (Donut)
-  const sectorMap: Record<string, number> = {};
-  openPositions.forEach((p: any) => {
-    const sector = p.assetType || 'STOCK';
-    sectorMap[sector] = (sectorMap[sector] || 0) + (p.investedAmount || 0);
-  });
-  const sectorData = Object.entries(sectorMap).map(([name, value]) => ({ name, value }));
+  // --- CALCULATE TODAY'S PORTFOLIO CHANGE ---
+  const todaysChangeVal = openPositions.reduce((sum: number, p: any) => {
+    const cp = p.changePercent || 0;
+    return sum + (p.currentValue * cp / 100);
+  }, 0);
+  const todaysChangePct = summary.totalInvestment > 0 ? (todaysChangeVal / summary.totalInvestment) * 100 : 0;
 
-  // 4. Portfolio Growth over time (Area / Line)
-  const growthData = (dashboardData?.charts?.area || []);
+  // --- PERFORMANCE LEADERS DEDUPLICATION & ROTATION ---
+  const sortedByPerf = [...openPositions].sort((a: any, b: any) => b.profitLossPct - a.profitLossPct);
+  const bestList = sortedByPerf.slice(0, 3);
+  const worstListRaw = [...sortedByPerf].reverse().slice(0, 3);
+  
+  // Remove duplicates between best and worst groups when positions count < 6
+  const bestIds = new Set(bestList.map((p: any) => p.id));
+  const worstList = worstListRaw.filter((p: any) => !bestIds.has(p.id));
 
-  // Top performers splits (Gainer / Loser)
-  const openHoldingsSorted = [...openPositions].sort((a, b) => b.profitLossPct - a.profitLossPct);
-  const topGainers = openHoldingsSorted.slice(0, 3);
-  const topLosers = [...openPositions].sort((a, b) => a.profitLossPct - b.profitLossPct).slice(0, 3);
+  // --- PORTFOLIO ALLOCATION CALCULATION ---
+  const totalOpenInvested = openPositions.reduce((sum: number, p: any) => sum + p.investedAmount, 0);
+  const allocationData = openPositions.map((p: any) => ({
+    symbol: p.symbol,
+    company: p.company,
+    percentage: totalOpenInvested > 0 ? (p.investedAmount / totalOpenInvested) * 100 : 0,
+  })).sort((a: any, b: any) => b.percentage - a.percentage).slice(0, 5);
 
+  // --- COMBINE AND SORT LATEST EVENTS FOR RECENT ACTIVITY ---
+  const allPositionsCombined = [
+    ...openPositions.map((p: any) => ({ ...p, activityType: 'OPEN' })),
+    ...closedPositions.map((p: any) => ({ ...p, activityType: 'CLOSE' }))
+  ];
+  const sortedActivity = allPositionsCombined.sort((a: any, b: any) => {
+    const dateA = new Date(a.activityType === 'CLOSE' ? (a.closedAt || a.entryDate) : a.entryDate).getTime();
+    const dateB = new Date(b.activityType === 'CLOSE' ? (b.closedAt || b.entryDate) : b.entryDate).getTime();
+    return dateB - dateA;
+  }).slice(0, 3);
+
+  // Export PDF Report - preserving original logic
   const exportPDF = () => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
     const pageWidth = doc.internal.pageSize.width;
@@ -208,297 +241,355 @@ export default function DashboardPage() {
     );
   }
 
+  const overallRoi = summary.totalInvestment > 0 ? (summary.totalPnL / summary.totalInvestment) * 100 : 0;
+  const performanceChartData = growthData;
+  const hasHistoricalData = performanceChartData && performanceChartData.length >= 2;
+
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
-      {/* Title Controls Header */}
+      {/* HEADER SECTION */}
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 900, color: textCol, margin: 0 }}>Executive terminal</h1>
-          <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>Institutional dealing board and platform control center</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 900, color: textCol, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={22} style={{ color: '#2563EB' }} />
+            Dashboard
+          </h1>
+          <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>Portfolio overview and market performance</p>
         </div>
-        <button onClick={exportPDF} className="btn-secondary" style={{ padding: '9px 18px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <FileText size={16} /> Export PDF Report
+        <button onClick={exportPDF} className="btn-secondary" style={{ padding: '8px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <FileText size={15} /> Export PDF Report
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
         {/* ========================================================== */}
-        {/* ROW 1: PORTFOLIO VALUE CARD (~45%) & TODAY'S P&L (55%) */}
+        {/* SECTION A: KPI ROW                                         */}
         {/* ========================================================== */}
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: '16px' }}>
           
-          {/* Portfolio Value large card */}
-          <div className="premium-card" style={{ flex: isMobile ? 'none' : '0 0 45%', backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Portfolio Valuation</div>
-              <div style={{ fontSize: '32px', fontWeight: 900, color: textCol, marginTop: '8px' }}>
-                ₹{formatDecimal(summary.totalPortfolioValue)}
+          {/* Card 1: Total Portfolio Value */}
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Wallet size={12} style={{ color: '#2563EB' }} />
+              Total Portfolio Value
+            </span>
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, fontVariantNumeric: 'tabular-nums' }}>
+                {formatAbsoluteCurrency(summary.totalPortfolioValue)}
+              </div>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                fontSize: '11px', fontWeight: 800, marginTop: '8px',
+                color: overallRoi >= 0 ? '#10B981' : '#EF4444',
+                backgroundColor: overallRoi >= 0 ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+                padding: '2px 8px', borderRadius: '12px'
+              }}>
+                {overallRoi >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                {Math.abs(overallRoi).toFixed(2)}% ROI
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Total Return */}
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <TrendingUp size={12} style={{ color: (summary.totalPnL || 0) >= 0 ? '#10B981' : '#EF4444' }} />
+              Total Return
+            </span>
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 900, color: (summary.totalPnL || 0) >= 0 ? '#10B981' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
+                {formatFinancialValue(summary.totalPnL)}
+              </div>
+              <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '6px' }}>
+                {formatPercent(summary.totalInvestment > 0 ? (summary.totalPnL / summary.totalInvestment) * 100 : 0)} All Time
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '16px' }}>
-              <div>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: (summary.currentPortfolioProfitLoss || 0) >= 0 ? '#10B981' : '#EF4444', display: 'inline-flex', alignItems: 'center' }}>
-                  {(summary.currentPortfolioProfitLoss || 0) >= 0 ? <TrendingUp size={16} style={{ marginRight: '4px' }} /> : <TrendingDown size={16} style={{ marginRight: '4px' }} />}
-                  {formatDecimal(Math.abs((summary.currentPortfolioProfitLoss || 0) / (summary.totalInvestment || 1) * 100))}%
-                </span>
-                <span style={{ fontSize: '12px', color: subTextCol, marginLeft: '8px' }}>Today's Change</span>
+          </div>
+
+          {/* Card 3: Today's Change */}
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <TrendingUp size={12} style={{ color: todaysChangeVal >= 0 ? '#10B981' : '#EF4444' }} />
+              Today's Change
+            </span>
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 900, color: todaysChangeVal >= 0 ? '#10B981' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
+                {formatFinancialValue(todaysChangeVal)}
               </div>
-              <div style={{ width: '120px', height: '40px' }}>
+              <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '6px' }}>
+                {formatPercent(todaysChangePct)} Today
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Active Positions */}
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Briefcase size={12} style={{ color: '#2563EB' }} />
+              Active Positions
+            </span>
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 900, color: textCol, fontVariantNumeric: 'tabular-nums' }}>
+                {summary.totalOpenPositions || openPositions.length}
+              </div>
+              <div style={{ fontSize: '11.5px', color: subTextCol, marginTop: '6px' }}>
+                Currently Open Holdings
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ========================================================== */}
+        {/* MAIN PERFORMANCE SECTION (Two-column)                      */}
+        {/* ========================================================== */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.8fr 1.2fr', gap: '16px' }}>
+          
+          {/* Portfolio Performance (Growth area chart) */}
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '360px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '13.5px', fontWeight: 900, color: textCol, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                PORTFOLIO PERFORMANCE
+              </h3>
+              <p style={{ fontSize: '12px', color: subTextCol, margin: '2px 0 0 0' }}>Portfolio value over time</p>
+            </div>
+            
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {hasHistoricalData ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={growthData.slice(-6)}>
-                    <Area type="monotone" dataKey="Gain" stroke={chartThemeColor} fill={`${chartThemeColor}20`} strokeWidth={2} />
+                  <AreaChart data={performanceChartData}>
+                    <defs>
+                      <linearGradient id="colorGrowthDashboard" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={chartThemeColor} stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor={chartThemeColor} stopOpacity={0.0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                    <XAxis dataKey="date" stroke={subTextCol} fontSize={10} tickLine={false} />
+                    <YAxis stroke={subTextCol} fontSize={10} width={50} tickFormatter={(val) => `₹${(val / 100000).toFixed(1)}L`} />
+                    <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
+                    <Area type="monotone" dataKey="Gain" stroke={chartThemeColor} strokeWidth={2.5} fillOpacity={1} fill="url(#colorGrowthDashboard)" />
                   </AreaChart>
                 </ResponsiveContainer>
-              </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '24px' }}>
+                  <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>
+                    Performance history will appear as more portfolio data is recorded.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Today's P&L splits */}
-          <div className="premium-card" style={{ flex: 1, backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Today's Profit &amp; Loss breakdown</div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '16px' }}>
-              <div>
-                <div style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>Realized Gains</div>
-                <div style={{ fontSize: '20px', fontWeight: 900, color: (summary.realizedProfit || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '6px' }}>
-                  ₹{formatDecimal(summary.realizedProfit)}
+          {/* Performance Leaders Card */}
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '360px' }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 900, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Performance Leaders
+                </span>
+                <div style={{ display: 'flex', gap: '4px', backgroundColor: '#F1F5F9', padding: '2px', borderRadius: '6px' }}>
+                  <button 
+                    onClick={() => setActiveLeaderTab('best')}
+                    style={{ 
+                      border: 'none', background: activeLeaderTab === 'best' ? '#FFFFFF' : 'none',
+                      fontSize: '11px', fontWeight: 800, color: activeLeaderTab === 'best' ? '#2563EB' : subTextCol,
+                      padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    BEST 3
+                  </button>
+                  <button 
+                    onClick={() => setActiveLeaderTab('worst')}
+                    style={{ 
+                      border: 'none', background: activeLeaderTab === 'worst' ? '#FFFFFF' : 'none',
+                      fontSize: '11px', fontWeight: 800, color: activeLeaderTab === 'worst' ? '#EF4444' : subTextCol,
+                      padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    WORST 3
+                  </button>
                 </div>
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>Unrealized Balance</div>
-                <div style={{ fontSize: '20px', fontWeight: 900, color: (summary.unrealizedProfit || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '6px' }}>
-                  ₹{formatDecimal(summary.unrealizedProfit)}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '11px', color: subTextCol, fontWeight: 700 }}>Available Liquid Cash</div>
-                <div style={{ fontSize: '20px', fontWeight: 900, color: textCol, marginTop: '6px' }}>
-                  ₹{formatDecimal(summary.availableCashBalance)}
-                </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {activeLeaderTab === 'best' ? (
+                  bestList.length === 0 ? (
+                    <div style={{ fontSize: '12.5px', color: subTextCol, fontStyle: 'italic', padding: '20px 0' }}>No performers available.</div>
+                  ) : (
+                    bestList.map((p, idx) => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 900, color: subTextCol }}>0{idx + 1}</span>
+                          <span style={{ fontSize: '13px', fontWeight: 800, color: textCol }}>{p.symbol}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontVariantNumeric: 'tabular-nums' }}>
+                          <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#10B981' }}>{formatPercent(p.profitLossPct, 1)}</span>
+                          <span style={{ fontSize: '12px', color: subTextCol }}>{formatFinancialValue(p.profitLoss, 0)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )
+                ) : (
+                  worstList.length === 0 ? (
+                    <div style={{ fontSize: '12.5px', color: subTextCol, fontStyle: 'italic', padding: '20px 0' }}>No worst performers available.</div>
+                  ) : (
+                    worstList.map((p, idx) => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 900, color: subTextCol }}>0{idx + 1}</span>
+                          <span style={{ fontSize: '13px', fontWeight: 800, color: textCol }}>{p.symbol}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontVariantNumeric: 'tabular-nums' }}>
+                          <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#EF4444' }}>{formatPercent(p.profitLossPct, 1)}</span>
+                          <span style={{ fontSize: '12px', color: subTextCol }}>{formatFinancialValue(p.profitLoss, 0)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )
+                )}
               </div>
             </div>
-            
-            <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: '12px', marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', color: subTextCol }}>
-              <span>Capital Deployed: <strong>₹{formatDecimal(summary.totalCapitalDeployed)}</strong></span>
-              <span>Overall Win Rate: <strong>{formatDecimal(summary.winRate)}%</strong></span>
+
+            <div style={{ fontSize: '11.5px', color: subTextCol, borderTop: `1px solid ${borderCol}`, paddingTop: '10px', marginTop: '10px' }}>
+              Relative ranking derived from live asset P&amp;L percentages.
             </div>
           </div>
 
         </div>
 
         {/* ========================================================== */}
-        {/* ROW 2: ALLOCATION CHARTS (3 Equal Columns) */}
+        {/* PORTFOLIO INSIGHTS (Two-column)                            */}
         {/* ========================================================== */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
           
-          {/* Portfolio Allocation Pie */}
-          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, margin: '0 0 10px 0', textTransform: 'uppercase' }}>Composition by Holdings</h3>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} fill="#8884d8">
-                    {pieData.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Investor Split Bar */}
-          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, margin: '0 0 10px 0', textTransform: 'uppercase' }}>Investor Allocations</h3>
-            <div style={{ flex: 1 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={radialData}>
-                  <XAxis dataKey="name" stroke={subTextCol} fontSize={10} tickLine={false} />
-                  <YAxis stroke={subTextCol} fontSize={10} width={45} tickFormatter={(val) => `₹${(val / 100000).toFixed(0)}L`} />
-                  <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
-                  <Bar dataKey="Capital" fill={chartAltColor} radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Sector Allocation Donut */}
-          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', height: '280px', display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, margin: '0 0 10px 0', textTransform: 'uppercase' }}>Composition by Sectors</h3>
-            <div style={{ flex: 1 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={sectorData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={70} fill="#8884d8">
-                    {sectorData.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-        </div>
-
-        {/* ========================================================== */}
-        {/* ROW 3: PORTFOLIO GROWTH (Line chart) */}
-        {/* ========================================================== */}
-        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '24px', borderRadius: '12px', height: '320px', display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 800, color: textCol, margin: '0 0 16px 0', textTransform: 'uppercase' }}>Portfolio Returns Growth Trend</h3>
-          <div style={{ flex: 1 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={growthData}>
-                <defs>
-                  <linearGradient id="colorGrowth" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={chartThemeColor} stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor={chartThemeColor} stopOpacity={0.0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={'#E2E8F0'} />
-                <XAxis dataKey="date" stroke={subTextCol} fontSize={10} tickLine={false} />
-                <YAxis stroke={subTextCol} fontSize={10} tickFormatter={(val) => `₹${(val / 100000).toFixed(1)}L`} />
-                <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
-                <Area type="monotone" dataKey="Gain" stroke={chartThemeColor} strokeWidth={2} fillOpacity={1} fill="url(#colorGrowth)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* ========================================================== */}
-        {/* ROW 4: ROTATION CARD & RECENT ACTIVITY */}
-        {/* ========================================================== */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
-          
-          {/* Performer Rotation Widget */}
-          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            {performers.length > 0 && performers[performerIndex] ? (
-              <div key={performerIndex} style={{ animation: 'fadeIn 0.4s ease' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: performers[performerIndex].color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {performers[performerIndex].label}
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: textCol }} title={performers[performerIndex].data.company}>
-                    {performers[performerIndex].data.symbol}
-                  </span>
-                </div>
-                
-                <div style={{ borderTop: `1px solid ${borderCol}`, margin: '8px 0' }} />
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px 16px' }}>
-                  <div>
-                    <div style={{ fontSize: '10px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>CMP</div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: textCol, marginTop: '2px' }}>
-                      CMP: ₹{formatDecimal(performers[performerIndex].data.currentPrice)}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '10px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Today's Return</div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: (performers[performerIndex].data.changePercent || 0) >= 0 ? '#10B981' : '#EF4444', marginTop: '2px' }}>
-                      {(performers[performerIndex].data.changePercent || 0) >= 0 ? '+' : ''}{formatDecimal(performers[performerIndex].data.changePercent)}%
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '10px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Overall Return</div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: performers[performerIndex].data.profitLossPct >= 0 ? '#10B981' : '#EF4444', marginTop: '2px' }}>
-                      {performers[performerIndex].data.profitLossPct >= 0 ? '+' : ''}{formatDecimal(performers[performerIndex].data.profitLossPct)}%
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '10px', color: subTextCol, fontWeight: 700, textTransform: 'uppercase' }}>Profit / Loss</div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: performers[performerIndex].data.profitLoss >= 0 ? '#10B981' : '#EF4444', marginTop: '2px' }}>
-                      {performers[performerIndex].data.profitLoss >= 0 ? '+' : ''}₹{formatDecimal(performers[performerIndex].data.profitLoss)}
-                    </div>
-                  </div>
-                </div>
+          {/* Portfolio Allocation progress bars */}
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '220px', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ fontSize: '12px', fontWeight: 800, color: textCol, margin: '0 0 14px 0', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Layers size={14} style={{ color: '#2563EB' }} />
+              Portfolio Allocation
+            </h3>
+            
+            {allocationData.length === 0 ? (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12.5px', color: subTextCol, fontStyle: 'italic' }}>
+                Allocation insights will appear as more holdings are added.
               </div>
             ) : (
-              <span style={{ fontSize: '12px', color: subTextCol }}>No performer stats available.</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'center' }}>
+                {allocationData.map((item: any) => (
+                  <div key={item.symbol} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ width: '70px', fontSize: '12.5px', fontWeight: 800, color: textCol }}>{item.symbol}</div>
+                    <div style={{ flex: 1, height: '7px', backgroundColor: '#F1F5F9', borderRadius: '4px', margin: '0 12px', overflow: 'hidden' }}>
+                      <div style={{ width: `${item.percentage}%`, height: '100%', backgroundColor: '#2563EB', borderRadius: '4px' }} />
+                    </div>
+                    <div style={{ width: '45px', textAlign: 'right', fontSize: '12px', fontWeight: 800, color: textCol }}>
+                      {item.percentage.toFixed(0)}%
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Recent Activity */}
-          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <h4 style={{ fontSize: '12.5px', fontWeight: 800, color: textCol, margin: '0 0 14px 0', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                Recent Activity
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {recentPositions.slice(0, 3).map((p: any) => (
-                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
-                    <span style={{ fontWeight: 700, color: textCol }} title={p.company}>{p.symbol}</span>
-                    <span style={{ color: p.profitLoss >= 0 ? '#10B981' : '#EF4444', fontWeight: 700 }}>
-                      {p.profitLoss >= 0 ? '+' : ''}₹{formatDecimal(p.profitLoss)}
+          {/* Recent Activity feed */}
+          <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, padding: '20px', borderRadius: '12px', minHeight: '220px', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ fontSize: '12px', fontWeight: 800, color: textCol, margin: '0 0 14px 0', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Users size={14} style={{ color: '#2563EB' }} />
+              Recent Activity
+            </h3>
+            
+            {sortedActivity.length === 0 ? (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12.5px', color: subTextCol, fontStyle: 'italic' }}>
+                No recent activity
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'center' }}>
+                {sortedActivity.map((p: any, idx: number) => (
+                  <div key={`${p.id}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: idx < sortedActivity.length - 1 ? '8px' : '0', borderBottom: idx < sortedActivity.length - 1 ? `1px solid ${borderCol}` : 'none' }}>
+                    <div>
+                      <strong style={{ fontSize: '13px', color: textCol }}>{p.symbol}</strong>
+                      <span style={{ fontSize: '11px', color: subTextCol, marginLeft: '8px' }}>
+                        {p.activityType === 'OPEN' ? 'Position opened' : 'Position closed'}
+                      </span>
+                    </div>
+                    <span style={{ 
+                      fontSize: '12.5px', fontWeight: 800,
+                      color: p.activityType === 'CLOSE' && p.profitLoss < 0 ? '#EF4444' : '#10B981',
+                      fontVariantNumeric: 'tabular-nums'
+                    }}>
+                      {p.activityType === 'OPEN' 
+                        ? formatAbsoluteCurrency(p.investedAmount, 0)
+                        : formatFinancialValue(p.profitLoss, 0)
+                      } {p.activityType === 'OPEN' ? 'invested' : 'realized'}
                     </span>
                   </div>
                 ))}
-                {recentPositions.length === 0 && <span style={{ fontSize: '12px', color: subTextCol }}>No recent trades</span>}
               </div>
-            </div>
+            )}
           </div>
 
         </div>
 
         {/* ========================================================== */}
-        {/* ROW 5: OPEN HOLDINGS TABLE */}
+        {/* ACTIVE HOLDINGS TABLE                                      */}
         {/* ========================================================== */}
-        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '20px', overflowX: 'auto' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 800, color: textCol, margin: '0 0 16px 0', textTransform: 'uppercase' }}>Active Portfolio Open Holdings</h3>
-          
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13.5px', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: `2px solid ${borderCol}`, color: subTextCol }}>
-                <th style={{ padding: '10px 14px' }}>Symbol</th>
-                <th style={{ padding: '10px 14px' }}>Investor</th>
-                <th style={{ padding: '10px 14px' }}>Trade Type</th>
-                <th style={{ padding: '10px 14px' }}>Entry Buy Price</th>
-                <th style={{ padding: '10px 14px' }}>Current Price</th>
-                <th style={{ padding: '10px 14px' }}>Quantity</th>
-                <th style={{ padding: '10px 14px' }}>Invested Capital</th>
-                <th style={{ padding: '10px 14px' }}>Current Value</th>
-                <th style={{ padding: '10px 14px' }}>P&amp;L (Unrealized)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {openPositions.slice(0, 10).map((p: any) => (
-                <tr key={p.id} className="hover-row" style={{ borderBottom: `1px solid ${borderCol}` }}>
-                  <td style={{ padding: '12px 14px', fontWeight: 800, color: textCol }} title={p.company}>{p.symbol}</td>
-                  <td style={{ padding: '12px 14px', color: textCol }}>{p.investorName}</td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: 800, padding: '3px 8px', borderRadius: '4px', backgroundColor: p.tradeType === 'SELL' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: p.tradeType === 'SELL' ? '#EF4444' : '#10B981' }}>
-                      {p.tradeType}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(p.buyPrice)}</td>
-                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(p.currentPrice)}</td>
-                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>{p.quantity}</td>
-                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(p.investedAmount)}</td>
-                  <td style={{ padding: '12px 14px', color: textCol, fontVariantNumeric: 'tabular-nums' }}>₹{formatDecimal(p.currentValue)}</td>
-                  <td style={{ padding: '12px 14px', fontWeight: 800, color: p.profitLoss >= 0 ? '#10B981' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
-                    ₹{formatDecimal(p.profitLoss)} ({formatDecimal(p.profitLossPct)}%)
-                  </td>
+        <div className="premium-card" style={{ backgroundColor: cardBg, border: `1px solid ${borderCol}`, borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 900, color: textCol, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Active Holdings
+            </h3>
+            <Link href="/open" style={{ fontSize: '12.5px', fontWeight: 800, color: '#2563EB', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              View all positions →
+            </Link>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${borderCol}`, color: subTextCol }}>
+                  <th style={{ padding: '8px 10px', fontWeight: 700 }}>Symbol</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700 }}>Investor</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'right' }}>Current Value</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'right' }}>P&amp;L</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'right' }}>P&amp;L %</th>
+                  <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center' }}>Trend</th>
                 </tr>
-              ))}
-              {openPositions.length === 0 && (
-                <tr>
-                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: subTextCol }}>
-                    No open trades recorded.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          
-          {openPositions.length > 10 && (
-            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
-              <Link href="/open" style={{ fontSize: '13px', fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
-                View all open positions ({openPositions.length}) →
-              </Link>
-            </div>
-          )}
+              </thead>
+              <tbody>
+                {openPositions.slice(0, 5).map((p: any) => (
+                  <tr key={p.id} className="hover-row" style={{ borderBottom: `1px solid ${borderCol}` }}>
+                    <td style={{ padding: '10px', fontWeight: 800, color: textCol }} title={p.company}>{p.symbol}</td>
+                    <td style={{ padding: '10px', color: textCol }}>{p.investorName}</td>
+                    <td style={{ padding: '10px', fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontWeight: 700 }}>
+                      {formatAbsoluteCurrency(p.currentValue)}
+                    </td>
+                    <td style={{ padding: '10px', fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontWeight: 700, color: p.profitLoss >= 0 ? '#10B981' : '#EF4444' }}>
+                      {formatFinancialValue(p.profitLoss)}
+                    </td>
+                    <td style={{ padding: '10px', fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontWeight: 800, color: p.profitLoss >= 0 ? '#10B981' : '#EF4444' }}>
+                      {formatPercent(p.profitLossPct)}
+                    </td>
+                    <td style={{ padding: '10px', textAlign: 'center' }}>
+                      {p.profitLoss >= 0 ? (
+                        <ArrowUpRight size={16} style={{ color: '#10B981', display: 'inline' }} />
+                      ) : (
+                        <ArrowDownRight size={16} style={{ color: '#EF4444', display: 'inline' }} />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {openPositions.length === 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: subTextCol, fontStyle: 'italic' }}>
+                      No active holdings.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>
