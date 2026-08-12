@@ -1175,7 +1175,7 @@ export default function OpenPositionsPage() {
           left: 0,
           backgroundColor: 'rgba(15, 23, 42, 0.4)',
           backdropFilter: 'blur(4px)',
-          zIndex: 100,
+          zIndex: 200,
           opacity: showEditDrawer ? 1 : 0,
           pointerEvents: showEditDrawer ? 'auto' : 'none',
           transition: 'opacity 0.25s ease-in-out',
@@ -1611,8 +1611,8 @@ export default function OpenPositionsPage() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ width: isMobile ? '100%' : '550px', height: isMobile ? '100%' : 'auto', maxHeight: isMobile ? '100vh' : '90vh', overflowY: 'auto', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: isMobile ? '0' : '12px', border: isMobile ? 'none' : `1px solid ${borderCol}` }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ width: isMobile ? '100%' : '550px', maxHeight: isMobile ? '100vh' : '90vh', overflowY: 'auto', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: isMobile ? '0' : '12px', border: isMobile ? 'none' : `1px solid ${borderCol}` }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 800 }}>
               {newType === 'BUY' ? '➕ Create New Open Position' : '📝 Record Historical Closed Trade'}
             </h3>
@@ -1778,7 +1778,7 @@ export default function OpenPositionsPage() {
 
       {/* Close Position Modal */}
       {closingPosition && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 100 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 200 }}>
           <div style={{ width: isMobile ? '100%' : '420px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: isMobile ? '12px 12px 0 0' : '12px', border: `1px solid ${borderCol}` }}>
             <h3 style={{ margin: '0 0 14px 0', fontSize: '15px', fontWeight: 800 }}>✅ Close Trade: {closingPosition.symbol}</h3>
             <form onSubmit={handleCloseSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1812,7 +1812,7 @@ export default function OpenPositionsPage() {
 
       {/* Delete Confirmation Modal (Req 7) */}
       {deletingId && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
           <div style={{ width: '380px', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}`, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 800, color: textCol }}>Confirm Delete</h4>
             <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>Are you sure you want to permanently delete this trade?</p>
@@ -1826,7 +1826,7 @@ export default function OpenPositionsPage() {
 
       {/* Bulk Delete Confirm */}
       {showBulkDeleteConfirm && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
           <div style={{ width: '400px', padding: '20px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 800 }}>Confirm Bulk Delete</h4>
             <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>Are you sure you want to delete {selectedIds.length} selected open positions?</p>
@@ -1840,7 +1840,7 @@ export default function OpenPositionsPage() {
 
       {/* CSV Bulk Import Wizard overlay */}
       {showImportWizard && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 105 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
           <div style={{ width: '800px', maxHeight: '85vh', padding: '24px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
             {/* Header */}
