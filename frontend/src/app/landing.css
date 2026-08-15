@@ -68,15 +68,15 @@ body {
 
 .lp-logo-container {
   background-color: var(--lp-dark);
-  padding: 8px 16px;
-  border-radius: 8px;
-  display: flex;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .lp-logo-img {
-  height: 24px;
+  height: 38px;
   object-fit: contain;
 }
 
