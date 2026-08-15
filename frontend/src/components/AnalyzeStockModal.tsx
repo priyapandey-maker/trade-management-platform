@@ -29,15 +29,6 @@ export const AnalyzeStockModal: React.FC<AnalyzeStockModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && initialSymbol) {
-      setSymbol(initialSymbol);
-      runAnalysisForSymbol(initialSymbol);
-    }
-  }, [isOpen, initialSymbol]);
-
-  if (!isOpen) return null;
-
   const runAnalysisForSymbol = async (symToAnalyze: string) => {
     if (!symToAnalyze.trim()) return;
     setLoading(true);
@@ -66,6 +57,15 @@ export const AnalyzeStockModal: React.FC<AnalyzeStockModalProps> = ({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && initialSymbol) {
+      setSymbol(initialSymbol);
+      runAnalysisForSymbol(initialSymbol);
+    }
+  }, [isOpen, initialSymbol]);
+
+  if (!isOpen) return null;
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();

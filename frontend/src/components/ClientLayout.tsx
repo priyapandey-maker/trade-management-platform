@@ -67,16 +67,16 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-base)', color: 'var(--color-text-primary)', fontFamily: 'system-ui, sans-serif' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '36px', marginBottom: '12px' }}>▲</div>
-          <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '0.05em' }}>Connecting to Shree Associates Terminal...</div>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img src="/shree_logo_full.png" alt="Shree Associates" width="180" style={{ objectFit: 'contain' }} className="theme-logo" />
+          <div style={{ fontSize: '13px', fontWeight: 600, marginTop: '16px', color: 'var(--color-text-secondary)' }}>Connecting to terminal...</div>
         </div>
       </div>
     );
   }
 
-  // Login page layout (no Sidebar / Header)
-  if (pathname === '/login') {
+  // Public pages: no sidebar / header
+  if (pathname === '/login' || pathname === '/') {
     return <>{children}</>;
   }
 

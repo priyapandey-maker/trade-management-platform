@@ -46,21 +46,13 @@ export default function LoginPage() {
       }}>
         
         {/* Branding header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 900,
-            color: '#FFFFFF',
-            letterSpacing: '0.05em',
-            margin: '0 0 4px 0'
-          }}>
-            SHREE ASSOCIATES
-          </h1>
+        <div style={{ textAlign: 'center', marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img src="/shree_logo_full.png" alt="Shree Associates" width="200" style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
           <p style={{
             fontSize: '13px',
             color: '#94A3B8',
             fontWeight: 600,
-            margin: 0
+            margin: '12px 0 0 0'
           }}>
             Trade Management & Portfolio Analytics
           </p>

@@ -180,7 +180,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   <Menu size={22} />
                 </button>
                 <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-                  <Image src="/logo-monogram.svg" alt="SA" width={28} height={28} style={{ filter: 'brightness(0) invert(1)' }} priority />
+                  <Image src="/shree_logo_full.png" alt="Shree Associates" width={140} height={32} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }} priority />
                 </Link>
               </div>
 
@@ -248,13 +248,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         >
           {/* LEFT SECTION */}
           <div style={{ display: 'flex', alignItems: 'center', width: '280px', gap: '20px' }}>
-            <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '32px', height: '32px', position: 'relative' }}>
-                <Image src="/logo-monogram.svg" alt="SA" width={32} height={32} style={{ filter: 'brightness(0) invert(1)' }} priority />
-              </div>
-              <div style={{ fontSize: '15px', fontWeight: 900, color: textCol, letterSpacing: '0.05em' }}>
-                SHREE ASSOCIATES
-              </div>
+            <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+              <Image src="/shree_logo_full.png" alt="Shree Associates" width={180} height={40} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }} priority />
             </Link>
           </div>
 

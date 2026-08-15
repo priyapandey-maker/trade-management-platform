@@ -503,6 +503,8 @@ export const SellPositionModal: React.FC<SellPositionModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [now] = useState(() => Date.now());
+
   useEffect(() => {
     if (isOpen && position) {
       setSellingPrice((position.currentPrice || position.buyPrice).toFixed(2));
@@ -521,8 +523,8 @@ export const SellPositionModal: React.FC<SellPositionModalProps> = ({
   const realisedProfit = exitValue - investedAmount - numBrokerage;
   const returnPct = investedAmount > 0 ? (realisedProfit / investedAmount) * 100 : 0;
 
-  const startMs = position.createdAt ? new Date(position.createdAt).getTime() : Date.now();
-  const endMs = sellingDate ? new Date(sellingDate).getTime() : Date.now();
+  const startMs = position.createdAt ? new Date(position.createdAt).getTime() : now;
+  const endMs = sellingDate ? new Date(sellingDate).getTime() : now;
   const holdingDays = Math.max(0, Math.floor((endMs - startMs) / (1000 * 60 * 60 * 24)));
 
   const handleSubmit = async (e: React.FormEvent) => {
