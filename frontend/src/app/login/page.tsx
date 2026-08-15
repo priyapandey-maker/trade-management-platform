@@ -47,7 +47,7 @@ export default function LoginPage() {
         
         {/* Branding header */}
         <div style={{ textAlign: 'center', marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src="/shree_logo_full.png" alt="Shree Associates" width="200" style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+          <img src="/shree_logo_full.png" alt="Shree Associates" width="280" style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
           <p style={{
             fontSize: '13px',
             color: '#94A3B8',

@@ -68,7 +68,7 @@ const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-base)', color: 'var(--color-text-primary)', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src="/shree_logo_full.png" alt="Shree Associates" width="180" style={{ objectFit: 'contain' }} className="theme-logo" />
+          <img src="/shree_logo_full.png" alt="Shree Associates" width="280" style={{ objectFit: 'contain' }} className="theme-logo" />
           <div style={{ fontSize: '13px', fontWeight: 600, marginTop: '16px', color: 'var(--color-text-secondary)' }}>Connecting to terminal...</div>
         </div>
       </div>
