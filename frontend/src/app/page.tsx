@@ -90,7 +90,7 @@ const DashboardPreview: React.FC = () => {
                   </linearGradient>
                 </defs>
                 <polygon points={`0,60 ${linePoints} 320,60`} fill="url(#lp-grad)" />
-                <polyline points={linePoints} fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline className="lp-chart-line" points={linePoints} fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 <circle cx="320" cy="22" r="4" fill="#2563EB" stroke="#FFFFFF" strokeWidth="2" />
               </svg>
             </div>
@@ -100,7 +100,7 @@ const DashboardPreview: React.FC = () => {
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E293B', marginBottom: '16px' }}>Top Movers</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {positions.slice(0,4).map((p) => (
-                  <div key={p.ticker} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={p.ticker} className="lp-preview-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{p.ticker}</span>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: p.pos ? '#10B981' : '#EF4444' }}>{p.pct}</span>
                   </div>
@@ -169,8 +169,10 @@ export default function IndexPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAFAFA' }}>
-        <div style={{ textAlign: 'center' }}>
-          <img src="/shree_logo_full.png" alt="Shree Associates" width="160" style={{ objectFit: 'contain' }} />
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div className="lp-logo-container">
+            <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img" />
+          </div>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#64748B', marginTop: 12 }}>Loading...</div>
         </div>
       </div>
@@ -187,7 +189,9 @@ export default function IndexPage() {
       {/* Navbar */}
       <nav className={`lp-nav ${scrolled ? 'scrolled' : ''}`}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/shree_logo_full.png" alt="Shree Associates" width="180" style={{ objectFit: 'contain' }} />
+          <div className="lp-logo-container">
+            <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img" />
+          </div>
         </div>
         <div className="lp-nav-actions">
           <Link href="/login" className="lp-btn-ghost">Login</Link>
@@ -285,7 +289,7 @@ export default function IndexPage() {
                 { ticker: 'HDFCBANK', qty: '2,000', value: '₹30,04,400', pct: '+2.9%', pos: true },
                 { ticker: 'INFY', qty: '800', value: '₹14,47,520', pct: '-1.3%', pos: false },
               ].map((row) => (
-                <div key={row.ticker} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '12px', padding: '12px 0', borderBottom: '1px solid #F1F5F9', alignItems: 'center' }}>
+                <div key={row.ticker} className="lp-preview-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '12px', padding: '12px', borderBottom: '1px solid #F1F5F9', alignItems: 'center' }}>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>{row.ticker}</div>
                   <div style={{ fontSize: '14px', color: '#475569', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.qty}</div>
                   <div style={{ fontSize: '14px', color: '#1E293B', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>{row.value}</div>
@@ -345,7 +349,9 @@ export default function IndexPage() {
         <div className="lp-container">
           <div className="lp-footer-content">
             <div>
-              <img src="/shree_logo_full.png" alt="Shree Associates" width="160" style={{ objectFit: 'contain', filter: 'grayscale(100%) opacity(70%)', marginBottom: '12px' }} />
+              <div className="lp-logo-container" style={{ marginBottom: '16px', display: 'inline-flex' }}>
+                <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img" style={{ filter: 'grayscale(100%) opacity(80%)' }} />
+              </div>
               <div className="lp-footer-copy">
                 &copy; {currentYear} Shree Associates. Trade & Portfolio Management.
               </div>
