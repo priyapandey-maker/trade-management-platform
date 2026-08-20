@@ -54,8 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Watch unauthenticated redirects
   useEffect(() => {
     if (!loading) {
-      if (!token && pathname !== '/') {
-        // No token: send user to landing page
+      if (!token && pathname !== '/' && pathname !== '/login') {
+        // No token and not on a public page: send user to landing page
         router.replace('/');
       } else if (token && (pathname === '/login' || pathname === '/')) {
         // Authenticated user should go to dashboard
