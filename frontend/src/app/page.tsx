@@ -34,9 +34,9 @@ const DashboardPreview: React.FC = () => {
   const linePoints = '0,52 40,44 80,38 120,42 160,28 200,24 240,30 280,18 320,22';
 
   return (
-    <div style={{
-      width: '100%',
-      height: '100%',
+    <div className="lp-preview-inner" style={{
+      width: '1000px',
+      height: '528px',
       display: 'flex',
       flexDirection: 'column',
     }}>
