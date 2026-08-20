@@ -54,10 +54,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Watch unauthenticated redirects
   useEffect(() => {
     if (!loading) {
-      if (!token && pathname !== '/login' && pathname !== '/') {
-        router.replace('/login');
+      if (!token && pathname !== '/') {
+        // No token: send user to landing page
+        router.replace('/');
       } else if (token && (pathname === '/login' || pathname === '/')) {
-        router.replace('/open'); // redirect to dashboard/open positions if logged in
+        // Authenticated user should go to dashboard
+        router.replace('/open');
       }
     }
   }, [token, pathname, loading, router]);

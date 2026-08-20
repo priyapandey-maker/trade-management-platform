@@ -35,8 +35,6 @@ const DashboardPreview: React.FC = () => {
 
   return (
     <div className="lp-preview-inner" style={{
-      width: '1000px',
-      height: '528px',
       display: 'flex',
       flexDirection: 'column',
     }}>
