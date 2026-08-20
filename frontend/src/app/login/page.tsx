@@ -236,6 +236,50 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Quick Demo Credentials */}
+        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #1f2937', textAlign: 'center' }}>
+          <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px', fontFamily: 'var(--font-mono)' }}>
+            Quick Account Access
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => { setEmail('pandeyanuj278@gmail.com'); setPassword('shree123'); }}
+              style={{
+                flex: 1,
+                padding: '8px 10px',
+                borderRadius: '6px',
+                border: '1px solid #1f2937',
+                backgroundColor: '#07090e',
+                color: '#818cf8',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-mono)'
+              }}
+            >
+              Fill Owner
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEmail('client@shree.com'); setPassword('client123'); }}
+              style={{
+                flex: 1,
+                padding: '8px 10px',
+                borderRadius: '6px',
+                border: '1px solid #1f2937',
+                backgroundColor: '#07090e',
+                color: '#10b981',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-mono)'
+              }}
+            >
+              Fill Client
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
