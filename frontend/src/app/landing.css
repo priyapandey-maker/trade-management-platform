@@ -324,7 +324,7 @@ body {
 /* Capabilities Grid */
 .lp-cap-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 }
 .lp-cap-card {
@@ -549,5 +549,39 @@ body {
   }
   .lp-nav {
     padding: 0 20px;
+  }
+  .lp-hero-ctas {
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 20px;
+  }
+  .lp-hero-ctas > * {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .lp-hero-headline {
+    font-size: 32px;
+  }
+  .lp-hero-subtitle {
+    font-size: 16px;
+  }
+  .lp-nav {
+    padding: 0 16px;
+  }
+  .lp-nav-actions {
+    gap: 8px;
+  }
+  .lp-btn-primary {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+  .lp-btn-ghost {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  .lp-logo-img {
+    height: 40px;
   }
 }

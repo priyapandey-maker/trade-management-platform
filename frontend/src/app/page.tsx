@@ -62,9 +62,6 @@ const DashboardPreview: React.FC = () => {
           <div className="lp-preview-sidebar-item">
             <Activity size={16} /> Positions
           </div>
-          <div className="lp-preview-sidebar-item">
-            <Users size={16} /> Investors
-          </div>
         </div>
 
         <div className="lp-preview-content">
@@ -79,20 +76,11 @@ const DashboardPreview: React.FC = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-            {/* Chart Area */}
-            <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '20px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E293B', marginBottom: '16px' }}>Performance (YTD)</div>
-              <svg viewBox="0 0 320 60" preserveAspectRatio="none" style={{ width: '100%', height: '140px', overflow: 'visible' }}>
-                <defs>
-                  <linearGradient id="lp-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563EB" stopOpacity="0.2" />
-                    <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <polygon points={`0,60 ${linePoints} 320,60`} fill="url(#lp-grad)" />
-                <polyline className="lp-chart-line" points={linePoints} fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="320" cy="22" r="4" fill="#2563EB" stroke="#FFFFFF" strokeWidth="2" />
-              </svg>
+            {/* Performance Overview (No Chart) */}
+            <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E293B', marginBottom: '8px' }}>Performance (YTD)</div>
+              <div style={{ fontSize: '36px', fontWeight: 800, color: '#10B981' }}>+12.4%</div>
+              <div style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>Consistent growth over the last 12 months.</div>
             </div>
 
             {/* Positions */}
@@ -247,14 +235,9 @@ export default function IndexPage() {
                 desc: 'Track active and closed positions with entry, value, and P&L.'
               },
               {
-                icon: LineChart,
-                title: 'Performance Tracking',
-                desc: 'Understand how your portfolio is performing over time.'
-              },
-              {
-                icon: Users,
-                title: 'Investor Management',
-                desc: 'Keep investor-level activity and portfolio information organized.'
+                icon: Activity,
+                title: 'Live Market Data',
+                desc: 'Current market prices integrated directly into your positions.'
               }
             ].map(({ icon: Icon, title, desc }, i) => (
               <div key={title} className={`lp-cap-card lp-reveal lp-delay-${i + 1}`}>
@@ -362,7 +345,6 @@ export default function IndexPage() {
               <Link href="/portfolio" className="lp-footer-link">Portfolio</Link>
               <Link href="/open" className="lp-footer-link">Open Positions</Link>
               <Link href="/closed" className="lp-footer-link">Closed Positions</Link>
-              <Link href="/investors" className="lp-footer-link">Investors</Link>
             </div>
           </div>
         </div>

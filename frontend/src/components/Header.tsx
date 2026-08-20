@@ -216,7 +216,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                       {user?.role === 'OWNER' && (
                         <>
                           <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} className="dropdown-menu-item"><Users size={14} /> Manage Clients</button>
-                          <Link href="/settings" onClick={() => setShowProfileMenu(false)} className="dropdown-menu-item"><Settings size={14} /> Settings</Link>
                         </>
                       )}
 
@@ -322,7 +321,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   {user?.role === 'OWNER' && (
                     <>
                       <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} className="dropdown-menu-item"><Users size={14} /> Manage Clients</button>
-                      <Link href="/settings" onClick={() => setShowProfileMenu(false)} className="dropdown-menu-item"><Settings size={14} /> Settings</Link>
                     </>
                   )}
 

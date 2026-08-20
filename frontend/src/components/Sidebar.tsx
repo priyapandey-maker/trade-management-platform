@@ -28,7 +28,6 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
   const navItems = [
     { name: 'Portfolio', href: '/portfolio', icon: <PieChart size={18} /> },
     { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
-    { name: 'Investors', href: '/investors', icon: <Users size={18} /> },
     { name: 'Open Positions', href: '/open', icon: <Briefcase size={18} /> },
     { name: 'Closed Positions', href: '/closed', icon: <CheckCircle size={18} /> },
   ];
@@ -123,29 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               );
             })}
           </nav>
-          <div style={{ padding: '12px', borderTop: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <Link
-              href="/settings"
-              onClick={onClose}
-              title="Settings"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                color: pathname === '/settings' || pathname.startsWith('/settings') ? '#2563EB' : subTextCol,
-                backgroundColor: pathname === '/settings' || pathname.startsWith('/settings') ? '#EFF6FF' : 'transparent',
-                transition: 'all 0.15s ease',
-                textDecoration: 'none',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-            >
-              <Settings size={18} />
-            </Link>
-
+          <div style={{ padding: '12px', borderTop: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             <button
               onClick={() => {
                 onClose?.();
@@ -234,29 +211,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         })}
       </nav>
 
-      {/* Footer: Settings + Logout side-by-side */}
-      <div style={{ padding: '12px', borderTop: `1px solid ${borderCol}`, marginTop: 'auto', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', gap: '8px' }}>
-        <Link
-          href="/settings"
-          title="Settings"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            color: pathname === '/settings' || pathname.startsWith('/settings') ? '#2563EB' : subTextCol,
-            backgroundColor: pathname === '/settings' || pathname.startsWith('/settings') ? '#EFF6FF' : 'transparent',
-            transition: 'all 0.15s ease',
-            textDecoration: 'none',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          <Settings size={18} />
-        </Link>
-
+      {/* Footer: Logout */}
+      <div style={{ padding: '12px', borderTop: `1px solid ${borderCol}`, marginTop: 'auto', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
         {!isCollapsed && (
           <button
             onClick={logout}

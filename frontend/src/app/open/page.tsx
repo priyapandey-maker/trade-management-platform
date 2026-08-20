@@ -1023,7 +1023,7 @@ export default function OpenPositionsPage() {
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ backgroundColor: '#F8FAFC', borderBottom: `2px solid ${borderCol}`, color: subTextCol, textAlign: 'left' }}>
                   {user?.role === 'OWNER' && <th style={{ padding: '14px', width: '30px', textAlign: 'center' }}>✓</th>}

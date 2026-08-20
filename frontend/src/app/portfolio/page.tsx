@@ -426,6 +426,7 @@ export default function PortfolioPage() {
                       <div style={{ fontSize: '13.5px', fontWeight: 800, color: textCol, marginTop: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {insight.company} ({insight.symbol})
                       </div>
+
                     </div>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: insight.color, textAlign: 'right', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                       {insight.detail}
@@ -534,7 +535,7 @@ export default function PortfolioPage() {
               <div style={{ padding: '16px', textAlign: 'center', color: subTextCol, fontStyle: 'italic' }}>No investors found.</div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', whiteSpace: 'nowrap' }}>
                   <thead>
                     <tr style={{ borderBottom: `2px solid ${borderCol}`, color: subTextCol }}>
                       <th style={{ padding: '10px', fontWeight: 700, textAlign: 'left' }}>Investor</th>
@@ -585,7 +586,7 @@ export default function PortfolioPage() {
               <div style={{ padding: '16px', textAlign: 'center', color: subTextCol, fontStyle: 'italic' }}>No active positions currently held.</div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', whiteSpace: 'nowrap' }}>
                   <thead>
                     <tr style={{ borderBottom: `2px solid ${borderCol}`, color: subTextCol }}>
                       <th style={{ padding: '10px', fontWeight: 700, textAlign: 'left' }}>Symbol</th>

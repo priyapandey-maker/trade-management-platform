@@ -4,11 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
 import { useQuery } from '@tanstack/react-query';
-import {
-  ResponsiveContainer,
-  AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip
-} from 'recharts';
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Link from 'next/link';
@@ -358,21 +354,16 @@ export default function DashboardPage() {
             
             <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {hasHistoricalData ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={performanceChartData}>
-                    <defs>
-                      <linearGradient id="colorGrowthDashboard" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={chartThemeColor} stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor={chartThemeColor} stopOpacity={0.0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                    <XAxis dataKey="date" stroke={subTextCol} fontSize={10} tickLine={false} />
-                    <YAxis stroke={subTextCol} fontSize={10} width={50} tickFormatter={(val) => `₹${(val / 100000).toFixed(1)}L`} />
-                    <Tooltip formatter={(value: any) => `₹${value.toLocaleString('en-IN')}`} />
-                    <Area type="monotone" dataKey="Gain" stroke={chartThemeColor} strokeWidth={2.5} fillOpacity={1} fill="url(#colorGrowthDashboard)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', paddingRight: '8px' }}>
+                  {[...performanceChartData].reverse().slice(0, 10).map((day: any, idx: number) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: idx < 9 ? `1px solid ${borderCol}` : 'none' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: textCol }}>{day.date}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: day.Gain >= 0 ? '#10B981' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatFinancialValue(day.Gain)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '24px' }}>
                   <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>
@@ -479,13 +470,10 @@ export default function DashboardPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'center' }}>
                 {allocationData.map((item: any) => (
-                  <div key={item.symbol} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ width: '70px', fontSize: '12.5px', fontWeight: 800, color: textCol }}>{item.symbol}</div>
-                    <div style={{ flex: 1, height: '7px', backgroundColor: '#F1F5F9', borderRadius: '4px', margin: '0 12px', overflow: 'hidden' }}>
-                      <div style={{ width: `${item.percentage}%`, height: '100%', backgroundColor: '#2563EB', borderRadius: '4px' }} />
-                    </div>
-                    <div style={{ width: '45px', textAlign: 'right', fontSize: '12px', fontWeight: 800, color: textCol }}>
-                      {item.percentage.toFixed(0)}%
+                  <div key={item.symbol} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${borderCol}` }}>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: textCol }}>{item.symbol}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#2563EB', fontVariantNumeric: 'tabular-nums' }}>
+                      {item.percentage.toFixed(1)}%
                     </div>
                   </div>
                 ))}
@@ -546,7 +534,7 @@ export default function DashboardPage() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'left' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'left', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ borderBottom: `2px solid ${borderCol}`, color: subTextCol }}>
                   <th style={{ padding: '8px 10px', fontWeight: 700 }}>Symbol</th>
