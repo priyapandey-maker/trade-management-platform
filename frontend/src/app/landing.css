@@ -86,6 +86,30 @@ body {
   gap: 16px;
 }
 
+/* Header Component Alignment Fix */
+.lp-nav-logo {
+  height: 36px;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+.lp-nav-logo .lp-logo-img {
+  height: 20px !important;
+}
+.lp-nav-btn {
+  height: 36px;
+  padding: 0 16px !important;
+  font-size: 13px !important;
+  box-sizing: border-box;
+}
+.lp-nav .lp-btn-ghost {
+  height: 36px;
+  padding: 0 12px !important;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+}
+
 /* Buttons */
 .lp-btn-primary, .lp-btn-outline, .lp-btn-ghost {
   display: inline-flex;

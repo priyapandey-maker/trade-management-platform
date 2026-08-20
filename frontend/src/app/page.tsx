@@ -177,13 +177,13 @@ export default function IndexPage() {
       {/* Navbar */}
       <nav className={`lp-nav ${scrolled ? 'scrolled' : ''}`}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div className="lp-logo-container">
+          <div className="lp-logo-container lp-nav-logo">
             <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img" />
           </div>
         </div>
         <div className="lp-nav-actions">
           <Link href="/login" className="lp-btn-ghost">Login</Link>
-          <Link href="/login" className="lp-btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+          <Link href="/login" className="lp-btn-primary lp-nav-btn">
             Enter Terminal <ArrowRight size={14} />
           </Link>
         </div>
