@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
-import { Menu, Search, User, X, LogOut, Users, Settings } from 'lucide-react';
+import { Menu, Search, User, X, LogOut, Users } from 'lucide-react';
 import Image from 'next/image';
 
 interface HeaderProps {
@@ -26,8 +26,6 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
   // Mobile search state
   const [showMobileSearch, setShowMobileSearch] = useState(false);
-
-
 
   // Global search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -92,29 +90,31 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     }
   };
 
-  const bgCol = '#2563EB'; // Deep Blue Top Bar
-  const borderCol = 'transparent';
-  const textCol = '#FFFFFF';
-  const subTextCol = '#EFF6FF'; // Very light blue for secondary icons/text
+  const bgCol = 'rgba(7, 9, 14, 0.9)'; // Dark Obsidian Glass
+  const borderCol = '#1f2937';
+  const textCol = '#f8fafc';
+  const subTextCol = '#94a3b8';
 
   return (
     <>
       {isMobile ? (
         <header
           style={{
-            height: '70px',
+            height: '74px',
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             backgroundColor: bgCol,
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             borderBottom: `1px solid ${borderCol}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0 16px',
             zIndex: 110,
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            fontFamily: 'var(--font-sans)',
           }}
         >
           {showMobileSearch ? (
@@ -126,7 +126,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               >
                 <X size={18} />
               </button>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: '#F8FAFC', border: `1px solid ${borderCol}`, borderRadius: '8px', padding: '8px 12px' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: '#0d121f', border: `1px solid ${borderCol}`, borderRadius: '8px', padding: '6px 12px' }}>
                 <input
                   type="text"
                   placeholder="Search Symbol..."
@@ -139,15 +139,15 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               {searchTerm.trim() && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: subTextCol, fontSize: '14px' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: subTextCol, fontSize: '13px' }}
                 >
                   Clear
                 </button>
               )}
               
-              {/* Search results drawer on mobile search mode */}
+              {/* Search results drawer */}
               {searchResults.length > 0 && (
-                <div style={{ position: 'absolute', top: '70px', left: 0, right: 0, backgroundColor: '#FFFFFF', borderBottom: `1px solid ${borderCol}`, boxShadow: '0 12px 30px rgba(0,0,0,0.15)', maxHeight: 'calc(100vh - 70px)', overflowY: 'auto', zIndex: 50, padding: '8px' }}>
+                <div style={{ position: 'absolute', top: '74px', left: 0, right: 0, backgroundColor: '#0d121f', borderBottom: `1px solid ${borderCol}`, boxShadow: '0 12px 30px rgba(0,0,0,0.5)', maxHeight: 'calc(100vh - 74px)', overflowY: 'auto', zIndex: 50, padding: '8px' }}>
                   {searchResults.map((res) => (
                     <div key={res.id} onClick={() => { setShowSearchResults(false); setShowMobileSearch(false); setSearchTerm(''); window.location.href = res.status === 'CLOSED' ? '/closed' : '/open'; }} style={{ padding: '12px', borderBottom: `1px solid ${borderCol}`, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: textCol }}>
                       <div>
@@ -171,21 +171,22 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     border: 'none',
                     cursor: 'pointer',
                     color: textCol,
-                    fontSize: '22px',
                     padding: '6px',
                     display: 'flex',
                     alignItems: 'center',
                   }}
                 >
-                  <Menu size={22} />
+                  <Menu size={20} />
                 </button>
+                
                 <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-                  <Image src="/shree_logo_full.png" alt="Shree Associates" width={220} height={46} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }} priority />
+                  <div className="lp-nav-logo-container" style={{ height: '48px', padding: '0 14px' }}>
+                    <Image src="/shree_logo_full.png" alt="Shree Associates" width={220} height={48} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', height: '32px', width: 'auto' }} priority />
+                  </div>
                 </Link>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {/* Search Toggle Icon */}
                 <button
                   onClick={() => setShowMobileSearch(true)}
                   aria-label="Search"
@@ -194,29 +195,25 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                     background: 'none',
                     border: 'none',
                     color: textCol,
-                    fontSize: '16px',
                     cursor: 'pointer',
                   }}
                 >
                   <Search size={18} />
                 </button>
 
-                {/* Profile dropdown */}
                 <div style={{ position: 'relative' }}>
-                  <button onClick={() => setShowProfileMenu(!showProfileMenu)} aria-label="Profile" style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: textCol, fontSize: '16px', padding: '8px' }}>
+                  <button onClick={() => setShowProfileMenu(!showProfileMenu)} aria-label="Profile" style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', color: textCol, padding: '8px' }}>
                     <User size={18} />
                   </button>
                   {showProfileMenu && (
-                    <div style={{ position: 'absolute', top: '42px', right: 0, width: '210px', backgroundColor: '#FFFFFF', border: `1px solid #E2E8F0`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px 0' }}>
-                      <div style={{ padding: '8px 16px', borderBottom: `1px solid #E2E8F0`, fontSize: '11.5px', color: '#64748B' }}>
+                    <div style={{ position: 'absolute', top: '42px', right: 0, width: '220px', backgroundColor: '#0d121f', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 50, padding: '6px 0' }}>
+                      <div style={{ padding: '8px 16px', borderBottom: `1px solid ${borderCol}`, fontSize: '11.5px', color: subTextCol }}>
                         Logged in as <br />
-                        <strong style={{ color: '#0F172A', fontSize: '12.5px' }}>{user?.email}</strong>
+                        <strong style={{ color: textCol, fontSize: '12.5px' }}>{user?.email}</strong>
                       </div>
 
                       {user?.role === 'OWNER' && (
-                        <>
-                          <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} className="dropdown-menu-item"><Users size={14} /> Manage Clients</button>
-                        </>
+                        <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} className="dropdown-menu-item"><Users size={14} /> Manage Clients</button>
                       )}
 
                       <button onClick={logout} className="dropdown-menu-item-danger"><LogOut size={14} /> Sign Out</button>
@@ -230,53 +227,54 @@ export const Header: React.FC<HeaderProps> = React.memo(({
       ) : (
         <header
           style={{
-            height: '70px',
+            height: '74px',
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             backgroundColor: bgCol,
-            borderBottom: 'none',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderBottom: `1px solid ${borderCol}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '0 28px',
             zIndex: 110,
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            fontFamily: 'var(--font-sans)',
           }}
         >
           {/* LEFT SECTION */}
           <div style={{ display: 'flex', alignItems: 'center', width: '280px', gap: '20px' }}>
             <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-              <Image src="/shree_logo_full.png" alt="Shree Associates" width={260} height={52} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }} priority />
+              <div className="lp-nav-logo-container" style={{ height: '48px', padding: '0 18px' }}>
+                <Image src="/shree_logo_full.png" alt="Shree Associates" width={260} height={48} style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)', height: '36px', width: 'auto' }} priority />
+              </div>
             </Link>
           </div>
 
           {/* MIDDLE SECTION: Centered Search Bar */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <div style={{ position: 'relative', width: '280px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '6px 12px', transition: 'background 0.2s' }}
-                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'}
-                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}>
-                <Search size={14} style={{ color: '#FFFFFF', marginRight: '8px' }} />
+            <div style={{ position: 'relative', width: '320px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#0d121f', border: `1px solid ${borderCol}`, borderRadius: '8px', padding: '6px 12px', transition: 'border-color 0.2s' }}>
+                <Search size={14} style={{ color: subTextCol, marginRight: '8px' }} />
                 <input
                   type="text"
-                  className="header-search-input"
-                  placeholder="Search Symbol..."
+                  placeholder="Search Symbol or Company..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onFocus={() => searchTerm.trim() && setShowSearchResults(true)}
-                  style={{ width: '100%', border: 'none', background: 'transparent', color: '#FFFFFF', fontSize: '12.5px', outline: 'none' }}
+                  style={{ width: '100%', border: 'none', background: 'transparent', color: textCol, fontSize: '12.5px', outline: 'none' }}
                 />
               </div>
 
               {showSearchResults && searchResults.length > 0 && (
-                <div style={{ position: 'absolute', top: '42px', left: 0, right: 0, backgroundColor: '#FFFFFF', border: `1px solid #E2E8F0`, borderRadius: '8px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', maxHeight: '300px', overflowY: 'auto', zIndex: 50, padding: '4px' }}>
+                <div style={{ position: 'absolute', top: '42px', left: 0, right: 0, backgroundColor: '#0d121f', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 12px 30px rgba(0,0,0,0.5)', maxHeight: '300px', overflowY: 'auto', zIndex: 50, padding: '4px' }}>
                   {searchResults.map((res) => (
-                    <div key={res.id} onClick={() => { setShowSearchResults(false); setSearchTerm(''); window.location.href = res.status === 'CLOSED' ? '/closed' : '/open'; }} className="hover-row" style={{ padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: '#0F172A' }}>
+                    <div key={res.id} onClick={() => { setShowSearchResults(false); setSearchTerm(''); window.location.href = res.status === 'CLOSED' ? '/closed' : '/open'; }} className="hover-row" style={{ padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: textCol }}>
                       <div>
                         <span style={{ fontWeight: 800 }}>{res.symbol}</span>
-                        <span style={{ marginLeft: '8px', color: '#64748B', fontSize: '11.5px' }}>{res.company}</span>
+                        <span style={{ marginLeft: '8px', color: subTextCol, fontSize: '11.5px' }}>{res.company}</span>
                       </div>
                     </div>
                   ))}
@@ -285,10 +283,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             </div>
           </div>
 
-          {/* RIGHT SECTION: Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'flex-end' }}>
-            
-            {/* PROFILE MENU */}
+          {/* RIGHT SECTION: Profile Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', justifyContent: 'flex-end' }}>
             <div style={{ position: 'relative' }}>
               <button 
                 onClick={() => setShowProfileMenu(!showProfileMenu)} 
@@ -296,32 +292,31 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '8px', 
-                  padding: '7px 14px', 
+                  height: '38px',
+                  padding: '0 14px', 
                   borderRadius: '8px', 
-                  border: '1px solid rgba(255, 255, 255, 0.25)', 
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)', 
-                  color: '#FFFFFF', 
+                  border: `1px solid ${borderCol}`, 
+                  backgroundColor: '#0d121f', 
+                  color: textCol, 
                   cursor: 'pointer', 
                   fontSize: '12.5px', 
-                  fontWeight: 700,
-                  transition: 'background-color 0.2s ease-out'
+                  fontWeight: 600,
+                  transition: 'border-color 0.2s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'}
               >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><User size={16} /> {user?.name || 'Analyst'}</span>
+                <User size={15} style={{ color: '#818cf8' }} />
+                <span>{user?.name || 'Analyst'}</span>
               </button>
+
               {showProfileMenu && (
-                <div style={{ position: 'absolute', top: '42px', right: 0, width: '210px', backgroundColor: '#FFFFFF', border: `1px solid #E2E8F0`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', zIndex: 50, padding: '6px 0' }}>
-                  <div style={{ padding: '8px 16px', borderBottom: `1px solid #E2E8F0`, fontSize: '11.5px', color: '#64748B' }}>
+                <div style={{ position: 'absolute', top: '44px', right: 0, width: '220px', backgroundColor: '#0d121f', border: `1px solid ${borderCol}`, borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 50, padding: '6px 0' }}>
+                  <div style={{ padding: '8px 16px', borderBottom: `1px solid ${borderCol}`, fontSize: '11.5px', color: subTextCol }}>
                     Logged in as <br />
-                    <strong style={{ color: '#0F172A', fontSize: '12.5px' }}>{user?.email}</strong>
+                    <strong style={{ color: textCol, fontSize: '12.5px' }}>{user?.email}</strong>
                   </div>
 
                   {user?.role === 'OWNER' && (
-                    <>
-                      <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} className="dropdown-menu-item"><Users size={14} /> Manage Clients</button>
-                    </>
+                    <button onClick={() => { setShowProfileMenu(false); setShowManageClients(true); }} className="dropdown-menu-item"><Users size={14} /> Manage Clients</button>
                   )}
 
                   <button onClick={logout} className="dropdown-menu-item-danger"><LogOut size={14} /> Sign Out</button>
@@ -334,28 +329,30 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
       {/* Owner Manage Clients Modal */}
       {showManageClients && user?.role === 'OWNER' && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ width: '460px', padding: '24px', backgroundColor: '#FFFFFF', color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(7, 9, 14, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ width: '440px', padding: '24px', backgroundColor: '#0d121f', color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}><Users size={18} /> Manage Client Accounts</h3>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', color: textCol }}>
+                <Users size={18} style={{ color: '#818cf8' }} /> Manage Client Accounts
+              </h3>
               <button onClick={() => setShowManageClients(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: subTextCol }}><X size={18} /></button>
             </div>
 
             {clientMsg && (
-              <div style={{ padding: '10px', borderRadius: '6px', fontSize: '12px', marginBottom: '14px', backgroundColor: clientMsg.startsWith('✅') ? '#DCFCE7' : '#FEE2E2', color: clientMsg.startsWith('✅') ? '#15803D' : '#991B1B' }}>
+              <div style={{ padding: '10px', borderRadius: '6px', fontSize: '12px', marginBottom: '14px', backgroundColor: clientMsg.startsWith('✅') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: clientMsg.startsWith('✅') ? '#10b981' : '#ef4444', border: `1px solid ${clientMsg.startsWith('✅') ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}` }}>
                 {clientMsg}
               </div>
             )}
 
-            <form onSubmit={handleCreateClient} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <h4 style={{ margin: 0, fontSize: '12.5px', fontWeight: 700, color: subTextCol }}>Create New Client Account</h4>
-              <input type="text" placeholder="Client Full Name" value={clientName} onChange={(e) => setClientName(e.target.value)} required style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
-              <input type="email" placeholder="Client Email Address" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
-              <input type="password" placeholder="Client Initial Password" value={clientPassword} onChange={(e) => setClientPassword(e.target.value)} required style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#FFFFFF', color: textCol }} />
+            <form onSubmit={handleCreateClient} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <h4 style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Create New Client Account</h4>
+              <input type="text" placeholder="Client Full Name" value={clientName} onChange={(e) => setClientName(e.target.value)} required style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#07090e', color: textCol }} />
+              <input type="email" placeholder="Client Email Address" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#07090e', color: textCol }} />
+              <input type="password" placeholder="Client Initial Password" value={clientPassword} onChange={(e) => setClientPassword(e.target.value)} required style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: '#07090e', color: textCol }} />
               
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
                 <button type="button" onClick={() => setShowManageClients(false)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '12.5px' }}>Cancel</button>
-                <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '12.5px', backgroundColor: '#16A34A' }}>Create Client Account</button>
+                <button type="submit" className="btnPrimary" style={{ padding: '8px 16px', fontSize: '12.5px', backgroundColor: '#6366f1' }}>Create Client Account</button>
               </div>
             </form>
           </div>

@@ -2,10 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Briefcase, CheckCircle, PieChart, LayoutDashboard, Users, Settings, X, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Briefcase, CheckCircle, PieChart, LayoutDashboard, X, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -25,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
   const pathname = usePathname();
   const { logout } = useAuth();
 
+  // STRICT REQUIREMENT: ONLY 4 core pages in navigation
   const navItems = [
     { name: 'Portfolio', href: '/portfolio', icon: <PieChart size={18} /> },
     { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
@@ -49,15 +49,15 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.4)',
-            backdropFilter: 'blur(3px)',
+            backgroundColor: 'rgba(7, 9, 14, 0.7)',
+            backdropFilter: 'blur(4px)',
             zIndex: 90,
             opacity: showMobile ? 1 : 0,
             pointerEvents: showMobile ? 'auto' : 'none',
             transition: 'opacity 0.2s ease-in-out',
           }}
         />
-        {/* Drawer Aside */}
+        {/* Mobile Drawer */}
         <aside
           style={{
             width: '260px',
@@ -71,11 +71,10 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             flexDirection: 'column',
             zIndex: 100,
             transform: showMobile ? 'translateX(0)' : 'translateX(-100%)',
-            transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            fontFamily: 'var(--font-sans)',
           }}
         >
-          {/* Mobile Drawer Aside */}
           <div
             style={{
               padding: '16px 20px',
@@ -85,14 +84,13 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               justifyContent: 'space-between',
             }}
           >
-            <span style={{ fontWeight: 800, color: textCol, fontSize: '14px' }}>Menu</span>
+            <span style={{ fontWeight: 800, color: textCol, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Navigation Menu</span>
             <button onClick={onClose} aria-label="Close menu" style={{ border: 'none', background: 'none', cursor: 'pointer', color: subTextCol, padding: '4px' }}>
               <X size={20} />
             </button>
           </div>
 
-          {/* Navigation Group */}
-          <nav style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+          <nav style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto' }}>
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
               return (
@@ -106,12 +104,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                     justifyContent: 'flex-start',
                     gap: '14px',
                     padding: '12px 16px',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     fontSize: '13.5px',
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive ? '#2563EB' : subTextCol,
-                    backgroundColor: isActive ? '#EFF6FF' : 'transparent',
-                    border: '1px solid transparent',
+                    color: isActive ? '#818cf8' : subTextCol,
+                    backgroundColor: isActive ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                    border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
                     transition: 'all 0.15s ease',
                     textDecoration: 'none',
                   }}
@@ -122,7 +120,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               );
             })}
           </nav>
-          <div style={{ padding: '12px', borderTop: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          
+          <div style={{ padding: '16px', borderTop: `1px solid ${borderCol}`, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
             <button
               onClick={() => {
                 onClose?.();
@@ -132,18 +131,20 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '10px 14px',
-                borderRadius: '10px',
-                fontSize: '13.5px',
+                padding: '10px 16px',
+                borderRadius: '8px',
+                fontSize: '13px',
                 fontWeight: 600,
-                color: '#EF4444',
-                backgroundColor: 'transparent',
-                border: 'none',
+                color: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
                 cursor: 'pointer',
+                width: '100%',
+                justifyContent: 'center',
                 transition: 'all 0.15s ease',
               }}
             >
-              <LogOut size={18} />
+              <LogOut size={16} />
               <span>Logout</span>
             </button>
           </div>
@@ -156,17 +157,17 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     <aside
       style={{
         width: isCollapsed ? '80px' : '260px',
-        height: 'calc(100vh - 70px)',
+        height: 'calc(100vh - 74px)',
         position: 'fixed',
-        top: '70px',
+        top: '74px',
         left: 0,
         backgroundColor: bgCol,
         borderRight: `1px solid ${borderCol}`,
         display: 'flex',
         flexDirection: 'column',
         zIndex: 40,
-        transition: 'width 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        fontFamily: 'var(--font-sans)',
       }}
     >
       <button
@@ -177,8 +178,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
       >
         {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
-      {/* Navigation Group with Enterprise Financial Icons */}
-      <nav style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+
+      <nav style={{ padding: '20px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto' }}>
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
           return (
@@ -192,12 +193,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                 justifyContent: isCollapsed ? 'center' : 'flex-start',
                 gap: '14px',
                 padding: isCollapsed ? '12px' : '12px 16px',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 fontSize: '13.5px',
                 fontWeight: isActive ? 700 : 500,
-                color: isActive ? '#2563EB' : subTextCol,
-                backgroundColor: isActive ? '#EFF6FF' : 'transparent',
-                border: '1px solid transparent',
+                color: isActive ? '#818cf8' : subTextCol,
+                backgroundColor: isActive ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
                 transition: 'all 0.15s ease',
                 textDecoration: 'none',
               }}
@@ -211,8 +212,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         })}
       </nav>
 
-      {/* Footer: Logout */}
-      <div style={{ padding: '12px', borderTop: `1px solid ${borderCol}`, marginTop: 'auto', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+      {/* Footer Logout */}
+      <div style={{ padding: '16px 12px', borderTop: `1px solid ${borderCol}`, marginTop: 'auto', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
         {!isCollapsed && (
           <button
             onClick={logout}
@@ -221,17 +222,19 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               alignItems: 'center',
               gap: '8px',
               padding: '10px 14px',
-              borderRadius: '10px',
-              fontSize: '13.5px',
+              borderRadius: '8px',
+              fontSize: '13px',
               fontWeight: 600,
-              color: '#EF4444',
-              backgroundColor: 'transparent',
-              border: 'none',
+              color: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
               cursor: 'pointer',
+              width: '100%',
+              justifyContent: 'center',
               transition: 'all 0.15s ease',
             }}
           >
-            <LogOut size={18} />
+            <LogOut size={16} />
             <span>Logout</span>
           </button>
         )}
@@ -245,15 +248,15 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               justifyContent: 'center',
               width: '40px',
               height: '40px',
-              borderRadius: '10px',
-              color: '#EF4444',
-              backgroundColor: 'transparent',
-              border: 'none',
+              borderRadius: '8px',
+              color: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
           >
-            <LogOut size={18} />
+            <LogOut size={16} />
           </button>
         )}
       </div>

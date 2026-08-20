@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { ArrowRight, LockKeyhole, Mail } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -31,42 +32,65 @@ export default function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#0F172A', // Premium Slate Dark theme for login page
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      padding: '20px'
+      backgroundColor: '#07090e',
+      backgroundImage: 'linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px)',
+      backgroundSize: '48px 48px',
+      fontFamily: 'var(--font-sans)',
+      padding: '20px',
+      position: 'relative'
     }}>
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 50% 30%, rgba(99, 102, 241, 0.15), transparent 60%)'
+      }} />
+
       <div style={{
         width: '100%',
         maxWidth: '420px',
-        backgroundColor: '#1E293B',
+        backgroundColor: '#0d121f',
         borderRadius: '16px',
-        border: '1px solid #334155',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)',
-        padding: '40px 32px'
+        border: '1px solid #1f2937',
+        boxShadow: '0 24px 90px rgba(0, 0, 0, 0.6)',
+        padding: '40px 32px',
+        position: 'relative',
+        zIndex: 10
       }}>
         
         {/* Branding header */}
         <div style={{ textAlign: 'center', marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src="/shree_logo_full.png" alt="Shree Associates" width="280" style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-          <p style={{
-            fontSize: '13px',
-            color: '#94A3B8',
-            fontWeight: 600,
-            margin: '12px 0 0 0'
+          <div style={{
+            height: '52px',
+            padding: '0 20px',
+            borderRadius: '10px',
+            backgroundColor: '#07090e',
+            border: '1px solid #1f2937',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            Trade Management & Portfolio Analytics
+            <img src="/shree_logo_full.png" alt="Shree Associates" style={{ height: '36px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+          </div>
+          <p style={{
+            fontSize: '12.5px',
+            color: '#94a3b8',
+            fontWeight: 500,
+            margin: '14px 0 0 0'
+          }}>
+            Trade Management & Portfolio Analytics Terminal
           </p>
         </div>
 
         {error && (
           <div style={{
-            backgroundColor: '#7F1D1D',
-            border: '1px solid #F87171',
-            color: '#FCA5A5',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#ef4444',
             padding: '12px 14px',
             borderRadius: '8px',
             fontSize: '13px',
-            fontWeight: 700,
+            fontWeight: 600,
             marginBottom: '20px',
             lineHeight: 1.4
           }}>
@@ -80,31 +104,36 @@ export default function LoginPage() {
               display: 'block',
               fontSize: '11px',
               fontWeight: 800,
-              color: '#94A3B8',
+              color: '#64748b',
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '6px'
+              letterSpacing: '0.08em',
+              marginBottom: '8px',
+              fontFamily: 'var(--font-mono)'
             }}>
               Email Address
             </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@gmail.com"
-              required
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                border: '1px solid #475569',
-                backgroundColor: '#0F172A',
-                color: '#FFFFFF',
-                fontSize: '14px',
-                fontWeight: 600,
-                outline: 'none'
-              }}
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Mail size={16} style={{ position: 'absolute', left: '14px', color: '#64748b' }} />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@gmail.com"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px 12px 42px',
+                  borderRadius: '8px',
+                  border: '1px solid #1f2937',
+                  backgroundColor: '#07090e',
+                  color: '#f8fafc',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
           </div>
 
           <div>
@@ -112,14 +141,16 @@ export default function LoginPage() {
               display: 'block',
               fontSize: '11px',
               fontWeight: 800,
-              color: '#94A3B8',
+              color: '#64748b',
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '6px'
+              letterSpacing: '0.08em',
+              marginBottom: '8px',
+              fontFamily: 'var(--font-mono)'
             }}>
               Password
             </label>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <LockKeyhole size={16} style={{ position: 'absolute', left: '14px', color: '#64748b' }} />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
@@ -128,13 +159,14 @@ export default function LoginPage() {
                 required
                 style={{
                   width: '100%',
-                  padding: '12px 48px 12px 16px',
+                  padding: '12px 48px 12px 42px',
                   borderRadius: '8px',
-                  border: '1px solid #475569',
-                  backgroundColor: '#0F172A',
-                  color: '#FFFFFF',
+                  border: '1px solid #1f2937',
+                  backgroundColor: '#07090e',
+                  color: '#f8fafc',
                   fontSize: '14px',
-                  outline: 'none'
+                  outline: 'none',
+                  boxSizing: 'border-box'
                 }}
               />
               <button
@@ -155,7 +187,7 @@ export default function LoginPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: isEyeHovered ? '#FFFFFF' : '#94A3B8',
+                  color: isEyeHovered ? '#f8fafc' : '#64748b',
                   padding: '4px',
                   outline: 'none',
                   transition: 'color 0.2s ease'
@@ -185,18 +217,22 @@ export default function LoginPage() {
               width: '100%',
               padding: '12px',
               borderRadius: '8px',
-              backgroundColor: '#2563EB',
-              color: '#FFFFFF',
-              fontSize: '14.5px',
-              fontWeight: 700,
+              backgroundColor: '#6366f1',
+              color: '#ffffff',
+              fontSize: '14px',
+              fontWeight: 600,
               border: 'none',
               cursor: 'pointer',
               marginTop: '10px',
-              boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.3)',
-              transition: 'background-color 0.2s ease'
+              boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease'
             }}
           >
-            {loading ? 'Verifying Account...' : 'Sign In'}
+            {loading ? 'Authenticating...' : 'Sign In'} <ArrowRight size={16} />
           </button>
         </form>
 
