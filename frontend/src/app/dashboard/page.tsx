@@ -247,7 +247,7 @@ export default function DashboardPage() {
           </h1>
           <p style={{ fontSize: '13px', color: subTextCol, margin: '4px 0 0 0' }}>Executive portfolio metrics &amp; asset valuation</p>
         </div>
-        <button onClick={exportPDF} className="btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#0d121f', color: textCol, border: `1px solid ${borderCol}` }}>
+        <button onClick={exportPDF} className="btn-secondary" style={{ padding: '9px 18px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#1e293b', color: '#f8fafc', border: '1px solid #334155', boxShadow: '0 2px 8px rgba(0,0,0,0.4)', transition: 'all 0.15s ease' }}>
           <FileText size={15} style={{ color: '#818cf8' }} /> Export PDF Report
         </button>
       </div>
@@ -344,13 +344,21 @@ export default function DashboardPage() {
                 <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>
                   Performance Leaders
                 </span>
-                <div style={{ display: 'flex', gap: '4px', backgroundColor: '#07090e', padding: '3px', borderRadius: '6px', border: `1px solid ${borderCol}` }}>
+                <div style={{ display: 'flex', gap: '4px', backgroundColor: '#07090e', padding: '4px', borderRadius: '8px', border: '1px solid #334155' }}>
                   <button 
                     onClick={() => setActiveLeaderTab('best')}
                     style={{ 
-                      border: 'none', background: activeLeaderTab === 'best' ? '#1f2937' : 'none',
-                      fontSize: '11px', fontWeight: 800, color: activeLeaderTab === 'best' ? '#818cf8' : subTextCol,
-                      padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-mono)'
+                      border: 'none',
+                      background: activeLeaderTab === 'best' ? '#6366f1' : 'transparent',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      color: activeLeaderTab === 'best' ? '#ffffff' : '#cbd5e1',
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)',
+                      boxShadow: activeLeaderTab === 'best' ? '0 2px 8px rgba(99, 102, 241, 0.4)' : 'none',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     TOP 3
@@ -358,9 +366,17 @@ export default function DashboardPage() {
                   <button 
                     onClick={() => setActiveLeaderTab('worst')}
                     style={{ 
-                      border: 'none', background: activeLeaderTab === 'worst' ? '#1f2937' : 'none',
-                      fontSize: '11px', fontWeight: 800, color: activeLeaderTab === 'worst' ? '#ef4444' : subTextCol,
-                      padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'var(--font-mono)'
+                      border: 'none',
+                      background: activeLeaderTab === 'worst' ? '#ef4444' : 'transparent',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      color: activeLeaderTab === 'worst' ? '#ffffff' : '#cbd5e1',
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)',
+                      boxShadow: activeLeaderTab === 'worst' ? '0 2px 8px rgba(239, 68, 68, 0.4)' : 'none',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     BOTTOM 3
