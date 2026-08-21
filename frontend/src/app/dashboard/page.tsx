@@ -344,15 +344,15 @@ export default function DashboardPage() {
                 <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>
                   Performance Leaders
                 </span>
-                <div style={{ display: 'flex', gap: '4px', backgroundColor: '#07090e', padding: '4px', borderRadius: '8px', border: '1px solid #334155' }}>
+                <div style={{ display: 'flex', gap: '4px', backgroundColor: 'var(--color-surface-2)', padding: '4px', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                   <button 
                     onClick={() => setActiveLeaderTab('best')}
                     style={{ 
                       border: 'none',
-                      background: activeLeaderTab === 'best' ? '#6366f1' : 'transparent',
+                      background: activeLeaderTab === 'best' ? 'var(--color-accent)' : 'transparent',
                       fontSize: '11px',
                       fontWeight: 800,
-                      color: activeLeaderTab === 'best' ? '#ffffff' : '#cbd5e1',
+                      color: activeLeaderTab === 'best' ? '#ffffff' : subTextCol,
                       padding: '5px 12px',
                       borderRadius: '6px',
                       cursor: 'pointer',
@@ -367,10 +367,10 @@ export default function DashboardPage() {
                     onClick={() => setActiveLeaderTab('worst')}
                     style={{ 
                       border: 'none',
-                      background: activeLeaderTab === 'worst' ? '#ef4444' : 'transparent',
+                      background: activeLeaderTab === 'worst' ? 'var(--color-bearish)' : 'transparent',
                       fontSize: '11px',
                       fontWeight: 800,
-                      color: activeLeaderTab === 'worst' ? '#ffffff' : '#cbd5e1',
+                      color: activeLeaderTab === 'worst' ? '#ffffff' : subTextCol,
                       padding: '5px 12px',
                       borderRadius: '6px',
                       cursor: 'pointer',
@@ -390,7 +390,7 @@ export default function DashboardPage() {
                     <div style={{ fontSize: '13px', color: subTextCol, fontStyle: 'italic', padding: '20px 0' }}>No active positions available.</div>
                   ) : (
                     bestList.map((p, idx) => (
-                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: '#07090e', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: 'var(--color-surface-2)', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, fontFamily: 'var(--font-mono)' }}>0{idx + 1}</span>
                           <div>
@@ -410,7 +410,7 @@ export default function DashboardPage() {
                     <div style={{ fontSize: '13px', color: subTextCol, fontStyle: 'italic', padding: '20px 0' }}>No bottom performers available.</div>
                   ) : (
                     worstList.map((p, idx) => (
-                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: '#07090e', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: 'var(--color-surface-2)', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, fontFamily: 'var(--font-mono)' }}>0{idx + 1}</span>
                           <div>
@@ -448,7 +448,7 @@ export default function DashboardPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                 {allocationData.map((item: any) => (
-                  <div key={item.symbol} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', backgroundColor: '#07090e', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                  <div key={item.symbol} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', backgroundColor: 'var(--color-surface-2)', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 700, color: textCol }}>{item.symbol}</div>
                       <div style={{ fontSize: '11px', color: subTextCol }}>{formatAbsoluteCurrency(item.investedAmount, 0)} Deployed</div>
@@ -483,7 +483,7 @@ export default function DashboardPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                 {sortedActivity.map((p: any, idx: number) => (
-                  <div key={`${p.id}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#07090e', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
+                  <div key={`${p.id}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: 'var(--color-surface-2)', borderRadius: '8px', border: `1px solid ${borderCol}` }}>
                     <div>
                       <strong style={{ fontSize: '13px', color: textCol }}>{p.symbol}</strong>
                       <div style={{ fontSize: '11px', color: subTextCol }}>
