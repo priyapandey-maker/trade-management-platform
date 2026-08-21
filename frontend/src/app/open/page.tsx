@@ -57,12 +57,8 @@ export default function OpenPositionsPage() {
   const [isMobile, setIsMobile] = useState(false);
 
   // Investor management state
-  const [newInvestorName, setNewInvestorName] = useState('Shree');
-  const [isCreatingNewInvestor, setIsCreatingNewInvestor] = useState(false);
-  const [customNewInvestor, setCustomNewInvestor] = useState('');
+  const [newInvestorName, setNewInvestorName] = useState('');
 
-  const [isEditingNewInvestor, setIsEditingNewInvestor] = useState(false);
-  const [customEditInvestor, setCustomEditInvestor] = useState('');
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
@@ -114,7 +110,7 @@ export default function OpenPositionsPage() {
     sellingPrice: '',
     closedAt: '',
     exitReason: 'MANUAL_EXIT',
-    investorName: 'Shree',
+    investorName: '',
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
@@ -186,7 +182,7 @@ export default function OpenPositionsPage() {
   // CSV Import Wizard Handlers
   const downloadTemplate = () => {
     const headers = 'Investor,Symbol,Buy Price,Quantity,Target,Stop Loss,Buy Date,Trade Type,Notes\n';
-    const sample = 'Shree,TCS,3400.00,10,3800.00,3200.00,2026-08-01,BUY,Investment note\n';
+    const sample = 'ExampleInvestor,TCS,3400.00,10,3800.00,3200.00,2026-08-01,BUY,Investment note\n';
     const blob = new Blob([headers + sample], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -252,10 +248,8 @@ export default function OpenPositionsPage() {
       sellingPrice: pos.sellingPrice ? pos.sellingPrice.toString() : '',
       closedAt: pos.closedAt ? new Date(pos.closedAt).toISOString().substring(0, 10) : '',
       exitReason: pos.exitReason || 'MANUAL_EXIT',
-      investorName: pos.investorName || 'Shree',
+      investorName: pos.investorName || '',
     });
-    setIsEditingNewInvestor(false);
-    setCustomEditInvestor('');
     setValidationErrors({});
     setApiError(null);
     setShowEditDrawer(true);
@@ -379,7 +373,7 @@ export default function OpenPositionsPage() {
         closedAt: isSellWorkflow ? editForm.closedAt : undefined,
         exitReason: isSellWorkflow ? editForm.exitReason : undefined,
         status: isSellWorkflow ? 'CLOSED' : undefined,
-        investorName: isEditingNewInvestor ? customEditInvestor.trim() || 'Shree' : editForm.investorName,
+        investorName: editForm.investorName.trim(),
       });
       fetchPositions();
     } catch (err: any) {
@@ -428,7 +422,7 @@ export default function OpenPositionsPage() {
           entryDate: newDate,
           sellDate: newSellDate,
           exitReason: newExitReason,
-          investorName: isCreatingNewInvestor ? customNewInvestor.trim() || 'Shree' : newInvestorName,
+          investorName: newInvestorName.trim(),
         });
       } else {
         await api.post('/portfolio/position', {
@@ -441,7 +435,7 @@ export default function OpenPositionsPage() {
           stopLoss: newStop ? parseFloat(newStop) : null,
           notes: newNotes,
           entryDate: newDate,
-          investorName: isCreatingNewInvestor ? customNewInvestor.trim() || 'Shree' : newInvestorName,
+          investorName: newInvestorName.trim(),
         });
       }
 
@@ -1350,42 +1344,14 @@ export default function OpenPositionsPage() {
 
             <div>
               <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Investor Name *</label>
-              {isEditingNewInvestor ? (
-                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                  <input
-                    type="text"
-                    placeholder="New Investor Name..."
-                    value={customEditInvestor}
-                    onChange={(e) => setCustomEditInvestor(e.target.value)}
-                    required
-                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: cardBg, color: textCol }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingNewInvestor(false)}
-                    style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, cursor: 'pointer', fontSize: '12px' }}
-                  >
-                    Choose Existing
-                  </button>
-                </div>
-              ) : (
-                <select
-                  value={editForm.investorName || 'Shree'}
-                  onChange={(e) => {
-                    if (e.target.value === '__NEW__') {
-                      setIsEditingNewInvestor(true);
-                    } else {
-                      setEditForm({ ...editForm, investorName: e.target.value });
-                    }
-                  }}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: cardBg, color: textCol }}
-                >
-                  {Array.from(new Set(['Shree', 'Priya', 'Rahul', 'Amit', ...positions.map(p => p.investorName).filter(Boolean)])).map(inv => (
-                    <option key={inv} value={inv}>{inv}</option>
-                  ))}
-                  <option value="__NEW__">+ Create New Investor...</option>
-                </select>
-              )}
+              <input
+                type="text"
+                placeholder="Enter investor name"
+                value={editForm.investorName}
+                onChange={(e) => setEditForm({ ...editForm, investorName: e.target.value })}
+                required
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: cardBg, color: textCol }}
+              />
             </div>
 
             {editForm.tradeType === 'SELL' ? (
@@ -1640,42 +1606,14 @@ export default function OpenPositionsPage() {
 
               <div>
                 <label style={{ fontSize: '11.5px', fontWeight: 700, color: subTextCol }}>Investor Name *</label>
-                {isCreatingNewInvestor ? (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                    <input
-                      type="text"
-                      placeholder="New Investor Name..."
-                      value={customNewInvestor}
-                      onChange={(e) => setCustomNewInvestor(e.target.value)}
-                      required
-                      style={{ flex: 1, padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: cardBg, color: textCol }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsCreatingNewInvestor(false)}
-                      style={{ padding: '8px 12px', borderRadius: '6px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, cursor: 'pointer', fontSize: '12px' }}
-                    >
-                      Choose Existing
-                    </button>
-                  </div>
-                ) : (
-                  <select
-                    value={newInvestorName}
-                    onChange={(e) => {
-                      if (e.target.value === '__NEW__') {
-                        setIsCreatingNewInvestor(true);
-                      } else {
-                        setNewInvestorName(e.target.value);
-                      }
-                    }}
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '4px', backgroundColor: cardBg, color: textCol }}
-                  >
-                    {Array.from(new Set(['Shree', 'Priya', 'Rahul', 'Amit', ...positions.map(p => p.investorName).filter(Boolean)])).map(inv => (
-                      <option key={inv} value={inv}>{inv}</option>
-                    ))}
-                    <option value="__NEW__">+ Create New Investor...</option>
-                  </select>
-                )}
+                <input
+                  type="text"
+                  placeholder="Enter investor name"
+                  value={newInvestorName}
+                  onChange={(e) => setNewInvestorName(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '4px', backgroundColor: cardBg, color: textCol }}
+                />
               </div>
 
               {newType === 'SELL' ? (

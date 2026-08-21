@@ -106,7 +106,7 @@ export class TradeImportService {
         return '';
       };
 
-      const investorName = (getVal(['Investor']) || 'Shree').trim();
+      const investorName = (getVal(['Investor']) || '').trim();
       const symbol = (getVal(['Symbol']) || '').trim().toUpperCase();
       const notes = (getVal(['Notes']) || '').trim();
       const tradeType = (getVal(['Trade Type', 'TradeType']) || 'BUY')

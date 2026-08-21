@@ -394,7 +394,7 @@ export class PortfolioService {
     // Investor Management Calculations (derived from recalculated openList and closedList)
     const investorsMap: Record<string, any> = {};
     for (const p of openList) {
-      const inv = p.investorName || 'Shree';
+      const inv = p.investorName || '';
       if (!investorsMap[inv]) {
         investorsMap[inv] = {
           name: inv,
@@ -416,7 +416,7 @@ export class PortfolioService {
       data.unrealizedProfit += p.profitLoss;
     }
     for (const p of closedList) {
-      const inv = p.investorName || 'Shree';
+      const inv = p.investorName || '';
       if (!investorsMap[inv]) {
         investorsMap[inv] = {
           name: inv,
@@ -562,7 +562,7 @@ export class PortfolioService {
           brokerCharges,
           notes: data.notes || null,
           assetType: data.assetType || 'STOCK',
-          investorName: data.investorName || 'Shree',
+          investorName: data.investorName || '',
           status: 'CLOSED',
           entryDate,
           closedAt: sellDate,
@@ -625,7 +625,7 @@ export class PortfolioService {
           brokerCharges,
           notes: data.notes || null,
           assetType: data.assetType || 'STOCK',
-          investorName: data.investorName || 'Shree',
+          investorName: data.investorName || '',
           status: 'OPEN',
           entryDate,
         },

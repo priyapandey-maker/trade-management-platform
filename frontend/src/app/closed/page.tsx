@@ -78,12 +78,10 @@ export default function ClosedPositionsPage() {
     sellingPrice: '',
     closedAt: '',
     exitReason: 'MANUAL_EXIT',
-    investorName: 'Shree',
+    investorName: '',
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
-  const [isEditingNewInvestor, setIsEditingNewInvestor] = useState(false);
-  const [customEditInvestor, setCustomEditInvestor] = useState('');
 
   // Open Edit Drawer
   const handleOpenEditDrawer = (pos: any) => {
@@ -103,10 +101,8 @@ export default function ClosedPositionsPage() {
       sellingPrice: pos.sellingPrice ? pos.sellingPrice.toString() : (pos.currentPrice ? pos.currentPrice.toString() : ''),
       closedAt: pos.closedAt ? new Date(pos.closedAt).toISOString().substring(0, 10) : '',
       exitReason: pos.exitReason || 'MANUAL_EXIT',
-      investorName: pos.investorName || 'Shree',
+      investorName: pos.investorName || '',
     });
-    setIsEditingNewInvestor(false);
-    setCustomEditInvestor('');
     setValidationErrors({});
     setApiError(null);
     setShowEditDrawer(true);
@@ -218,7 +214,7 @@ export default function ClosedPositionsPage() {
         closedAt: isSellWorkflow ? editForm.closedAt : undefined,
         exitReason: isSellWorkflow ? editForm.exitReason : undefined,
         status: isSellWorkflow ? 'CLOSED' : undefined,
-        investorName: isEditingNewInvestor ? customEditInvestor.trim() || 'Shree' : editForm.investorName,
+        investorName: editForm.investorName.trim(),
       });
       fetchClosedPositions();
     } catch (err: any) {
@@ -1149,42 +1145,14 @@ export default function ClosedPositionsPage() {
 
             <div>
               <label style={{ fontSize: '11.5px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Investor Name *</label>
-              {isEditingNewInvestor ? (
-                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                  <input
-                    type="text"
-                    placeholder="New Investor Name..."
-                    value={customEditInvestor}
-                    onChange={(e) => setCustomEditInvestor(e.target.value)}
-                    required
-                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', backgroundColor: cardBg, color: textCol }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingNewInvestor(false)}
-                    style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${borderCol}`, backgroundColor: cardBg, color: textCol, cursor: 'pointer', fontSize: '12px' }}
-                  >
-                    Choose Existing
-                  </button>
-                </div>
-              ) : (
-                <select
-                  value={editForm.investorName || 'Shree'}
-                  onChange={(e) => {
-                    if (e.target.value === '__NEW__') {
-                      setIsEditingNewInvestor(true);
-                    } else {
-                      setEditForm({ ...editForm, investorName: e.target.value });
-                    }
-                  }}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: cardBg, color: textCol }}
-                >
-                  {Array.from(new Set(['Shree', 'Priya', 'Rahul', 'Amit', ...positions.map(p => p.investorName).filter(Boolean)])).map(inv => (
-                    <option key={inv} value={inv}>{inv}</option>
-                  ))}
-                  <option value="__NEW__">+ Create New Investor...</option>
-                </select>
-              )}
+              <input
+                type="text"
+                placeholder="Enter investor name"
+                value={editForm.investorName}
+                onChange={(e) => setEditForm({ ...editForm, investorName: e.target.value })}
+                required
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '13px', marginTop: '6px', backgroundColor: cardBg, color: textCol }}
+              />
             </div>
 
             {editForm.tradeType === 'SELL' ? (
