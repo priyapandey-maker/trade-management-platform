@@ -319,7 +319,7 @@ export default function PortfolioPage() {
       </div>
 
       {error && (
-        <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
+        <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
           {error}
         </div>
       )}
@@ -327,7 +327,7 @@ export default function PortfolioPage() {
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {[1, 2, 3].map((n) => (
-            <div key={n} style={{ height: '70px', borderRadius: '12px', backgroundColor: '#F1F5F9', opacity: 0.6 }} />
+            <div key={n} style={{ height: '70px', borderRadius: '12px', backgroundColor: 'var(--color-surface-3)', opacity: 0.6 }} />
           ))}
         </div>
       ) : (
@@ -411,7 +411,7 @@ export default function PortfolioPage() {
                   <div style={{ color: subTextCol, fontStyle: 'italic', fontSize: '13px', textAlign: 'center', padding: '12px' }}>No position insights available.</div>
                 )}
                 {[...uniqueActiveInsights, ...uniqueHistoricalInsights].map((insight, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', backgroundColor: '#F8FAFC', borderRadius: '10px', border: `1px solid ${borderCol}`, gap: '12px' }}>
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', backgroundColor: 'var(--color-surface-2)', borderRadius: '10px', border: `1px solid ${borderCol}`, gap: '12px' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                         {insight.labels.map((lbl: string) => (
@@ -481,7 +481,7 @@ export default function PortfolioPage() {
                           width: '5px', height: '5px', borderRadius: '50%',
                           backgroundColor: i === (performerIndex % performanceLeaders.length)
                             ? (performanceLeaders[i]?.isBest ? '#10B981' : '#EF4444')
-                            : '#E2E8F0',
+                            : 'var(--color-surface-3)',
                           transition: 'background-color 0.3s ease'
                         }} />
                       ))}
@@ -522,7 +522,7 @@ export default function PortfolioPage() {
             {totalInvestors > 0 && (
               <div style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {topContributors.map((inv, idx) => (
-                  <div key={inv.name} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '5px 11px', borderRadius: '20px', backgroundColor: '#F8FAFC', border: `1px solid ${borderCol}`, fontSize: '12px' }}>
+                  <div key={inv.name} style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '5px 11px', borderRadius: '20px', backgroundColor: 'var(--color-surface-2)', border: `1px solid ${borderCol}`, fontSize: '12px' }}>
                     <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: COLORS[idx % COLORS.length], flexShrink: 0 }} />
                     <strong style={{ color: textCol }}>{inv.name}</strong>
                     <span style={{ color: subTextCol }}>({formatAbsoluteCurrency(inv.totalInvestment, 0)} | {((inv.totalInvestment / (totalCapitalAllocated || 1)) * 100).toFixed(1)}%)</span>
@@ -604,7 +604,7 @@ export default function PortfolioPage() {
                       <tr key={pos.id} className="hover-row" style={{ borderBottom: `1px solid ${borderCol}` }}>
                         <td style={{ padding: '11px 10px', fontWeight: 800, color: textCol }} title={pos.company}>{pos.symbol}</td>
                         <td style={{ padding: '11px 10px' }}>
-                          <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: '#EFF6FF', color: '#2563EB', padding: '2px 6px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: 'rgba(37,99,235,0.1)', color: '#818cf8', padding: '2px 6px', borderRadius: '4px' }}>
                             {pos.assetType || 'STOCK'}
                           </span>
                         </td>

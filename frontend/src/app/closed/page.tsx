@@ -526,7 +526,7 @@ export default function ClosedPositionsPage() {
       </div>
 
       {error && (
-        <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
+        <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
           ⚠️ {error}
         </div>
       )}
@@ -685,12 +685,12 @@ export default function ClosedPositionsPage() {
                     <div>
                       <span
                         style={{
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          backgroundColor: pos.exitReason === 'TARGET_HIT' ? 'rgba(22, 163, 74, 0.1)' : pos.exitReason === 'STOP_LOSS_HIT' ? 'rgba(220, 38, 38, 0.1)' : 'var(--color-surface-3)',
+                          color: pos.exitReason === 'TARGET_HIT' ? '#16A34A' : pos.exitReason === 'STOP_LOSS_HIT' ? '#DC2626' : subTextCol,
                           fontSize: '11px',
                           fontWeight: 800,
-                          padding: '3px 8px',
-                          borderRadius: '4px',
-                          backgroundColor: pos.exitReason === 'TARGET_HIT' ? '#DCFCE7' : pos.exitReason === 'STOP_LOSS_HIT' ? '#FEE2E2' : 'var(--color-surface-3)',
-                          color: pos.exitReason === 'TARGET_HIT' ? '#15803D' : pos.exitReason === 'STOP_LOSS_HIT' ? '#991B1B' : '#64748B',
                         }}
                       >
                         {pos.exitReason === 'TARGET_HIT' ? 'Target Hit' : pos.exitReason === 'STOP_LOSS_HIT' ? 'SL Hit' : 'Manual Exit'}
@@ -793,18 +793,19 @@ export default function ClosedPositionsPage() {
                         <button
                           onClick={() => setDeletingId(pos.id)}
                           style={{
-                            flex: 1,
-                            height: '44px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: '#FEE2E2',
-                            color: '#991B1B',
-                            fontSize: '13px',
+                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                            color: '#DC2626',
+                            padding: '1px 5px',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px',
+                            flex: 1,
+                            height: '44px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            justifyContent: 'center',
                           }}
                         >
                           <Trash2 size={14} /> Delete
@@ -891,12 +892,12 @@ export default function ClosedPositionsPage() {
                       <td style={{ padding: '12px 10px' }}>
                         <span
                           style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            backgroundColor: pos.exitReason === 'TARGET_HIT' ? 'rgba(22, 163, 74, 0.1)' : pos.exitReason === 'STOP_LOSS_HIT' ? 'rgba(220, 38, 38, 0.1)' : 'var(--color-surface-3)',
+                            color: pos.exitReason === 'TARGET_HIT' ? '#16A34A' : pos.exitReason === 'STOP_LOSS_HIT' ? '#DC2626' : subTextCol,
                             fontSize: '11px',
                             fontWeight: 800,
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            backgroundColor: pos.exitReason === 'TARGET_HIT' ? '#DCFCE7' : pos.exitReason === 'STOP_LOSS_HIT' ? '#FEE2E2' : 'var(--color-surface-3)',
-                            color: pos.exitReason === 'TARGET_HIT' ? '#15803D' : pos.exitReason === 'STOP_LOSS_HIT' ? '#991B1B' : '#64748B',
                           }}
                         >
                           {pos.exitReason === 'TARGET_HIT' ? 'Target Hit' : pos.exitReason === 'STOP_LOSS_HIT' ? 'SL Hit' : 'Manual Exit'}
@@ -913,10 +914,10 @@ export default function ClosedPositionsPage() {
                             >
                               <Pencil size={14} />
                             </button>
-                            <button
-                              onClick={() => setDeletingId(pos.id)}
+                            <button 
+                              onClick={() => setDeletingId(pos.id)} 
+                              style={{ padding: '6px', borderRadius: '6px', border: 'none', backgroundColor: 'rgba(220, 38, 38, 0.1)', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               title="Delete"
-                              style={{ padding: '6px', borderRadius: '6px', border: 'none', backgroundColor: '#FEE2E2', color: '#991B1B', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -957,9 +958,9 @@ export default function ClosedPositionsPage() {
             <p style={{ fontSize: '13px', color: subTextCol, margin: '0 0 16px 0' }}>
               Are you sure you want to delete this closed position permanently from history?
             </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button onClick={() => setDeletingId(null)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '13px' }}>Cancel</button>
-              <button onClick={confirmDelete} style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#DC2626', color: cardBg, border: 'none', borderRadius: '6px', fontWeight: 800, cursor: 'pointer' }}>Delete</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setDeletingId(null)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '6px' }}>Cancel</button>
+              <button onClick={confirmDelete} style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#DC2626', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 800, cursor: 'pointer' }}>Delete</button>
             </div>
           </div>
         </div>
@@ -1028,7 +1029,7 @@ export default function ClosedPositionsPage() {
           {/* Drawer Form Scrollable */}
           <form onSubmit={handleEditSubmit} style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {apiError && (
-              <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
                 ⚠️ {apiError}
               </div>
             )}

@@ -105,13 +105,13 @@ export default function SettingsPage() {
       </div>
 
       {error && (
-        <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
+        <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
           ⚠️ {error}
         </div>
       )}
 
       {successMsg && (
-        <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', color: '#166534', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
+        <div style={{ backgroundColor: 'rgba(22, 163, 74, 0.1)', border: '1px solid rgba(22, 163, 74, 0.3)', color: '#16A34A', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
           {successMsg}
         </div>
       )}
@@ -145,7 +145,7 @@ export default function SettingsPage() {
               <div>
                 <span style={{ fontSize: '11px', fontWeight: 800, color: subTextCol, textTransform: 'uppercase' }}>Role</span>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: textCol, marginTop: '4px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: '#EFF6FF', color: '#2563EB', padding: '3px 8px', borderRadius: '4px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: 'rgba(37,99,235,0.1)', color: '#818cf8', padding: '3px 8px', borderRadius: '4px' }}>
                     {user?.role || 'N/A'}
                   </span>
                 </div>
@@ -165,13 +165,13 @@ export default function SettingsPage() {
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '13.5px', fontWeight: 700, color: textCol }}>Theme Mode</span>
-              <div style={{ display: 'flex', gap: '6px', backgroundColor: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--color-surface-2)', padding: '3px', borderRadius: '8px' }}>
                 <button
                   type="button"
                   onClick={() => theme === 'dark' && toggleTheme()}
                   style={{
                     border: 'none',
-                    background: theme === 'light' ? '#FFFFFF' : 'transparent',
+                    background: theme === 'light' ? 'var(--color-surface-1)' : 'transparent',
                     color: theme === 'light' ? '#2563EB' : subTextCol,
                     padding: '6px 16px',
                     borderRadius: '6px',
@@ -189,7 +189,7 @@ export default function SettingsPage() {
                   onClick={() => theme === 'light' && toggleTheme()}
                   style={{
                     border: 'none',
-                    background: theme === 'dark' ? '#FFFFFF' : 'transparent',
+                    background: theme === 'dark' ? 'var(--color-surface-3)' : 'transparent',
                     color: theme === 'dark' ? '#2563EB' : subTextCol,
                     padding: '6px 16px',
                     borderRadius: '6px',

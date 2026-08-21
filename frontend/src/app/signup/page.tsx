@@ -38,7 +38,7 @@ export default function SignupPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#07090e',
+      backgroundColor: 'var(--color-bg-base)',
       backgroundImage: 'linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px)',
       backgroundSize: '48px 48px',
       fontFamily: 'var(--font-sans)',
@@ -55,10 +55,10 @@ export default function SignupPage() {
       <div style={{
         width: '100%',
         maxWidth: '420px',
-        backgroundColor: '#0d121f',
+        backgroundColor: 'var(--color-surface-1)',
         borderRadius: '16px',
-        border: '1px solid #1f2937',
-        boxShadow: '0 24px 90px rgba(0, 0, 0, 0.6)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-lg)',
         padding: '40px 32px',
         position: 'relative',
         zIndex: 10
@@ -70,17 +70,17 @@ export default function SignupPage() {
             height: '52px',
             padding: '0 20px',
             borderRadius: '10px',
-            backgroundColor: '#07090e',
-            border: '1px solid #1f2937',
+            backgroundColor: 'var(--color-surface-2)',
+            border: '1px solid var(--color-border)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <img src="/shree_logo_full.png" alt="Shree Associates" style={{ height: '36px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+            <img src="/shree_logo_full.png" alt="Shree Associates" className="theme-logo" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
           </div>
           <p style={{
             fontSize: '12.5px',
-            color: '#94a3b8',
+            color: 'var(--color-text-secondary)',
             fontWeight: 500,
             margin: '14px 0 0 0'
           }}>
@@ -110,7 +110,7 @@ export default function SignupPage() {
               display: 'block',
               fontSize: '11px',
               fontWeight: 800,
-              color: '#64748b',
+              color: 'var(--color-text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               marginBottom: '8px',
@@ -119,7 +119,7 @@ export default function SignupPage() {
               Full Name
             </label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <User size={16} style={{ position: 'absolute', left: '14px', color: '#64748b' }} />
+              <User size={16} style={{ position: 'absolute', left: '14px', color: 'var(--color-text-muted)' }} />
               <input
                 type="text"
                 value={name}
@@ -130,9 +130,9 @@ export default function SignupPage() {
                   width: '100%',
                   padding: '12px 16px 12px 42px',
                   borderRadius: '8px',
-                  border: '1px solid #1f2937',
-                  backgroundColor: '#07090e',
-                  color: '#f8fafc',
+                  border: '1px solid var(--color-border)',
+                  backgroundColor: 'var(--color-surface-2)',
+                  color: 'var(--color-text-primary)',
                   fontSize: '14px',
                   fontWeight: 500,
                   outline: 'none',
@@ -147,7 +147,7 @@ export default function SignupPage() {
               display: 'block',
               fontSize: '11px',
               fontWeight: 800,
-              color: '#64748b',
+              color: 'var(--color-text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               marginBottom: '8px',
@@ -156,7 +156,7 @@ export default function SignupPage() {
               Email Address
             </label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Mail size={16} style={{ position: 'absolute', left: '14px', color: '#64748b' }} />
+              <Mail size={16} style={{ position: 'absolute', left: '14px', color: 'var(--color-text-muted)' }} />
               <input
                 type="email"
                 value={email}
@@ -167,9 +167,9 @@ export default function SignupPage() {
                   width: '100%',
                   padding: '12px 16px 12px 42px',
                   borderRadius: '8px',
-                  border: '1px solid #1f2937',
-                  backgroundColor: '#07090e',
-                  color: '#f8fafc',
+                  border: '1px solid var(--color-border)',
+                  backgroundColor: 'var(--color-surface-2)',
+                  color: 'var(--color-text-primary)',
                   fontSize: '14px',
                   fontWeight: 500,
                   outline: 'none',
@@ -184,7 +184,7 @@ export default function SignupPage() {
               display: 'block',
               fontSize: '11px',
               fontWeight: 800,
-              color: '#64748b',
+              color: 'var(--color-text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               marginBottom: '8px',
@@ -193,7 +193,7 @@ export default function SignupPage() {
               Password
             </label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <LockKeyhole size={16} style={{ position: 'absolute', left: '14px', color: '#64748b' }} />
+              <LockKeyhole size={16} style={{ position: 'absolute', left: '14px', color: 'var(--color-text-muted)' }} />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
@@ -204,9 +204,9 @@ export default function SignupPage() {
                   width: '100%',
                   padding: '12px 48px 12px 42px',
                   borderRadius: '8px',
-                  border: '1px solid #1f2937',
-                  backgroundColor: '#07090e',
-                  color: '#f8fafc',
+                  border: '1px solid var(--color-border)',
+                  backgroundColor: 'var(--color-surface-2)',
+                  color: 'var(--color-text-primary)',
                   fontSize: '14px',
                   outline: 'none',
                   boxSizing: 'border-box'
@@ -230,7 +230,7 @@ export default function SignupPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: isEyeHovered ? '#f8fafc' : '#64748b',
+                  color: isEyeHovered ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
                   padding: '4px',
                   outline: 'none',
                   transition: 'color 0.2s ease'
@@ -258,7 +258,7 @@ export default function SignupPage() {
               display: 'block',
               fontSize: '11px',
               fontWeight: 800,
-              color: '#64748b',
+              color: 'var(--color-text-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               marginBottom: '8px',
@@ -267,7 +267,7 @@ export default function SignupPage() {
               Confirm Password
             </label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <LockKeyhole size={16} style={{ position: 'absolute', left: '14px', color: '#64748b' }} />
+              <LockKeyhole size={16} style={{ position: 'absolute', left: '14px', color: 'var(--color-text-muted)' }} />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
@@ -278,9 +278,9 @@ export default function SignupPage() {
                   width: '100%',
                   padding: '12px 48px 12px 42px',
                   borderRadius: '8px',
-                  border: '1px solid #1f2937',
-                  backgroundColor: '#07090e',
-                  color: '#f8fafc',
+                  border: '1px solid var(--color-border)',
+                  backgroundColor: 'var(--color-surface-2)',
+                  color: 'var(--color-text-primary)',
                   fontSize: '14px',
                   outline: 'none',
                   boxSizing: 'border-box'
@@ -315,8 +315,8 @@ export default function SignupPage() {
           </button>
           
           <div style={{ textAlign: 'center', marginTop: '8px' }}>
-            <span style={{ color: '#94a3b8', fontSize: '13px' }}>Already have an account? </span>
-            <a href="/login" style={{ color: '#818cf8', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>Sign in</a>
+            <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>Already have an account? </span>
+            <a href="/login" style={{ color: 'var(--color-accent)', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>Sign in</a>
           </div>
         </form>
       </div>

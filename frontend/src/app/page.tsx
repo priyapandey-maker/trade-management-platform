@@ -42,8 +42,8 @@ const TerminalPreview: React.FC = () => {
           <span className="terminal-dot" style={{ background: '#f59e0b' }} />
           <span className="terminal-dot" style={{ background: '#10b981' }} />
         </div>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#64748b' }}>
-          shree_terminal_v2.1 <span style={{ color: '#334155' }}>•</span> LIVE MARKET FEED
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+          shree_terminal_v2.1 <span style={{ color: 'var(--color-text-secondary)' }}>•</span> LIVE MARKET FEED
         </span>
         <span style={{
           borderRadius: '100px', border: '1px solid rgba(16,185,129,0.3)',
@@ -54,7 +54,7 @@ const TerminalPreview: React.FC = () => {
         </span>
       </div>
 
-      <div style={{ background: '#0d121f' }}>
+      <div style={{ background: 'var(--color-surface-1)' }}>
         <LandingPortfolioPerformance isTerminal={true} />
       </div>
     </div>
@@ -112,12 +112,12 @@ export default function IndexPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#07090e' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-base)' }}>
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div className="lp-nav-logo-container">
-            <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img" />
+            <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img theme-logo" />
           </div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8', marginTop: 16 }}>Loading terminal...</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)', marginTop: 16 }}>Loading terminal...</div>
         </div>
       </div>
     );
@@ -128,12 +128,12 @@ export default function IndexPage() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <div style={{ overflowX: 'hidden', background: '#07090e', color: '#f8fafc' }}>
+    <div style={{ overflowX: 'hidden', background: 'var(--color-bg-base)', color: 'var(--color-text-primary)' }}>
       {/* NAVBAR */}
       <nav className={`lp-nav ${scrolled ? 'scrolled' : ''}`}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div className="lp-nav-logo-container">
-            <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img" />
+            <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img theme-logo" />
           </div>
         </div>
         <div className="lp-nav-actions">
@@ -149,9 +149,9 @@ export default function IndexPage() {
         <div className="section-shell flex items-center justify-between">
           <div className="ticker-track">
             {[...tickerItems, ...tickerItems].map(([symbol, price, change, dir], i) => (
-              <span key={`${symbol}-${i}`} style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#64748b' }}>
-                <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{symbol}</span> {price}{' '}
-                <span style={{ color: dir === 'up' ? '#10b981' : '#ef4444' }}>{change}</span>
+              <span key={`${symbol}-${i}`} style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                <span style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>{symbol}</span> {price}{' '}
+                <span style={{ color: dir === 'up' ? 'var(--color-bullish)' : 'var(--color-bearish)' }}>{change}</span>
               </span>
             ))}
           </div>
@@ -249,11 +249,11 @@ export default function IndexPage() {
         <div className="lp-container">
           <div className="lp-showcase-split">
             <div className="lp-showcase-visual">
-              <div style={{ fontSize: '11px', fontWeight: 800, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px', fontFamily: 'var(--font-mono)' }}>
                 ACTIVE HOLDINGS PREVIEW
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '8px', paddingBottom: '10px', borderBottom: '1px solid #1f2937', marginBottom: '10px', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '8px', paddingBottom: '10px', borderBottom: '1px solid var(--color-border)', marginBottom: '10px', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
                 <div>Instrument</div>
                 <div style={{ textAlign: 'right' }}>Qty</div>
                 <div style={{ textAlign: 'right' }}>Value</div>
@@ -266,11 +266,11 @@ export default function IndexPage() {
                 { ticker: 'HDFCBANK', qty: '2,000', value: '₹30,04,400', pct: '+2.9%', pos: true },
                 { ticker: 'INFY', qty: '800', value: '₹14,47,520', pct: '-1.3%', pos: false },
               ].map((row) => (
-                <div key={row.ticker} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '8px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', alignItems: 'center' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>{row.ticker}</div>
-                  <div style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.qty}</div>
-                  <div style={{ fontSize: '13px', color: '#e2e8f0', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{row.value}</div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: row.pos ? '#10b981' : '#ef4444', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.pct}</div>
+                <div key={row.ticker} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '8px', padding: '10px 0', borderBottom: '1px solid var(--color-border-subtle)', alignItems: 'center' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{row.ticker}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.qty}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{row.value}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: row.pos ? 'var(--color-bullish)' : 'var(--color-bearish)', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.pct}</div>
                 </div>
               ))}
             </div>
@@ -325,7 +325,7 @@ export default function IndexPage() {
           <div className="lp-footer-content">
             <div>
               <div className="lp-nav-logo-container" style={{ marginBottom: '12px' }}>
-                <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img" />
+                <img src="/shree_logo_full.png" alt="Shree Associates" className="lp-logo-img theme-logo" />
               </div>
               <div className="lp-footer-copy">
                 &copy; {currentYear} Shree Associates. Trade &amp; Portfolio Management.

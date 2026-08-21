@@ -730,7 +730,7 @@ export default function OpenPositionsPage() {
       </div>
 
       {error && (
-        <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
+        <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13.5px' }}>
           ⚠️ {error}
         </div>
       )}
@@ -770,7 +770,7 @@ export default function OpenPositionsPage() {
               Performance Leaders
             </span>
             {currentLeader && (
-              <span style={{ fontSize: '10px', fontWeight: 800, color: currentLeader.type === 'BEST PERFORMER' ? '#16A34A' : '#DC2626', backgroundColor: currentLeader.type === 'BEST PERFORMER' ? ('#DCFCE7') : ('#FEE2E2'), padding: '2px 6px', borderRadius: '4px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 800, color: currentLeader.type === 'BEST PERFORMER' ? '#16A34A' : '#DC2626', backgroundColor: currentLeader.type === 'BEST PERFORMER' ? 'rgba(22, 163, 74, 0.1)' : 'rgba(220, 38, 38, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                 #{currentLeader.rank} {currentLeader.type}
               </span>
             )}
@@ -844,9 +844,11 @@ export default function OpenPositionsPage() {
         </div>
 
         {selectedIds.length > 0 && user?.role === 'OWNER' && (
-          <button onClick={() => setShowBulkDeleteConfirm(true)} style={{ padding: '8px 14px', backgroundColor: '#DC2626', color: cardBg, border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Trash2 size={14} /> Delete Selected ({selectedIds.length})
-          </button>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button onClick={() => setShowBulkDeleteConfirm(true)} style={{ padding: '8px 14px', backgroundColor: '#DC2626', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Trash2 size={14} /> Delete Selected ({selectedIds.length})
+            </button>
+          </div>
         )}
       </div>
 
@@ -964,7 +966,7 @@ export default function OpenPositionsPage() {
                           borderRadius: '8px',
                           border: 'none',
                           backgroundColor: '#16A34A',
-                          color: cardBg,
+                          color: '#ffffff',
                           fontSize: '13px',
                           fontWeight: 800,
                           cursor: 'pointer',
@@ -1003,8 +1005,8 @@ export default function OpenPositionsPage() {
                           height: '40px',
                           borderRadius: '8px',
                           border: 'none',
-                          backgroundColor: '#FEE2E2',
-                          color: '#991B1B',
+                          backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                          color: '#DC2626',
                           fontSize: '13px',
                           fontWeight: 700,
                           cursor: 'pointer',
@@ -1074,8 +1076,8 @@ export default function OpenPositionsPage() {
                         </div>
                       </td>
 
-                      <td style={{ padding: '12px', fontWeight: 700 }}>
-                        <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? ('#DCFCE7') : ('#FEE2E2'), color: pos.tradeType === 'BUY' ? ('#15803D') : ('#991B1B'), fontSize: '11px', fontWeight: 800 }}>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: pos.tradeType === 'BUY' ? 'rgba(21, 128, 61, 0.1)' : 'rgba(153, 27, 27, 0.1)', color: pos.tradeType === 'BUY' ? ('#15803D') : ('#991B1B'), fontSize: '11px', fontWeight: 800 }}>
                           {pos.tradeType}
                         </span>
                       </td>
@@ -1118,7 +1120,7 @@ export default function OpenPositionsPage() {
                                 setClosingPosition(pos);
                                 setClosePrice(pos.currentPrice.toString());
                               }}
-                              style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#16A34A', color: cardBg, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                              style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#16A34A', color: '#ffffff', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             >
                               <CheckCircle2 size={14} /> Close
                             </button>
@@ -1132,7 +1134,7 @@ export default function OpenPositionsPage() {
                             <button
                               onClick={() => setDeletingId(pos.id)}
                               title="Delete"
-                              style={{ padding: '6px', borderRadius: '6px', border: 'none', backgroundColor: '#FEE2E2', color: '#991B1B', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              style={{ padding: '6px', borderRadius: '6px', border: 'none', backgroundColor: 'rgba(220, 38, 38, 0.1)', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -1228,7 +1230,7 @@ export default function OpenPositionsPage() {
           {/* Drawer Form Scrollable */}
           <form onSubmit={handleEditSubmit} style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {apiError && (
-              <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
                 ⚠️ {apiError}
               </div>
             )}
@@ -1817,8 +1819,8 @@ export default function OpenPositionsPage() {
             <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 800, color: textCol }}>Confirm Delete</h4>
             <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>Are you sure you want to permanently delete this trade?</p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-              <button onClick={() => setDeletingId(null)} className="btnSecondary" style={{ padding: '8px 16px', fontSize: '12.5px', borderRadius: '8px' }}>Cancel</button>
-              <button onClick={confirmDelete} style={{ padding: '8px 18px', backgroundColor: '#DC2626', color: cardBg, border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
+              <button onClick={() => setDeletingId(null)} style={{ padding: '8px 18px', backgroundColor: 'transparent', color: subTextCol, border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={confirmDelete} style={{ padding: '8px 18px', backgroundColor: '#DC2626', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
             </div>
           </div>
         </div>
@@ -1830,9 +1832,9 @@ export default function OpenPositionsPage() {
           <div style={{ width: '400px', padding: '20px', backgroundColor: cardBg, color: textCol, borderRadius: '12px', border: `1px solid ${borderCol}` }}>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '15px', fontWeight: 800 }}>Confirm Bulk Delete</h4>
             <p style={{ fontSize: '13px', color: subTextCol, margin: 0 }}>Are you sure you want to delete {selectedIds.length} selected open positions?</p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-              <button onClick={() => setShowBulkDeleteConfirm(false)} className="btnSecondary" style={{ padding: '6px 14px', fontSize: '12px' }}>Cancel</button>
-              <button onClick={confirmBulkDelete} style={{ padding: '6px 14px', backgroundColor: '#DC2626', color: cardBg, border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Delete All Selected</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+              <button onClick={() => setShowBulkDeleteConfirm(false)} style={{ padding: '6px 14px', backgroundColor: 'transparent', color: subTextCol, border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={confirmBulkDelete} style={{ padding: '6px 14px', backgroundColor: '#DC2626', color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Delete All Selected</button>
             </div>
           </div>
         </div>
@@ -1870,10 +1872,12 @@ export default function OpenPositionsPage() {
                         📥 Download CSV Template
                       </button>
                       
-                      <label style={{ padding: '10px 20px', backgroundColor: '#16A34A', color: cardBg, borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-block' }}>
-                        📤 Choose CSV File
-                        <input type="file" accept=".csv" onChange={handleCsvUpload} style={{ display: 'none' }} />
-                      </label>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <label style={{ padding: '10px 20px', backgroundColor: '#16A34A', color: '#ffffff', borderRadius: '8px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-block' }}>
+                          Browse CSV File
+                          <input type="file" accept=".csv" onChange={handleCsvUpload} style={{ display: 'none' }} />
+                        </label>
+                      </div>
                     </div>
                   </div>
                 )}
