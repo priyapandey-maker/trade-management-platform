@@ -71,6 +71,12 @@ Frontend application runs on `http://localhost:3000`.
 
 ---
 
+## ⚠️ Database Migration Warning
+
+**Do not delete dev.db before migration. Existing data must be preserved. Inspect the current SQLite database, migrate required existing data to PostgreSQL, verify the migration, and only then remove SQLite dependency.**
+
+---
+
 ## 📝 License
 
 Distributed under the MIT License. See `LICENSE` for details.

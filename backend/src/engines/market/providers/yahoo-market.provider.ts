@@ -5,9 +5,7 @@ import {
   QuoteData,
   CandleData,
 } from '../../../core/interfaces/market-provider.interface';
-import YahooFinance from 'yahoo-finance2';
-
-const yahooFinance = new (YahooFinance as any)();
+const yahooFinance = require('yahoo-finance2').default;
 
 /**
  * YahooMarketProvider
