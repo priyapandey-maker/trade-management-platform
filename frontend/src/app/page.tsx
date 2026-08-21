@@ -54,8 +54,8 @@ const TerminalPreview: React.FC = () => {
         </span>
       </div>
 
-      <div style={{ padding: '20px', background: '#07090e' }}>
-        <LandingPortfolioPerformance />
+      <div style={{ background: '#0d121f' }}>
+        <LandingPortfolioPerformance isTerminal={true} />
       </div>
     </div>
   );

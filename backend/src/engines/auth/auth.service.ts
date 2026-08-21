@@ -52,6 +52,42 @@ export class AuthService {
     };
   }
 
+  async register(body: any) {
+    const { name, email, password } = body;
+    if (!name || !email || !password) {
+      throw new UnauthorizedException(
+        'Name, email, and password are required for registration.',
+      );
+    }
+
+    const trimmedEmail = email.toLowerCase().trim();
+    const existing = await prisma.user.findUnique({
+      where: { email: trimmedEmail },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'A user with this email address already exists.',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email: trimmedEmail,
+        password: hashedPassword,
+        role: 'OWNER', // Public signups become OWNERS of their own workspace
+      },
+    });
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+  }
+
   async createClient(ownerId: string, body: any) {
     const owner = await prisma.user.findUnique({ where: { id: ownerId } });
     if (!owner || owner.role !== 'OWNER') {

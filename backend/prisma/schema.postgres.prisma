@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Idea {
+  id             String   @id @default(uuid())
+  company        String
+  symbol         String
+  currentPrice   Float
+  alphaedgeScore Int      @default(3) // 1 to 5 stars
+  checksJson     String   // JSON string of the 5 checks evaluation
+  buyPrice       Float
+  targetPrice    Float
+  stopLoss       Float
+  notes          String?
+  assetType      String   @default("STOCK") // "STOCK" | "ETF" | "CRYPTO" | "COMMODITY" | "CURRENCY" | "INDEX" | "GOLD" | "SILVER" | "CRUDE_OIL" | "NATURAL_GAS"
+  status         String   @default("ACTIVE") // "ACTIVE" | "WATCHING" | "TARGET_HIT" | "STOP_LOSS_HIT" | "ARCHIVED"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([symbol])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model User {
+  id                           String              @id @default(uuid())
+  name                         String?
+  email                        String              @unique
+  password                     String
+  role                         String              @default("CLIENT") // "OWNER" | "CLIENT"
+  telegramRecipients           TelegramRecipient[]
+  notifications                Notification[]
+  
+  // Notification preference switches
+  prefNearBuy                  Boolean             @default(true)
+  prefBuyTrigger               Boolean             @default(true)
+  prefStopLoss                 Boolean             @default(true)
+  prefTargetHit                Boolean             @default(true)
+  prefManualClose              Boolean             @default(true)
+  prefDailySummary             Boolean             @default(true)
+  prefPriceMovement            Boolean?            @default(true)
+  
+  // Delivery channel status flags
+  emailNotificationsEnabled    Boolean             @default(true)
+  telegramNotificationsEnabled Boolean             @default(true)
+  inAppNotificationsEnabled    Boolean             @default(true)
+  
+  // Specific schema fields as requested
+  telegramChatIds              String              @default("")
+  telegramEnabled              Boolean             @default(true)
+  emailEnabled                 Boolean             @default(true)
+  inAppEnabled                 Boolean             @default(true)
+
+  createdAt                    DateTime            @default(now())
+  updatedAt                    DateTime            @updatedAt
+}
+
+model TelegramRecipient {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatId    String
+  name      String?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PortfolioPosition {
+  id                  String               @id @default(uuid())
+  symbol              String
+  company             String
+  tradeType           String               @default("BUY") // "BUY" | "SELL"
+  buyPrice            Float
+  currentPrice        Float
+  targetPrice         Float?
+  stopLoss            Float?
+  quantity            Float
+  investedAmount      Float
+  currentValue        Float
+  profitLoss          Float
+  profitLossPct       Float                @default(0)
+  sellingPrice        Float?
+  brokerCharges       Float                @default(0)
+  entryDate           DateTime             @default(now())
+  exitReason          String?              // "TARGET_HIT" | "STOP_LOSS_HIT" | "MANUAL_EXIT"
+  holdingPeriod       Int?                 // frozen holding period in days when closed
+  nearBuyProximityPct Float                @default(1.0)
+  buyPriceAlertActive Boolean              @default(true)
+  nearBuyAlertActive  Boolean              @default(true)
+  notes               String?
+  assetType           String               @default("STOCK")
+  investorName        String               @default("Shree")
+  status              String               @default("OPEN") // "OPEN" | "CLOSED" | "ARCHIVED"
+  closedAt            DateTime?
+  muteAlertsUntil     DateTime?
+  alert2Sent          Boolean?             @default(false)
+  alert3Sent          Boolean?             @default(false)
+  alert5Sent          Boolean?             @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([symbol])
+  @@index([status])
+  @@index([tradeType])
+  @@index([createdAt])
+  @@index([investorName])
+}
+
+model Notification {
+  id              String                 @id @default(uuid())
+  userId          String
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            String                 // "NEAR_BUY" | "BUY_TRIGGER" | "TARGET_HIT" | "STOP_LOSS" | "TRADE_CLOSED" | "DAILY_SUMMARY" | "TEST"
+  symbol          String
+  company         String
+  message         String
+  read            Boolean                @default(false)
+  
+  // Specific schema fields as requested
+  telegramStatus  String                 @default("PENDING")
+  emailStatus     String                 @default("PENDING")
+  inAppStatus     String                 @default("PENDING")
+  telegramRetries Int                    @default(0)
+  emailRetries    Int                    @default(0)
+  errorLog        String                 @default("")
+
+  // Deduplication indicators
+  triggerKey      String?
+  triggerPrice    Float?
+  
+  deliveries      NotificationDelivery[]
+  createdAt       DateTime               @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
+  @@index([symbol])
+}
+
+model NotificationDelivery {
+  id             String       @id @default(uuid())
+  notificationId String
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  provider       String       // "TELEGRAM" | "EMAIL" | "IN_APP"
+  status         String       @default("PENDING") // "PENDING" | "SENT" | "FAILED" | "DISABLED"
+  retryCount     Int          @default(0)
+  nextTry        DateTime?
+  error          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([notificationId])
+  @@index([status])
+}
+
+model RuleConfig {
+  id          String   @id @default(uuid())
+  code        String   @unique // e.g. "CHECK_1_INSTITUTIONAL", "CHECK_2_PE", "CHECK_3_FWA", "CHECK_4_SUPPORT", "CHECK_5_RSI"
+  name        String
+  enabled     Boolean  @default(true)
+  operator    String   // ">", "<", "<=", "INCREASED", "WITHIN_RANGE"
+  threshold   String?  // Stored as string to handle numeric thresholds or custom values
+  weight      Float    @default(1.0)
+  description String
+  updatedAt   DateTime @updatedAt
+}
+
+model AppSetting {
+  key       String   @id // e.g. "theme", "api_provider", "api_key", "telegram_bot_token", "telegram_chat_id", "browser_notifications"
+  value     String
+  updatedAt DateTime @updatedAt
+}

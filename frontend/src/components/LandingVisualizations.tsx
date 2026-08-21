@@ -80,12 +80,14 @@ const tooltipStyle = {
 /* ─────────────────────────────────────────────
    A. PORTFOLIO PERFORMANCE CHART COMPONENT
 ───────────────────────────────────────────── */
-export const LandingPortfolioPerformance: React.FC = () => {
+export const LandingPortfolioPerformance: React.FC<{ isTerminal?: boolean }> = ({ isTerminal }) => {
   const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M' | '3M' | '1Y'>('1M');
   const chartData = performanceDataMap[timeframe] || performanceDataMap['1M'];
 
   return (
-    <div style={{
+    <div style={isTerminal ? {
+      padding: '24px'
+    } : {
       backgroundColor: '#0d121f',
       border: '1px solid #1f2937',
       borderRadius: '16px',

@@ -9,8 +9,8 @@
 
 html, body {
   font-family: var(--font-sans);
-  background-color: #F8FAFC;
-  color: #0F172A;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -75,7 +75,7 @@ a {
 }
 
 .hover-row:hover {
-  background-color: #EFF6FF !important;
+  background-color: var(--color-surface-2) !important;
 }
 
 /* Form Inputs Focus Ring */
@@ -87,38 +87,38 @@ input:focus, select:focus, textarea:focus {
 
 /* Button Standards */
 .btn-primary {
-  background-color: #2563EB;
+  background-color: var(--color-accent);
   color: #FFFFFF;
   border: none;
   transition: all 0.2s ease-out;
 }
 .btn-primary:hover {
-  background-color: #1D4ED8;
+  background-color: var(--color-accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
 }
 
 .btn-secondary {
-  background-color: #FFFFFF;
-  color: #0F172A;
-  border: 1px solid #E2E8F0;
+  background-color: var(--color-surface-1);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   transition: all 0.2s ease-out;
 }
 .btn-secondary:hover {
-  background-color: #EFF6FF;
-  border-color: #2563EB;
-  color: #2563EB;
+  background-color: var(--color-surface-2);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .btn-danger {
-  background-color: #FFFFFF;
-  color: #DC2626;
-  border: 1px solid #FECACA;
+  background-color: var(--color-surface-1);
+  color: var(--color-bearish);
+  border: 1px solid rgba(239, 68, 68, 0.35);
   transition: all 0.2s ease-out;
 }
 .btn-danger:hover {
-  background-color: #FEF2F2;
-  border-color: #DC2626;
+  background-color: var(--color-bearish-bg);
+  border-color: var(--color-bearish);
 }
 
 /* Sidebar toggle button (desktop-only) */
@@ -129,23 +129,23 @@ input:focus, select:focus, textarea:focus {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background-color: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 50;
   transition: all 0.18s ease-out;
-  color: #64748B;
+  color: var(--color-text-secondary);
   padding: 0;
 }
 .sidebar-toggle-btn:hover {
-  background-color: #FFFFFF;
-  border-color: #2563EB;
-  color: #2563EB;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+  background-color: var(--color-surface-2);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: var(--shadow-md);
 }
 @media (max-width: 1023px) {
   .sidebar-toggle-btn {
@@ -172,12 +172,12 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 600;
-  color: #0F172A;
+  color: var(--color-text-primary);
   transition: background-color 0.15s ease;
   box-sizing: border-box;
 }
 .dropdown-menu-item:hover {
-  background-color: #F8FAFC;
+  background-color: var(--color-surface-2);
 }
 .dropdown-menu-item-danger {
   display: flex;
@@ -191,10 +191,10 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 700;
-  color: #EF4444;
+  color: var(--color-bearish);
   transition: background-color 0.15s ease;
   box-sizing: border-box;
 }
 .dropdown-menu-item-danger:hover {
-  background-color: #FEF2F2;
+  background-color: var(--color-bearish-bg);
 }

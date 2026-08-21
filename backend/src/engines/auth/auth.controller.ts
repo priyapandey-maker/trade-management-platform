@@ -51,6 +51,11 @@ export class AuthController {
     return this.authService.login(body);
   }
 
+  @Post('register')
+  async register(@Body() body: any) {
+    return this.authService.register(body);
+  }
+
   @Post('create-client')
   @UseGuards(AuthGuard)
   async createClient(@CurrentUser() user: any, @Body() body: any) {

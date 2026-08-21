@@ -16,6 +16,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -54,10 +55,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Watch unauthenticated redirects
   useEffect(() => {
     if (!loading) {
-      if (!token && pathname !== '/' && pathname !== '/login') {
+      if (!token && pathname !== '/' && pathname !== '/login' && pathname !== '/signup') {
         // No token and not on a public page: send user to landing page
         router.replace('/');
-      } else if (token && (pathname === '/login' || pathname === '/')) {
+      } else if (token && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
         // Authenticated user should go to dashboard
         router.replace('/open');
       }
@@ -84,6 +85,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      const trimmedEmail = (email || '').trim().toLowerCase();
+      const res = await api.post('/auth/register', { name, email: trimmedEmail, password });
+      // After registration, automatically login
+      await login(trimmedEmail, password);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Registration failed.';
+      throw new Error(msg);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('shree_token');
     localStorage.removeItem('shree_user');
@@ -93,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

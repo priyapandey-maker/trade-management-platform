@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { ArrowRight, LockKeyhole, Mail } from 'lucide-react';
+import { ArrowRight, LockKeyhole, Mail, User } from 'lucide-react';
 
-export default function LoginPage() {
-  const { login } = useAuth();
+export default function SignupPage() {
+  const { register } = useAuth();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -15,12 +17,16 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      await login(email, password);
+      await register(name, email, password);
     } catch (err: any) {
-      setError(err.message || 'Verification failed.');
+      setError(err.message || 'Registration failed.');
     } finally {
       setLoading(false);
     }
@@ -78,7 +84,7 @@ export default function LoginPage() {
             fontWeight: 500,
             margin: '14px 0 0 0'
           }}>
-            Trade Management & Portfolio Analytics Terminal
+            Create your Owner Account
           </p>
         </div>
 
@@ -110,6 +116,43 @@ export default function LoginPage() {
               marginBottom: '8px',
               fontFamily: 'var(--font-mono)'
             }}>
+              Full Name
+            </label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <User size={16} style={{ position: 'absolute', left: '14px', color: '#64748b' }} />
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="John Doe"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px 12px 42px',
+                  borderRadius: '8px',
+                  border: '1px solid #1f2937',
+                  backgroundColor: '#07090e',
+                  color: '#f8fafc',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: '11px',
+              fontWeight: 800,
+              color: '#64748b',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: '8px',
+              fontFamily: 'var(--font-mono)'
+            }}>
               Email Address
             </label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -118,7 +161,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@gmail.com"
+                placeholder="name@company.com"
                 required
                 style={{
                   width: '100%',
@@ -209,6 +252,42 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+          
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: '11px',
+              fontWeight: 800,
+              color: '#64748b',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: '8px',
+              fontFamily: 'var(--font-mono)'
+            }}>
+              Confirm Password
+            </label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <LockKeyhole size={16} style={{ position: 'absolute', left: '14px', color: '#64748b' }} />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 48px 12px 42px',
+                  borderRadius: '8px',
+                  border: '1px solid #1f2937',
+                  backgroundColor: '#07090e',
+                  color: '#f8fafc',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
 
           <button
             type="submit"
@@ -232,11 +311,12 @@ export default function LoginPage() {
               transition: 'all 0.2s ease'
             }}
           >
-            {loading ? 'Authenticating...' : 'Sign In'} <ArrowRight size={16} />
+            {loading ? 'Creating Account...' : 'Sign Up'} <ArrowRight size={16} />
           </button>
+          
           <div style={{ textAlign: 'center', marginTop: '8px' }}>
-            <span style={{ color: '#94a3b8', fontSize: '13px' }}>Don't have an account? </span>
-            <a href="/signup" style={{ color: '#818cf8', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>Sign up</a>
+            <span style={{ color: '#94a3b8', fontSize: '13px' }}>Already have an account? </span>
+            <a href="/login" style={{ color: '#818cf8', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>Sign in</a>
           </div>
         </form>
       </div>

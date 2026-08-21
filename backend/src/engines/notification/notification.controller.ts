@@ -255,6 +255,11 @@ export class NotificationController {
   // Expose Trigger Test Notification Actions
   @Post('test')
   async sendTestNotification(@Req() req: any) {
+    if (req.user.role !== 'OWNER') {
+      throw new ForbiddenException(
+        'Only platform owners can trigger test notifications.',
+      );
+    }
     const userId = req.user.sub;
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
@@ -276,6 +281,11 @@ export class NotificationController {
 
   @Post('test/telegram')
   async sendTestTelegram(@Req() req: any) {
+    if (req.user.role !== 'OWNER') {
+      throw new ForbiddenException(
+        'Only platform owners can trigger test notifications.',
+      );
+    }
     const userId = req.user.sub;
     await this.notificationService.sendTestTelegram(userId);
     return { success: true };
@@ -283,6 +293,11 @@ export class NotificationController {
 
   @Post('test/email')
   async sendTestEmail(@Req() req: any) {
+    if (req.user.role !== 'OWNER') {
+      throw new ForbiddenException(
+        'Only platform owners can trigger test notifications.',
+      );
+    }
     const userId = req.user.sub;
     await this.notificationService.sendTestEmail(userId);
     return { success: true };
